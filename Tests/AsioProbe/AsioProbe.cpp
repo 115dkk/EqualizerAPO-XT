@@ -117,6 +117,7 @@ namespace
 		long traceSlowUs = 0;
 		bool reference = true;
 		bool beyondFloat32 = false;
+		bool float64Samples = false;
 		std::wstring daemonExe;
 		std::wstring endpoint = L"EAPO.ASIO.probe";
 		uint32_t deadlineUs = 0;
@@ -141,7 +142,7 @@ namespace
 			"          --processor inproc|passthrough|daemon-thread|daemon --config <config.txt> [--mode sync|pipelined]\n"
 			"          [--daemon <EqualizerAPOHost.exe>] [--endpoint <name>] [--deadline-us N]\n"
 			"          [--frames 64] [--rate 48000] [--periods 200] [--pace-us 0] [--burst 1] [--channels in,out] [--sample-type int16|int24|int32|float32|float64]\n"
-			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready]\n"
+			"          [--seed N] [--host-seed N] [--no-input] [--no-output] [--output-ready] [--float64-samples]\n"
 			"          [--expect-sha256 hex] [--expect-first-sha256 hex] [--expect-input-sha256 hex] [--max-late N] [--trace-slow us] [--no-reference] [--beyond-float32]\n"
 			"          [--seconds 10] [--tone] [--sine Hz]   (live targets only)\n"
 			"          [--latency-capture {capture endpoint GUID}] [--click-interval-ms 500] [--latency-csv <path>]\n", stderr);
@@ -183,6 +184,7 @@ namespace
 		TCLAP::MultiSwitchArg outputReadyArg("", "output-ready", "", parser);
 		TCLAP::MultiSwitchArg noReferenceArg("", "no-reference", "", parser);
 		TCLAP::MultiSwitchArg beyondFloat32Arg("", "beyond-float32", "", parser);
+		TCLAP::MultiSwitchArg float64SamplesArg("", "float64-samples", "", parser);
 		TCLAP::MultiSwitchArg toneArg("", "tone", "", parser);
 		TCLAP::MultiArg<std::string> sineArg("", "sine", "", false, "value", parser);
 		if (!commandLine.parse(argc, argv))
@@ -279,6 +281,7 @@ namespace
 		a.callOutputReady = outputReadyArg.getValue() != 0;
 		a.reference = noReferenceArg.getValue() == 0;
 		a.beyondFloat32 = beyondFloat32Arg.getValue() != 0;
+		a.float64Samples = float64SamplesArg.getValue() != 0;
 		a.tone = toneArg.getValue() != 0;
 		if (sineArg.isSet())
 			a.sineHz = std::wcstod(probesupport::lastWide(sineArg).c_str(), nullptr);
@@ -368,6 +371,7 @@ namespace
 		}
 		std::wstring options = L"output=" + std::wstring(a.processOutput ? L"1" : L"0")
 			+ L";input=" + std::wstring(a.processInput ? L"1" : L"0")
+			+ L";float64=" + std::wstring(a.float64Samples ? L"1" : L"0")
 			+ L";mode=" + a.mode + L";deadline=" + std::to_wstring(a.deadlineUs)
 			+ L";endpoint=" + a.endpoint + L";daemon=" + a.daemonExe + L";config=" + a.config;
 		const HRESULT hr = create(target, targetClsid.c_str(), options.c_str(), a.processor.c_str(), wrapper.put());
@@ -532,6 +536,11 @@ namespace
 		}
 		const long hostType = channelInfo.type;
 		std::printf("sample-types host=%ld target=%ld\n", hostType, a.sampleType);
+		if (a.float64Samples && hostType != ASIOSTFloat64LSB)
+		{
+			std::fprintf(stderr, "AsioProbe: --float64-samples was given but the wrapper reports sample type %ld\n", hostType);
+			return 2;
+		}
 		asiotest::HostStub::Options hostOptions;
 		hostOptions.sampleType = hostType;
 		hostOptions.outputSeed = a.hostSeed;
@@ -1097,6 +1106,11 @@ namespace
 		info.channel = 0;
 		info.isInput = outputs > 0 ? ASIOFalse : ASIOTrue;
 		wrapper->getChannelInfo(&info);
+		if (a.float64Samples && info.type != ASIOSTFloat64LSB)
+		{
+			std::fprintf(stderr, "AsioProbe: --float64-samples was given but the wrapper reports sample type %ld\n", info.type);
+			return 2;
+		}
 		hostOptions.sampleType = info.type;
 		long minSize = 0, maxSize = 0, preferred = 0, granularity = 0;
 		wrapper->getBufferSize(&minSize, &maxSize, &preferred, &granularity);
@@ -1309,6 +1323,7 @@ int wmain(int argc, wchar_t** argv)
 	StreamOptions options;
 	options.processInput = a.processInput;
 	options.processOutput = a.processOutput;
+	options.float64Samples = a.float64Samples;
 	options.mode = a.mode == L"pipelined" ? Mode::Pipelined : Mode::Sync;
 	options.configPath = a.config;
 	options.deadlineUs = a.deadlineUs;

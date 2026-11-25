@@ -62,7 +62,7 @@ namespace eapo::asio
 		// Deletes the record; a missing record is not an error.
 		void remove(IRegistry& registry, const std::wstring& wrapperClsid);
 
-		// The Device Selector's four choices as a record holds them, and back.
+		// The entry's choices (asio/EntryOptions.h) as a record holds them, and back.
 		// A record written before DeadlinePercent existed reads as 25.
 		EntryOptions entryOptions(const WrapperRecord& record);
 		void setEntryOptions(WrapperRecord& record, const EntryOptions& options);

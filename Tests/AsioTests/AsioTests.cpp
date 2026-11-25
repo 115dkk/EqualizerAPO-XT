@@ -10,6 +10,7 @@
 	touched; the fake driver is stepped on this thread.
 */
 
+#include <algorithm>
 #include <array>
 #include <bit>
 #include <cmath>
@@ -169,9 +170,10 @@ namespace
 			// The wrapper owns the processor from here on; the raw pointer is
 			// how the test scripts and inspects it.
 			processor = scripted != nullptr ? scripted : new ScriptedProcessor();
+			const bool float64Samples = options.float64Samples;
 			wrapper = new AsioWrapper(fake, testWrapperClsid, testTargetClsid, std::move(options), std::unique_ptr<IStreamProcessor>(processor));
 			fake->Release();       // the wrapper holds the reference now
-			hostOptions.sampleType = config.sampleType;
+			hostOptions.sampleType = float64Samples ? ASIOSTFloat64LSB : config.sampleType;
 			host = std::make_unique<asiotest::HostStub>(hostOptions);
 		}
 
@@ -232,6 +234,31 @@ namespace
 		unsigned long bytes = 0;
 		control->suppliedInput(channel, &data, &bytes);
 		return std::vector<unsigned char>(data, data + bytes);
+	}
+
+	std::vector<double> oracleDecoded(long type, const std::vector<unsigned char>& bytes)
+	{
+		const size_t sampleBytes = asiotest::oracle::bytesPerSample(type);
+		harness.require(sampleBytes != 0 && bytes.size() % sampleBytes == 0, "oracle input has whole supported samples");
+		std::vector<double> values(bytes.size() / sampleBytes);
+		asiotest::oracle::decode(type, bytes.data(), values.data(), values.size());
+		return values;
+	}
+
+	std::vector<unsigned char> oracleEncoded(long type, const std::vector<double>& values)
+	{
+		const size_t sampleBytes = asiotest::oracle::bytesPerSample(type);
+		harness.require(sampleBytes != 0, "oracle output has a supported sample type");
+		std::vector<unsigned char> bytes(values.size() * sampleBytes);
+		asiotest::oracle::encode(type, values.data(), bytes.data(), values.size());
+		return bytes;
+	}
+
+	void expectExactBytes(const std::vector<unsigned char>& actual, const std::vector<unsigned char>& expected,
+		const std::string& label)
+	{
+		harness.requireEqual(actual.size(), expected.size(), label + " byte count");
+		harness.expect(actual == expected, label);
 	}
 
 	// Applies the codec round trip the host's float takes before the wrapper
@@ -1225,6 +1252,239 @@ namespace
 
 	// ---- wrapper: data flow ----
 
+	TEST_CASE(AsioTests, testFloat64SamplesAreReportedForEveryChannel)
+	{
+		FakeAsioConfig config;
+		config.inputChannels = 2;
+		config.outputChannels = 3;
+		config.sampleType = ASIOSTInt24LSB;
+		StreamOptions options;
+		options.float64Samples = true;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		AsioWrapper* wrapper = rig.wrapper;
+		harness.requireEqual(wrapper->init(nullptr), ASIOTrue, "initialize the Float64-reporting wrapper");
+
+		const auto checkChannels = [&](const std::string& state) {
+			for (int direction = 0; direction < 2; direction++)
+			{
+				const bool input = direction != 0;
+				const long count = input ? config.inputChannels : config.outputChannels;
+				for (long channel = 0; channel < count; channel++)
+				{
+					ASIOChannelInfo targetInfo = {};
+					targetInfo.channel = channel;
+					targetInfo.isInput = input ? ASIOTrue : ASIOFalse;
+					harness.requireEqual(rig.fake->getChannelInfo(&targetInfo), ASE_OK,
+						state + " target channel info");
+					ASIOChannelInfo hostInfo = {};
+					hostInfo.channel = channel;
+					hostInfo.isInput = input ? ASIOTrue : ASIOFalse;
+					harness.requireEqual(wrapper->getChannelInfo(&hostInfo), ASE_OK,
+						state + " wrapper channel info");
+					harness.expectEqual(hostInfo.type, static_cast<long>(ASIOSTFloat64LSB),
+						state + " reports Float64LSB");
+					harness.expectEqual(hostInfo.isActive, targetInfo.isActive,
+						state + " keeps the target active flag");
+					harness.expectEqual(hostInfo.channelGroup, targetInfo.channelGroup,
+						state + " keeps the target channel group");
+					harness.expect(std::strcmp(hostInfo.name, targetInfo.name) == 0,
+						state + " keeps the target channel name");
+				}
+			}
+		};
+
+		checkChannels("before createBuffers");
+		harness.expectEqual(wrapper->getChannelInfo(nullptr), ASE_InvalidParameter,
+			"a null channel-info pointer is forwarded to the target");
+		rig.host->openChannels(config.inputChannels, config.outputChannels);
+		harness.requireEqual(rig.host->createBuffers(wrapper, 16), ASE_OK, "prepare Float64-reporting buffers");
+		checkChannels("while prepared");
+		harness.requireEqual(wrapper->start(), ASE_OK, "start Float64-reporting buffers");
+		checkChannels("while running");
+		harness.requireEqual(wrapper->stop(), ASE_OK, "stop Float64-reporting buffers");
+		harness.requireEqual(wrapper->disposeBuffers(), ASE_OK, "dispose Float64-reporting buffers");
+		checkChannels("after disposeBuffers");
+
+		StreamOptions targetTypeOptions;
+		Rig targetTypeRig(config, targetTypeOptions, asiotest::HostStub::Options());
+		for (int direction = 0; direction < 2; direction++)
+		{
+			const bool input = direction != 0;
+			const long count = input ? config.inputChannels : config.outputChannels;
+			for (long channel = 0; channel < count; channel++)
+			{
+				ASIOChannelInfo info = {};
+				info.channel = channel;
+				info.isInput = input ? ASIOTrue : ASIOFalse;
+				harness.requireEqual(targetTypeRig.wrapper->getChannelInfo(&info), ASE_OK,
+					"default wrapper channel info");
+				harness.expectEqual(info.type, static_cast<long>(ASIOSTInt24LSB),
+					"without the option the application sees Int24LSB");
+			}
+		}
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesReachTheTargetProcessed)
+	{
+		constexpr long testFrames = 16;
+		constexpr long testPeriods = 3;
+		FakeAsioConfig config;
+		config.sampleType = ASIOSTInt32LSB;
+		config.seed = 11;
+		config.fullPrecision = 1;
+		StreamOptions options;
+		options.float64Samples = true;
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.outputSeed = 7;
+		hostOptions.fullPrecision = true;
+		Rig rig(config, options, hostOptions);
+		rig.processor->gain = 0.5f;
+		rig.host->openChannels(2, 2);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize the converted processed stream");
+		harness.requireEqual(rig.host->createBuffers(rig.wrapper, testFrames), ASE_OK,
+			"create the converted processed stream");
+		harness.requireEqual(rig.wrapper->start(), ASE_OK, "start the converted processed stream");
+		harness.requireEqual(rig.control()->pump(testPeriods), S_OK, "pump the converted processed stream");
+		harness.requireEqual(rig.wrapper->stop(), ASE_OK, "stop the converted processed stream");
+		harness.requireEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose the converted processed stream");
+
+		for (long channel = 0; channel < 2; channel++)
+		{
+			std::vector<double> expectedOutput(static_cast<size_t>(testFrames * testPeriods));
+			for (size_t sample = 0; sample < expectedOutput.size(); sample++)
+				expectedOutput[sample] = 0.5 * rig.host->outputValue(channel, sample);
+			expectExactBytes(captured(rig.control(), channel), oracleEncoded(ASIOSTInt32LSB, expectedOutput),
+				"processed Float64 output reaches Int32 target channel " + std::to_string(channel));
+
+			std::vector<double> expectedInput = oracleDecoded(ASIOSTInt32LSB, supplied(rig.control(), channel));
+			for (double& sample : expectedInput)
+				sample *= 0.5;
+			expectExactBytes(rig.host->inputRecord(static_cast<size_t>(channel)),
+				oracleEncoded(ASIOSTFloat64LSB, expectedInput),
+				"processed Int32 input reaches Float64 host channel " + std::to_string(channel));
+		}
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesFallBackConverted)
+	{
+		constexpr long testFrames = 16;
+		FakeAsioConfig config;
+		config.inputChannels = 1;
+		config.outputChannels = 1;
+		config.sampleType = ASIOSTInt24LSB;
+		config.seed = 11;
+		config.fullPrecision = 1;
+		StreamOptions options;
+		options.processInput = false;
+		options.float64Samples = true;
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.outputSeed = 7;
+		hostOptions.sampleType = ASIOSTFloat64LSB;
+		hostOptions.fullPrecision = true;
+		Rig rig(config, options, hostOptions);
+		rig.processor->gain = 0.5f;
+		rig.processor->script = {Outcome::Processed, Outcome::LateDropped, Outcome::Processed};
+		rig.host->openChannels(1, 1);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize the converted fallback stream");
+		harness.requireEqual(rig.host->createBuffers(rig.wrapper, testFrames), ASE_OK,
+			"create the converted fallback stream");
+		harness.requireEqual(rig.wrapper->start(), ASE_OK, "start the converted fallback stream");
+		harness.requireEqual(rig.control()->pump(3), S_OK, "pump the converted fallback stream");
+		harness.requireEqual(rig.wrapper->stop(), ASE_OK, "stop the converted fallback stream");
+		harness.requireEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose the converted fallback stream");
+
+		std::vector<double> expectedOutput(static_cast<size_t>(testFrames * 3));
+		for (size_t sample = 0; sample < expectedOutput.size(); sample++)
+		{
+			const size_t period = sample / static_cast<size_t>(testFrames);
+			const double gain = period == 1 ? 1.0 : 0.5;
+			expectedOutput[sample] = gain * rig.host->outputValue(0, sample);
+		}
+		expectExactBytes(captured(rig.control(), 0), oracleEncoded(ASIOSTInt24LSB, expectedOutput),
+			"late Float64 output is converted without processing between processed periods");
+		std::vector<double> expectedInput = oracleDecoded(ASIOSTInt24LSB, supplied(rig.control(), 0));
+		expectExactBytes(rig.host->inputRecord(0), oracleEncoded(ASIOSTFloat64LSB, expectedInput),
+			"disabled Int24 input is converted to Float64");
+
+		FakeAsioDriver* fake = new FakeAsioDriver();
+		harness.requireEqual(fake->configure(&config), S_OK, "configure the passthrough conversion target");
+		StreamOptions passthroughOptions;
+		passthroughOptions.float64Samples = true;
+		AsioWrapper* wrapper = new AsioWrapper(fake, testWrapperClsid, testTargetClsid,
+			passthroughOptions, std::make_unique<PassthroughProcessor>());
+		fake->Release();
+		std::vector<unsigned char> passthroughOutput;
+		std::vector<unsigned char> passthroughInput;
+		std::vector<unsigned char> passthroughSupplied;
+		{
+			asiotest::HostStub host(hostOptions);
+			host.openChannels(1, 1);
+			harness.requireEqual(wrapper->init(nullptr), ASIOTrue, "initialize the passthrough conversion stream");
+			harness.requireEqual(host.createBuffers(wrapper, testFrames), ASE_OK, "create the passthrough conversion stream");
+			harness.requireEqual(wrapper->start(), ASE_OK, "start the passthrough conversion stream");
+			harness.requireEqual(fake->pump(2), S_OK, "pump the passthrough conversion stream");
+			harness.requireEqual(wrapper->stop(), ASE_OK, "stop the passthrough conversion stream");
+			harness.requireEqual(wrapper->disposeBuffers(), ASE_OK, "dispose the passthrough conversion stream");
+			passthroughOutput = captured(fake, 0);
+			passthroughInput = host.inputRecord(0);
+			passthroughSupplied = supplied(fake, 0);
+			std::vector<double> passthroughValues(static_cast<size_t>(testFrames * 2));
+			for (size_t sample = 0; sample < passthroughValues.size(); sample++)
+				passthroughValues[sample] = host.outputValue(0, sample);
+			expectExactBytes(passthroughOutput, oracleEncoded(ASIOSTInt24LSB, passthroughValues),
+				"passthrough Float64 output is converted to Int24");
+		}
+		expectExactBytes(passthroughInput,
+			oracleEncoded(ASIOSTFloat64LSB, oracleDecoded(ASIOSTInt24LSB, passthroughSupplied)),
+			"passthrough Int24 input is converted to Float64");
+		wrapper->Release();
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesUnopenedChannelsSeeSilence)
+	{
+		FakeAsioConfig config;
+		config.outputChannels = 4;
+		StreamOptions options;
+		options.processInput = false;
+		options.float64Samples = true;
+		asiotest::HostStub::Options hostOptions;
+		hostOptions.fullPrecision = true;
+		Rig rig(config, options, hostOptions);
+		rig.processor->gain = 1.0f;
+		rig.host->openChannelList({}, {0, 2});
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize Float64 unopened-channel stream");
+		harness.requireEqual(rig.host->createBuffers(rig.wrapper, 16), ASE_OK,
+			"create Float64 unopened-channel stream");
+		harness.requireEqual(rig.wrapper->start(), ASE_OK, "start Float64 unopened-channel stream");
+		harness.requireEqual(rig.control()->pump(2), S_OK, "pump Float64 unopened-channel stream");
+		harness.requireEqual(rig.wrapper->stop(), ASE_OK, "stop Float64 unopened-channel stream");
+		harness.requireEqual(rig.wrapper->disposeBuffers(), ASE_OK, "dispose Float64 unopened-channel stream");
+		std::vector<double> unopened = oracleDecoded(config.sampleType, captured(rig.control(), 1));
+		harness.expect(std::all_of(unopened.begin(), unopened.end(), [](double sample) {return sample == 0.0;}),
+			"an unopened target channel is silent with Float64 host buffers");
+		std::vector<double> opened = oracleDecoded(config.sampleType, captured(rig.control(), 2));
+		harness.expect(std::any_of(opened.begin(), opened.end(), [](double sample) {return sample != 0.0;}),
+			"an opened target channel carries its Float64 host signal");
+	}
+
+	TEST_CASE(AsioTests, testFloat64SamplesLeaveDsdAlone)
+	{
+		FakeAsioConfig config;
+		config.sampleType = ASIOSTDSDInt8LSB1;
+		StreamOptions options;
+		options.float64Samples = true;
+		Rig rig(config, options, asiotest::HostStub::Options());
+		ASIOChannelInfo info = {};
+		info.channel = 0;
+		info.isInput = ASIOFalse;
+		harness.requireEqual(rig.wrapper->getChannelInfo(&info), ASE_OK, "read a DSD channel with the Float64 option");
+		harness.expectEqual(info.type, static_cast<long>(ASIOSTDSDInt8LSB1), "DSD is reported unchanged");
+		rig.host->openChannels(1, 1);
+		harness.requireEqual(rig.wrapper->init(nullptr), ASIOTrue, "initialize the DSD wrapper");
+		harness.expectEqual(rig.host->createBuffers(rig.wrapper, 64), ASE_InvalidMode,
+			"DSD is still refused at createBuffers");
+	}
+
 	TEST_CASE(AsioTests, testOutputAndInputAreProcessed)
 	{
 		FakeAsioConfig config;
@@ -1673,6 +1933,7 @@ namespace
 		record.targetClsid = L"{AAAAAAAA-BBBB-CCCC-DDDD-EEEEEEEEEEEE}";
 		record.targetName = L"Some USB ASIO";
 		record.options.processInput = false;
+		record.options.float64Samples = true;
 		record.options.mode = Mode::Sync;
 		record.options.deadlineUs = 333;
 		record.options.readyTimeoutMs = 4444;
@@ -1689,6 +1950,7 @@ namespace
 		harness.expect(key == L"HKEY_LOCAL_MACHINE\\SOFTWARE\\EqualizerAPO\\ASIO\\{11111111-2222-3333-4444-555555555555}", "the record key spelling");
 		harness.expect(registry.readValue(key, L"TargetClsid") == record.targetClsid, "TargetClsid is written");
 		harness.expectEqual(registry.readDWORDValue(key, L"ProcessInput"), 0ul, "ProcessInput is written as a DWORD");
+		harness.expectEqual(registry.readDWORDValue(key, L"Float64Samples"), 1ul, "Float64Samples is written as a DWORD");
 		harness.expectEqual(registry.readDWORDValue(key, L"Mode"), 0ul, "Sync is Mode 0 (Pipelined, the default, is 1)");
 
 		eapo::asio::WrapperRecord back;
@@ -1697,6 +1959,7 @@ namespace
 		harness.expect(back.targetName == record.targetName, "TargetName round-trips");
 		harness.expectFalse(back.options.processInput, "ProcessInput round-trips");
 		harness.expectTrue(back.options.processOutput, "ProcessOutput round-trips");
+		harness.expectTrue(back.options.float64Samples, "Float64Samples round-trips");
 		harness.expect(back.options.mode == Mode::Sync, "Mode round-trips");
 		harness.expectEqual(back.options.deadlineUs, 333u, "DeadlineUs round-trips");
 		harness.expectEqual(back.options.readyTimeoutMs, 4444u, "ReadyTimeoutMs round-trips");
@@ -1717,6 +1980,13 @@ namespace
 		harness.expectEqual(sparse.options.deadlinePercent, 0u, "DeadlinePercent 0 = the quarter default");
 		harness.expectFalse(sparse.autoStart, "a record without AutoStart does not start the host at boot");
 		harness.expectFalse(sparse.register32, "a record without Register32 serves 64-bit hosts only");
+		harness.expectFalse(sparse.options.float64Samples, "a record without Float64Samples uses the target type");
+
+		eapo::asio::EntryOptions entryOptions = eapo::asio::WrapperRecords::entryOptions(back);
+		harness.expectTrue(entryOptions.float64Samples, "entryOptions carries Float64Samples from the record");
+		entryOptions.float64Samples = false;
+		eapo::asio::WrapperRecords::setEntryOptions(back, entryOptions);
+		harness.expectFalse(back.options.float64Samples, "setEntryOptions carries Float64Samples to the record");
 
 		eapo::asio::WrapperRecords::remove(registry, record.wrapperClsid);
 		harness.expectFalse(registry.keyExists(key), "remove deletes the record");

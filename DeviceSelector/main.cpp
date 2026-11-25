@@ -198,7 +198,7 @@ void say(const wchar_t* format, ...)
 }
 
 // --install-endpoint {guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx]
-//                           [--no-original-apo] [--asio-entry] [--receive] [--no-test]
+//                           [--no-original-apo] [--asio-entry] [--asio-float64] [--receive] [--no-test]
 // --uninstall-endpoint {guid}
 //
 // The dialog's OK for one endpoint, without the dialog: the same
@@ -217,7 +217,7 @@ int runEndpointCommand(QApplication& app, bool install)
 	const int flagIndex = args.indexOf(flag);
 	if (flagIndex < 0 || flagIndex + 1 >= args.size())
 	{
-		say(L"usage: DeviceSelector %s {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--asio-entry] [--receive] [--no-test]\n", reinterpret_cast<const wchar_t*>(flag.utf16()));
+		say(L"usage: DeviceSelector %s {endpoint-guid} [--install-mode lfx-gfx|sfx-mfx|sfx-efx] [--no-original-apo] [--asio-entry] [--asio-float64] [--receive] [--no-test]\n", reinterpret_cast<const wchar_t*>(flag.utf16()));
 		return 2;
 	}
 	const std::wstring guid = args[flagIndex + 1].toStdWString();
@@ -267,8 +267,12 @@ int runEndpointCommand(QApplication& app, bool install)
 	// dialog's checkbox. The entry keeps the options it already has; a new
 	// one gets the defaults.
 	// --exclusive-mode-eq is its first name, still accepted.
+	// --asio-float64 turns on 64-bit float samples for that entry
+	// (asio/EntryOptions.h); without the flag the entry keeps what it has.
 	if (args.contains(QStringLiteral("--asio-entry")) || args.contains(QStringLiteral("--exclusive-mode-eq")))
 		state.asioEntry = true;
+	if (args.contains(QStringLiteral("--asio-float64")))
+		state.asioEntryOptions.float64Samples = true;
 	if (install && args.contains(QStringLiteral("--receive")))
 	{
 		state.receiveFromEndpoints = true;

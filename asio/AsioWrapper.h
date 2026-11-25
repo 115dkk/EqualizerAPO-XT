@@ -8,8 +8,9 @@
 	seam, whatever transforms the audio (docs/architecture/asio-host-study.md,
 	section 10). The wrapper owns the DAW-facing buffers, opens every physical
 	channel of the target so the engine sees the whole device, converts
-	between the target's sample types and the processor's double planes at
-	its edge, and forwards every IASIO call it has no opinion about.
+	between the target buffers, the processor's double planes and the
+	application buffers at its edge, and forwards every IASIO call it has no
+	opinion about.
 
 	State machine (DAW control thread):
 
@@ -109,7 +110,8 @@ namespace eapo::asio
 		{
 			bool input = false;
 			long index = 0;                   // channel number on the target
-			SampleCodec codec;
+			SampleCodec targetCodec;   // what the target's buffers hold
+			SampleCodec hostCodec;     // what the application's buffers hold: the target's type, or Float64LSB with float64Samples
 			void* targetBuffers[2] = {nullptr, nullptr};
 			void* hostBuffers[2] = {nullptr, nullptr};   // owned; nullptr when the DAW did not open the channel
 			ASIOBufferInfo* hostInfo = nullptr;          // the DAW's entry, for the pointer hand-back
@@ -138,6 +140,9 @@ namespace eapo::asio
 		void switchBuffers(long index, ASIOBool direct, ASIOTime* time) noexcept;
 		void runInput(long index) noexcept;
 		void commitOutput(long index) noexcept;
+		// Original audio from one buffer of a channel to the other when no processed block is used.
+		void copyOriginal(Direction direction, const SampleCodec& from, const void* source,
+			const SampleCodec& to, void* destination) noexcept;
 		void account(Direction direction, Outcome outcome, uint64_t startTick) noexcept;
 		bool processorEnabled(Direction direction) const noexcept;
 
@@ -158,6 +163,7 @@ namespace eapo::asio
 
 		std::vector<Channel> channels_;   // every physical channel, inputs first
 		std::vector<ASIOBufferInfo> targetInfos_;
+		std::vector<double> conversion_[directionCount];
 		long inputCount_ = 0;
 		long outputCount_ = 0;
 		long frames_ = 0;

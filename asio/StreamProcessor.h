@@ -127,6 +127,10 @@ namespace eapo::asio
 	{
 		bool processOutput = true;
 		bool processInput = true;
+		// The application's buffers are ASIOSTFloat64LSB on every channel, whatever
+		// type the target takes; the wrapper converts at its edge. Off: the
+		// application sees the target's own sample types.
+		bool float64Samples = false;
 		Mode mode = Mode::Pipelined;
 		uint32_t deadlineUs = 0;          // 0 = automatic: deadlinePercent of the period
 		uint32_t deadlinePercent = 0;     // Sync only; 0 = 25. The Device Selector offers 25, 50 and 75

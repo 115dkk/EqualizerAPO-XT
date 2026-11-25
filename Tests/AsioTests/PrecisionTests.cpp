@@ -57,7 +57,7 @@ namespace
 		return std::vector<unsigned char>(data, data + byteCount);
 	}
 
-	WrappedResult runWrapped(const std::wstring& configPath, long targetType)
+	WrappedResult runWrapped(const std::wstring& configPath, long targetType, bool float64Samples)
 	{
 		FakeAsioConfig config;
 		config.sampleRate = sampleRate;
@@ -76,6 +76,7 @@ namespace
 		options.configPath = configPath;
 		options.processInput = true;
 		options.processOutput = true;
+		options.float64Samples = float64Samples;
 		AsioWrapper* concrete = new AsioWrapper(fake, precisionWrapperClsid, CLSID_FakeAsioText,
 			options, std::make_unique<eapo::asio::InProcProcessor>());
 		ComPtr<IASIO> wrapper;
@@ -194,6 +195,24 @@ namespace
 			engineInDouble(configPath, capture, channels, frames, periods, sampleRate, source), float32Output);
 	}
 
+	std::vector<std::vector<unsigned char>> convertRecords(long sourceType, long destinationType,
+		const std::vector<std::vector<unsigned char>>& source)
+	{
+		const size_t sourceBytes = asiotest::oracle::bytesPerSample(sourceType);
+		const size_t destinationBytes = asiotest::oracle::bytesPerSample(destinationType);
+		harness.require(sourceBytes != 0 && destinationBytes != 0, "record conversion uses supported types");
+		std::vector<std::vector<unsigned char>> result(source.size());
+		for (size_t channel = 0; channel < source.size(); channel++)
+		{
+			harness.require(source[channel].size() % sourceBytes == 0, "record conversion gets whole samples");
+			std::vector<double> values(source[channel].size() / sourceBytes);
+			asiotest::oracle::decode(sourceType, source[channel].data(), values.data(), values.size());
+			result[channel].resize(values.size() * destinationBytes);
+			asiotest::oracle::encode(destinationType, values.data(), result[channel].data(), values.size());
+		}
+		return result;
+	}
+
 	bool recordsDiffer(const std::vector<std::vector<unsigned char>>& left,
 		const std::vector<std::vector<unsigned char>>& right)
 	{
@@ -244,12 +263,15 @@ namespace
 			"Copy: L=0.9*L+0.1*R R=0.1*L+0.9*R\n";
 	}
 
-	void testEnginePrecision(long targetType, const std::wstring& fixtureName)
+	void testEnginePrecision(long targetType, bool float64Samples, const std::wstring& fixtureName)
 	{
 		test::TestDirectory directory(fixtureName);
 		const std::wstring configPath = directory.trackFile(L"config.txt");
 		writeFilterConfig(configPath);
-		const WrappedResult wrapped = runWrapped(configPath, targetType);
+		const WrappedResult wrapped = runWrapped(configPath, targetType, float64Samples);
+		if (float64Samples)
+			harness.expectEqual(wrapped.hostType, static_cast<long>(ASIOSTFloat64LSB),
+				"the Float64 option presents Float64LSB to the precision host");
 
 		asiotest::HostStub::Options hostOptions;
 		hostOptions.outputSeed = hostSeed;
@@ -292,7 +314,7 @@ namespace
 		directory.removeAll();
 	}
 
-	void testIdlePrecision(long targetType, const std::wstring& fixtureName)
+	void testIdlePrecision(long targetType, bool float64Samples, const std::wstring& fixtureName)
 	{
 		test::TestDirectory directory(fixtureName);
 		const std::wstring configPath = directory.trackFile(L"config.txt");
@@ -300,7 +322,10 @@ namespace
 			std::ofstream file(configPath);
 			file << "# No filters.\n";
 		}
-		const WrappedResult wrapped = runWrapped(configPath, targetType);
+		const WrappedResult wrapped = runWrapped(configPath, targetType, float64Samples);
+		if (float64Samples)
+			harness.expectEqual(wrapped.hostType, static_cast<long>(ASIOSTFloat64LSB),
+				"the Float64 option presents Float64LSB to the idle precision host");
 		asiotest::HostStub::Options hostOptions;
 		hostOptions.outputSeed = hostSeed;
 		hostOptions.sampleType = wrapped.hostType;
@@ -315,12 +340,16 @@ namespace
 				for (size_t sample = 0; sample < values.size(); sample++)
 					values[sample] = host.outputValue(channel, sample);
 			}
-			const std::vector<std::vector<unsigned char>> expectedOutputs =
+			const std::vector<std::vector<unsigned char>> hostOutputs =
 				encodeRecords(wrapped.hostType, outputValues, false);
-			expectBytesEqual(wrapped.capturedOutputs, expectedOutputs, wrapped.hostType,
-				"idle output keeps every source bit");
-			expectBytesEqual(wrapped.receivedInputs, wrapped.suppliedInputs, wrapped.hostType,
-				"idle input keeps every source bit");
+			const std::vector<std::vector<unsigned char>> expectedOutputs =
+				convertRecords(wrapped.hostType, targetType, hostOutputs);
+			const std::vector<std::vector<unsigned char>> expectedInputs =
+				convertRecords(targetType, wrapped.hostType, wrapped.suppliedInputs);
+			expectBytesEqual(wrapped.capturedOutputs, expectedOutputs, targetType,
+				"idle output matches host decode and target encode");
+			expectBytesEqual(wrapped.receivedInputs, expectedInputs, wrapped.hostType,
+				"idle input matches target decode and host encode");
 		}
 		directory.removeAll();
 	}
@@ -389,21 +418,36 @@ namespace
 
 	TEST_CASE(PrecisionTests, testFloat64TargetMatchesTheEngineInDouble)
 	{
-		testEnginePrecision(ASIOSTFloat64LSB, L"PrecisionTests-Float64-Engine");
+		testEnginePrecision(ASIOSTFloat64LSB, false, L"PrecisionTests-Float64-Engine");
 	}
 
 	TEST_CASE(PrecisionTests, testInt32TargetMatchesTheEngineInDouble)
 	{
-		testEnginePrecision(ASIOSTInt32LSB, L"PrecisionTests-Int32-Engine");
+		testEnginePrecision(ASIOSTInt32LSB, false, L"PrecisionTests-Int32-Engine");
+	}
+
+	TEST_CASE(PrecisionTests, testInt32TargetWithFloat64SamplesMatchesTheEngineInDouble)
+	{
+		testEnginePrecision(ASIOSTInt32LSB, true, L"PrecisionTests-Int32-Float64Samples-Engine");
+	}
+
+	TEST_CASE(PrecisionTests, testInt24TargetWithFloat64SamplesMatchesTheEngineInDouble)
+	{
+		testEnginePrecision(ASIOSTInt24LSB, true, L"PrecisionTests-Int24-Float64Samples-Engine");
 	}
 
 	TEST_CASE(PrecisionTests, testInt32TargetReceivesEveryBitThroughAnIdleEngine)
 	{
-		testIdlePrecision(ASIOSTInt32LSB, L"PrecisionTests-Int32-Idle");
+		testIdlePrecision(ASIOSTInt32LSB, false, L"PrecisionTests-Int32-Idle");
 	}
 
 	TEST_CASE(PrecisionTests, testFloat64TargetReceivesEveryBitThroughAnIdleEngine)
 	{
-		testIdlePrecision(ASIOSTFloat64LSB, L"PrecisionTests-Float64-Idle");
+		testIdlePrecision(ASIOSTFloat64LSB, false, L"PrecisionTests-Float64-Idle");
+	}
+
+	TEST_CASE(PrecisionTests, testInt32TargetWithFloat64SamplesThroughAnIdleEngine)
+	{
+		testIdlePrecision(ASIOSTInt32LSB, true, L"PrecisionTests-Int32-Float64Samples-Idle");
 	}
 }

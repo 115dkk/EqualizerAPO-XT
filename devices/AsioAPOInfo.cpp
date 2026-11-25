@@ -167,6 +167,8 @@ void AsioAPOInfo::installWithin(RegistryTransaction& plan)
 		options.autoStart = selected.autoStart;
 	if (selected.host32 != current.host32)
 		options.host32 = selected.host32;
+	if (selected.float64Samples != current.float64Samples)
+		options.float64Samples = selected.float64Samples;
 	AsioEntryWriter::writeEntry(plan, target, record, options, directory);
 }
 

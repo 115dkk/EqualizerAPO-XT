@@ -771,7 +771,8 @@ TEST_CASE(EngineOrchestrationTests, testInstallWithTheAsioEntryRegistersTheWrapp
 }
 
 // The endpoint's ASIO entry offers what an ASIO driver row offers: the
-// stream mode and its wait, the host at boot, and the 32-bit registration.
+// stream mode and its wait, the host at boot, the 32-bit registration, and
+// application-facing Float64 samples.
 // They reach the record, a reload reads them back, and the one Run value
 // follows every entry that asks for it, whichever kind the entry is.
 TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
@@ -800,6 +801,7 @@ TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
 	selected.asioEntryOptions.deadlinePercent = 50;
 	selected.asioEntryOptions.autoStart = true;
 	selected.asioEntryOptions.host32 = true;
+	selected.asioEntryOptions.float64Samples = true;
 	info.install();
 
 	const std::wstring wrapperClsid = eapo::asio::AsioRegistration::wrapperClsidFor(testDeviceGuid);
@@ -809,6 +811,8 @@ TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
 	harness.expectEqual(registry.readDWORDValue(recordKey, L"DeadlinePercent"), 50ul, "with the chosen wait");
 	harness.expectEqual(registry.readDWORDValue(recordKey, L"AutoStart"), 1ul, "the host starts at boot");
 	harness.expectEqual(registry.readDWORDValue(recordKey, L"Register32"), 1ul, "and 32-bit hosts are asked for");
+	harness.expectEqual(registry.readDWORDValue(recordKey, L"Float64Samples"), 1ul,
+		"the application gets Float64 samples");
 	const std::wstring class32 = eapo::asio::AsioRegistration::classesClsidRoot(true) + L"\\" + wrapperClsid + L"\\InprocServer32";
 	harness.require(registry.keyExists(class32), "the 32-bit view has the class tree");
 	harness.expect(registry.readValue(class32, L"") == installPath + L"\\x86\\EqualizerAPOAsio.dll",
@@ -823,6 +827,8 @@ TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
 	harness.require(reloaded.load(testDeviceGuid, otherDeviceGuid), "the device reloads");
 	harness.expectTrue(reloaded.getCurrentInstallState().asioEntryOptions == selected.asioEntryOptions,
 		"a fresh load reads the options back");
+	harness.expectTrue(reloaded.getCurrentInstallState().asioEntryOptions.float64Samples,
+		"the fresh load reads Float64Samples back");
 
 	// Another entry asks for the host at boot too; taking the endpoint's
 	// entry away must leave the value for it.

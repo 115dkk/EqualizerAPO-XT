@@ -17,6 +17,7 @@ namespace eapo::asio
 		const wchar_t* const targetNameValue = L"TargetName";
 		const wchar_t* const processOutputValue = L"ProcessOutput";
 		const wchar_t* const processInputValue = L"ProcessInput";
+		const wchar_t* const float64SamplesValue = L"Float64Samples";
 		const wchar_t* const modeValue = L"Mode";
 		const wchar_t* const deadlineValue = L"DeadlineUs";
 		const wchar_t* const readyTimeoutValue = L"ReadyTimeoutMs";
@@ -62,6 +63,7 @@ namespace eapo::asio
 			record.options = defaults;
 			record.options.processOutput = readDwordOr(registry, key, processOutputValue, defaults.processOutput ? 1 : 0) != 0;
 			record.options.processInput = readDwordOr(registry, key, processInputValue, defaults.processInput ? 1 : 0) != 0;
+			record.options.float64Samples = readDwordOr(registry, key, float64SamplesValue, defaults.float64Samples ? 1 : 0) != 0;
 			record.options.mode = readDwordOr(registry, key, modeValue, defaults.mode == Mode::Pipelined ? 1 : 0) == 1 ? Mode::Pipelined : Mode::Sync;
 			record.options.deadlineUs = readDwordOr(registry, key, deadlineValue, defaults.deadlineUs);
 			record.options.readyTimeoutMs = readDwordOr(registry, key, readyTimeoutValue, defaults.readyTimeoutMs);
@@ -83,6 +85,7 @@ namespace eapo::asio
 			registry.writeValue(key, targetNameValue, record.targetName);
 			registry.writeDWORDValue(key, processOutputValue, record.options.processOutput ? 1 : 0);
 			registry.writeDWORDValue(key, processInputValue, record.options.processInput ? 1 : 0);
+			registry.writeDWORDValue(key, float64SamplesValue, record.options.float64Samples ? 1 : 0);
 			registry.writeDWORDValue(key, modeValue, record.options.mode == Mode::Pipelined ? 1 : 0);
 			registry.writeDWORDValue(key, deadlineValue, record.options.deadlineUs);
 			registry.writeDWORDValue(key, readyTimeoutValue, record.options.readyTimeoutMs);
@@ -110,6 +113,7 @@ namespace eapo::asio
 				options.deadlinePercent = record.options.deadlinePercent;
 			options.autoStart = record.autoStart;
 			options.host32 = record.register32;
+			options.float64Samples = record.options.float64Samples;
 			return options;
 		}
 
@@ -119,6 +123,7 @@ namespace eapo::asio
 			record.options.deadlinePercent = options.deadlinePercent;
 			record.autoStart = options.autoStart;
 			record.register32 = options.host32;
+			record.options.float64Samples = options.float64Samples;
 		}
 
 		bool autoStartWanted(const IRegistry& registry)

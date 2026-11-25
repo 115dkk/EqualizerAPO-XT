@@ -116,6 +116,38 @@ $runs = @(
             "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "64", "--periods", "300",
             "--sample-type", "float64", "--mode", "sync", "--deadline-us", "1000000", "--beyond-float32")
     },
+    # Converts the application's Float64 buffers to an Int32 target around the in-process engine.
+    [pscustomobject]@{
+        Name = "inproc-int32-float64-samples-64"
+        Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "inproc", "--config", $config,
+            "--frames", "64", "--periods", "300", "--sample-type", "int32", "--float64-samples", "--max-late", "0", "--beyond-float32")
+    },
+    # Converts Float64 buffers to an Int24 target when outputReady commits the block.
+    [pscustomobject]@{
+        Name = "inproc-int24-128-outputready-float64-samples"
+        Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "inproc", "--config", $config,
+            "--frames", "128", "--periods", "150", "--sample-type", "int24", "--float64-samples", "--output-ready", "--max-late", "0", "--beyond-float32")
+    },
+    # Converts Float64 buffers around the real daemon process and an Int32 target.
+    [pscustomobject]@{
+        Name = "daemon-exe-sync-int32-float64-samples-64"
+        Arguments = @("--target", "fake", "--wrapper", "static", "--processor", "daemon", "--config", $config,
+            "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "64", "--periods", "300",
+            "--sample-type", "int32", "--float64-samples", "--deadline-us", "1000000", "--max-late", "0", "--beyond-float32")
+    },
+    # Sends application Float64 through the product DLL, ring and host process to an Int32 driver.
+    [pscustomobject]@{
+        Name = "dll-daemon-exe-sync-int32-float64-samples-64"
+        Arguments = @("--target", "dll:$fakeDll", "--wrapper", "dll:$wrapperDll", "--processor", "daemon", "--config", $config,
+            "--daemon", $hostExe, "--endpoint", "EAPO.ASIO.probe.gate", "--frames", "64", "--periods", "300",
+            "--sample-type", "int32", "--float64-samples", "--mode", "sync", "--deadline-us", "1000000", "--beyond-float32")
+    },
+    # Exercises Float64-to-Int24 conversion without an engine.
+    [pscustomobject]@{
+        Name = "dll-passthrough-int24-float64-samples-128"
+        Arguments = @("--target", "dll:$fakeDll", "--wrapper", "dll:$wrapperDll", "--processor", "passthrough",
+            "--config", $config, "--frames", "128", "--periods", "100", "--sample-type", "int24", "--float64-samples")
+    },
     # The one run with the real host process AND the pipelined mode, which by
     # design lets a late period through unprocessed. On a hosted runner under
     # load that turned the hash comparison into a coin toss (two failures on
