@@ -21,7 +21,7 @@
 #include "Tests/AsioSupport/SampleOracle.h"
 #include "Tests/FakeAsioDriver/FakeAsio.h"
 #include "Tests/TestDirectory.h"
-#include "Tests/TestHarness.h"
+#include "../TestHarness.h"
 
 using eapo::asio::AsioWrapper;
 using eapo::asio::StreamOptions;
