@@ -829,6 +829,13 @@ TEST_CASE(EngineOrchestrationTests, testAsioEntryCarriesTheDriverEntryOptions)
 		"a fresh load reads the options back");
 	harness.expectTrue(reloaded.getCurrentInstallState().asioEntryOptions.float64Samples,
 		"the fresh load reads Float64Samples back");
+	// The Device Selector's checkbox changes this one field. On its own it
+	// has to be a pending change, or OK stays hidden and nothing is written.
+	harness.expectFalse(reloaded.hasChanges(), "a fresh load has nothing pending");
+	reloaded.getSelectedInstallState().asioEntryOptions.float64Samples = false;
+	harness.expectTrue(reloaded.hasChanges(), "the Float64 option alone is a pending change");
+	reloaded.getSelectedInstallState().asioEntryOptions.float64Samples = true;
+	harness.expectFalse(reloaded.hasChanges(), "putting it back leaves nothing pending");
 
 	// Another entry asks for the host at boot too; taking the endpoint's
 	// entry away must leave the value for it.
