@@ -130,6 +130,10 @@ const QList<GalleryScenario>& galleryScenarios()
 			QStringLiteral("phase"), QStringLiteral("groupdelay") } },
 		{ QStringLiteral("segment"), { QStringLiteral("normal"), QStringLiteral("selected"),
 			QStringLiteral("hover"), QStringLiteral("focused"), QStringLiteral("focushover") } },
+		// The same control with two options, the count every card editor uses
+		// (renderGraphScenes). A skin may draw the two kinds differently.
+		{ QStringLiteral("segment2"), { QStringLiteral("normal"), QStringLiteral("selected"),
+			QStringLiteral("hover"), QStringLiteral("focused"), QStringLiteral("focushover") } },
 		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
 			QStringLiteral("expanded"), QStringLiteral("editor"), QStringLiteral("sourceeditor") } },
 		{ QStringLiteral("multiconvfold"), { QStringLiteral("normal"),
@@ -1234,6 +1238,34 @@ void renderGraphScenes(SkinRenderContext& ctx)
 		segment.setPreviewState(1, 2);
 		QApplication::processEvents();
 		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("focushover")) ? 0 : 1;
+	}
+
+	// The two-option form every card editor uses (the all-pass ORDER, the
+	// Hilbert Direction and Graph, the Velvet Mode), in the same five states.
+	// The pointer and the focused states rest on the first option with the
+	// pointer on the second, the one a click would move to.
+	{
+		SegmentedControl segment;
+		segment.setLabels({ QStringLiteral("Static"), QStringLiteral("Dynamic") });
+		segment.resize(160, segment.sizeHint().height());
+		segment.setFocusPolicy(Qt::NoFocus);
+		segment.show();
+		segment.setPreviewState(0, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("normal")) ? 0 : 1;
+		segment.setPreviewState(1, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("selected")) ? 0 : 1;
+		segment.setPreviewState(0, 1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("hover")) ? 0 : 1;
+		segment.setPreviewFocused(true);
+		segment.setPreviewState(0, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("focused")) ? 0 : 1;
+		segment.setPreviewState(0, 1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("focushover")) ? 0 : 1;
 	}
 }
 
