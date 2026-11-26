@@ -14,6 +14,22 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Hardware Rack: every button, chip and field is outlined on all four
+  sides.** On the light finish the top edge of most controls (toolbar buttons,
+  selectors, device and channel chips, check boxes) had the colour of the
+  panel, so they looked cut off at the top, and text fields looked cut off at
+  the bottom. A control under the pointer, or latched, was lit on three sides
+  only. This had been fixed for the LOCATE cap alone. The whole sheet has now
+  been checked, and 84 rules (54 on the light finish, 30 on the dark one) were
+  changed so that an edge has one colour all the way round. A raised cap and a
+  latched one still differ by the direction of the face's gradient and by the
+  label's 1 px shift. On the light finish a capture well that is not latched
+  has a darker outline than a playback cap, and lights up like the others
+  when it is latched. The lamp line under a latched channel key and the bar on
+  a latched stage key are lamps, not outlines, and stay on one side. The
+  Device Selector uses the same sheet and changes with it.
+  ([#534](https://github.com/115dkk/EqualizerAPO-XT/pull/534))
+
 ## v2.82.0 — 2026-11-25
 
 - **Device Selector: an ASIO entry's options include "Use 64-bit float
