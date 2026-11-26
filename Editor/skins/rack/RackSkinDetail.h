@@ -49,5 +49,4 @@ void paintBrushing(QPainter& painter, const QRectF& rect, bool dark, uint seed);
 // palette's BrushingGrain and a base alpha of 4 (dark) or 5 (light).
 void paintBrushing(QPainter& painter, const QRectF& rect, const QColor& ink, int baseAlpha, uint seed);
 void paintJack(QPainter& painter, const QPointF& center, bool dark);
-void paintGrain(QPainter& painter, const QRectF& rect, const QColor& ink, uint seed);
 }

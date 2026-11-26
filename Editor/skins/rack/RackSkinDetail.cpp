@@ -183,17 +183,4 @@ void paintJack(QPainter& painter, const QPointF& center, bool dark)
 	painter.setBrush(RackPalette::light(dark ? 70 : 150));
 	painter.drawEllipse(center + QPointF(-2.5, -2.7), 0.9, 0.9);
 }
-
-void paintGrain(QPainter& painter, const QRectF& r, const QColor& ink, uint seed)
-{
-	// Still keyed on the absolute y (the button caps' grain), so its lines
-	// are not those of paintBrushing's tile.
-	QColor line = ink;
-	for (qreal y = r.top() + 2.0; y < r.bottom() - 1.0; y += 2.0)
-	{
-		line.setAlpha(grainLineAlpha(seed, uint(qRound(y * 7.0)), 4));
-		painter.setPen(QPen(line, 1));
-		painter.drawLine(QPointF(r.left() + 2.0, y), QPointF(r.right() - 2.0, y));
-	}
-}
 }
