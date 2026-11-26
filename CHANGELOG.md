@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.83.1 — 2026-11-26
+
 - **Editor: buttons that show only an icon or a sign have a name for screen
   readers.** Qt gives a screen reader a button's text as its name. A card's
   fold arrow was therefore named `v` or `>` and its add button `+`, and the
