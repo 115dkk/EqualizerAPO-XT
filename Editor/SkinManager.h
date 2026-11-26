@@ -32,6 +32,7 @@ struct KnobState;
 enum class KnobGesture;
 struct ListChromeState;
 struct SegmentedControlState;
+struct SkinControlContract;
 struct VstBusFrameState;
 struct VstBusSelectorState;
 struct VstSlotFillCellState;
@@ -88,6 +89,8 @@ public:
 	QIcon powerToggleIcon(bool enabled) const;
 	bool logicSiblingsIndentAsMembers() const;
 	bool showsUnusableVstBusStrip() const;
+	// What the active skin promises about its controls (ISkin::controlContract).
+	SkinControlContract controlContract() const;
 
 	// List-level insertion chrome, delegated to the active skin (see
 	// ISkin::paintAddRow / ISkin::paintInsertSeam). In heritage mode the

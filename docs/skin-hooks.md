@@ -366,6 +366,55 @@ stacks the options, the higher index then takes the top cell, as up means
 more on a panel, and Up selects the next index; side by side the flag changes
 nothing. The state carries it as `SegmentedControlState::risingScale`.
 
+## Control contract hook
+
+```cpp
+// Editor/skins/ISkin.h
+struct SkinControlContract
+{
+    bool closedOutlines = false;  // four-sided outlines, one colour when lit
+    int listCapHeight = 0;        // px, outline included; 0 = no promise
+};
+virtual SkinControlContract controlContract() const;  // default: {}
+```
+
+A skin states what it promises about its controls, and the gallery checks the
+promise on every capture it saves (`saveGrab` calls
+`checkControlOutlines` in `Editor/gallery/GalleryOutlineCheck.cpp`), so every
+registered scene is covered without listing scenes. A skin that promises
+nothing is not measured. `SkinManager::controlContract()` forwards to the
+active skin. Hardware Rack promises closed outlines (rule 12 of
+[skins/rack.md](skins/rack.md)); the other skins keep the default.
+
+The parts are every visible `QPushButton`, `QToolButton`, `QComboBox` (its
+frame and its drop-down edge), `QLineEdit` that is not the field of a spin box
+or combo, `QAbstractSpinBox`, check-box and radio indicator under the grabbed
+widget, plus the caps a routing view paints and reports through
+`RoutingView::paintedCaps()`. A part that deliberately draws no outline is
+listed once in the exemption table at the top of the .cpp, each row with its
+reason; rows marked "at rest" still check the part once it is lit.
+
+Per side, the check takes the pixel line where the outline sits (offsets 0
+and 1 inside the rectangle; 0 to 2 on the top and bottom of a latched tool
+button, whose lamp row or top bar is 2 px; -1 and 0 for a painted cap) and
+compares its median colour over the middle 60 % of the side with the line 2 px
+outside the part (3 px for a painted cap), as CIE76 delta-E. A side below 8.0
+fails the capture, and so does a lit part (checked, pressed, hovered while
+enabled, focused) whose sides differ in colour by more than 12 between any
+two, the lamp side of an engaged Channel or Stage key excepted. A side below
+15.0 is listed for review and does not fail. Each capture prints one
+`SkinGallery: outlines` line with its counts; each failing part prints a
+`SkinGallery: OUTLINE FAIL side|colour|focus` line. `EAPO_GALLERY_OUTLINE_REPORT`
+writes every measured side to a TSV file
+([EnvironmentVariables.md](EnvironmentVariables.md)).
+
+Keyboard focus is part of the promise. After the scenes, a skin that promises
+closed outlines builds the gallery rows once more, gives the keyboard focus
+(`setFocus(Qt::TabFocusReason)`, no OS input) to one instance of each
+focusable cap class, and requires its outline to differ from its resting
+outline by at least 15 on all four sides, in one colour. A cap that cannot
+take the focus fails. This test writes no capture.
+
 ## Routing renderer hook
 
 Copy's per-skin routing view generalizes to any command whose body is a

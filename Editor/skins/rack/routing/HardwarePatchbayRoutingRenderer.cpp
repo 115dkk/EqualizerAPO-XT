@@ -71,6 +71,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	const bool dark = skinTokens.dark;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
+	capsPainted.clear();
 
 	// Brushed metal panel background.
 	QLinearGradient panel(0, 0, 0, height());
@@ -156,6 +157,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			p.setPen(capInk);
 			p.drawText(cap, Qt::AlignCenter, capText);
 		}
+		capsPainted.append({ cap, latched ? QStringLiteral("checked") : (prelit ? QStringLiteral("hover") : QString()) });
 	};
 
 	removeRects.clear();
@@ -209,6 +211,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 				p.setBrush(RackPalette::CapDimple(dark));
 				p.setPen(Qt::NoPen);
 				p.drawEllipse(cap.center() + QPoint(1, 1), 2, 2);
+				capsPainted.append({ cap, QStringLiteral("cell") });
 				continue;
 			}
 
@@ -218,6 +221,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			// the danger lamp.
 			const bool negative = cell.factor < 0;
 			cap.translate(0, 1);
+			capsPainted.append({ cap, QStringLiteral("cell checked") });
 			QLinearGradient face(cap.topLeft(), cap.bottomLeft());
 			QColor edge, bevelTop, bevelBottom, ink;
 			if (negative)

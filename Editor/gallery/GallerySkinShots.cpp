@@ -11,6 +11,7 @@
 */
 
 #include "SkinGallery.h"
+#include "Editor/gallery/GalleryOutlineCheck.h"
 #include "Editor/gallery/GallerySupport.h"
 
 #include <cmath>
@@ -571,8 +572,12 @@ bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QSt
 		qWarning("SkinGallery: could not write %s", qPrintable(fileName));
 		return false;
 	}
-	// The capture is kept either way; a button without a name fails the run.
-	return checkButtonNames(row, fileName) == 0;
+	// The capture is kept either way; a button without a name fails the run,
+	// and so does a control that breaks what the skin promises about its
+	// controls (ISkin::controlContract), measured on this capture's pixels.
+	const bool named = checkButtonNames(row, fileName) == 0;
+	const bool contractKept = checkControlOutlines(row, pixmap.toImage(), skinId, mode, rowName, state) == 0;
+	return named && contractKept;
 }
 
 int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
@@ -1929,6 +1934,9 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 	renderVelvetScenes(ctx);
 	ctx.failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);
 	renderFocusScenes(ctx);
+	// Keyboard focus lights a cap's outline on four sides, where the skin
+	// promises closed outlines (writes no capture).
+	ctx.failures += checkFocusLightsOutlines(configPath, skinId, mode);
 	return ctx.failures;
 }
 }
