@@ -571,9 +571,11 @@ QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
     padding-left: 8px; padding-right: 22px;
 }
 QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down { width: 18px; }
-/* The Preamp knob is 74 px in its card; on one line it takes the 66 px
-   of the biquad knobs, so the Preamp unit is as tall as a Filter unit. */
-QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob {
+/* The Preamp and Delay knobs are 74 px in their cards; in a row they take
+   the 66 px of the biquad knobs, so those units are as tall as a Filter
+   unit. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob {
     min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
 }
 QToolButton#FilterCardIconButton:hover { border-color: @ACCENT@; border-top-color: #E4E0D7; }
