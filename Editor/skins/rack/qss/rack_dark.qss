@@ -1385,7 +1385,8 @@ QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
    its extra pixel out of the padding on its own side, so no state changes
    the box. Widths, side padding, type and glyphs stay as on a card. A text
    field on the same line as caps takes the same box so the line stays
-   level. The header's three bare glyphs keep their own 16 px rule above
+   level, and so does the Send unit's LATENCY field: it stands right under
+   the two combos and would otherwise be taller than they are. The header's three bare glyphs keep their own 16 px rule above
    (it is more specific). */
 QFrame#FilterCardRow[inlineRow="true"] QToolButton#FilterCardIconButton,
 QFrame#FilterCardRow[inlineRow="true"] QToolButton#GraphicEQActionButton,
@@ -1400,7 +1401,8 @@ QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChipUnknown,
 QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip,
 QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip,
 QFrame#FilterCardRow[inlineRow="true"] QLineEdit#ChannelChipAdd,
-QFrame#FilterCardRow[inlineRow="true"] QLineEdit#NewChannelAdd {
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#SendLatencyEdit {
     min-height: 18px; max-height: 18px; padding-top: 1px; padding-bottom: 1px;
 }
 QFrame#FilterCardRow[inlineRow="true"] QToolButton#VelvetAdvancedToggle {
