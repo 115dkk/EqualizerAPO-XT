@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.85.1 — 2026-11-26
+
 - **Editor: importing a VST3 plug-in folder (bundle) reported a missing file
   and left the Import button disabled.** Import now copies the whole bundle,
   including its resources. The Korean and Chinese import summaries also no
