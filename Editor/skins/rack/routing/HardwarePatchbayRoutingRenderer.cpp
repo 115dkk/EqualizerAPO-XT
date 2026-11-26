@@ -270,11 +270,11 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			p.setBrush(face);
 			p.setPen(QPen(edge, 1));
 			p.drawRoundedRect(cap, 2, 2);
-			paintedParts.append({ cap, QStringLiteral("cell checked") });
 			p.setPen(QPen(bevelTop, 1));
 			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
 			p.setPen(QPen(bevelBottom, 1));
 			p.drawLine(cap.left() + 2, cap.bottom() - 1, cap.right() - 2, cap.bottom() - 1);
+			paintedParts.append({ cap, QStringLiteral("cell checked") });
 
 			// A unity routing carries no legend: the lit latch already says
 			// "passed through as-is", and any printed value on it (x1, 0dB)
