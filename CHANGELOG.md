@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.84.2 — 2026-11-26
+
 - **Editor: rebuilding the filter list is about a quarter faster, and the
   Editor's log no longer gets a line for every filter.** Each time the list
   was rebuilt (a skin switch, an undo, opening a file) every filter line was
