@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.83.0 — 2026-11-26
+
 - **Editor: the channel mapping of a Send or MultiConvolution card folds down
   to one line.** These two cards carry a routing board under their own
   controls, which made them the tallest cards of most configurations. A fold
