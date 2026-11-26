@@ -116,8 +116,10 @@ Current work areas:
     ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). A third interface, Modern rows, is being added:
     one line per filter in the skin's own look. As its first step the original
     row layout is now called Legacy editor
-    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)). Next come lower caps and closed outlines in the
-    Hardware Rack cards, Modern rows for that skin, then the other four skins.
+    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)), and the Hardware Rack cards have lower buttons whose
+    outlines show on all four sides
+    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)). Next come Modern rows for that skin, then the
+    other four skins.
 
 ## Features
 
