@@ -435,7 +435,7 @@ namespace
 // asks for: the part in a column of its own, 6px of plate, then the two
 // legends stacked left-aligned, one line pitch apart, the pair centred in
 // the control's height and the whole assembly centred in its width.
-constexpr qreal rackTogglePartWidth = 16.0;
+constexpr qreal rackTogglePartWidth = 18.0;
 constexpr qreal rackToggleGap = 6.0;
 constexpr qreal rackToggleMargin = 2.0;
 
@@ -635,14 +635,16 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	// cutout's tip stands plainly at the height of the chosen word.
 	// Proportions from the photo: the cutout about twice the lettering's cap
 	// height (about 7px here), the ball tip about 1.3 times it. The cutout is
-	// 13px wide and 23px tall, its bezel 16x26, and the 9px tip rests on the
-	// two line centres 13px apart, so the two rests never overlap. The odd
+	// 13px wide and 23px tall and the 9px tip rests on the two line centres
+	// 13px apart, so the two rests never overlap. The bezel is 18x26: at 16px
+	// wide its 1px outline and the cutout's edge covered the whole ring, and
+	// on the dark finish the ring is what shows the track at rest. The odd
 	// widths are centred on a whole pixel column (partCenterX), which puts
 	// every outline on a half pixel.
 	const qreal slotWidth = 13.0;
 	const QRectF slot(partCenterX - slotWidth / 2.0, layout.columnTop + 1.5, slotWidth,
 		layout.lineHeight * 2.0 - 3.0);
-	const QRectF bezel = slot.adjusted(-1.5, -1.5, 1.5, 1.5);
+	const QRectF bezel = slot.adjusted(-2.5, -1.5, 2.5, 1.5);
 	// The bezel ring is a plate tone lifted toward the ink, so on the dark
 	// finish the resting part still shows its track: it is what says there are
 	// two places. A neutral light, never bronze or amber, which stay for the
@@ -668,11 +670,17 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 		painter.setPen(QPen(withAlpha(lightInk, dark ? 70 : 170), 1.0));
 		painter.drawPath(slotPath.translated(0.0, -1.0));
 	}
-	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(withAlpha(shadowInk, dark ? 200 : 120), 1.0));
-	painter.drawPath(slotPath);
+	// The cutout's own edge. On the dark finish its floor already parts it
+	// from the lighter ring, and a dark line there would cover the ring.
+	if (!dark)
+	{
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(withAlpha(shadowInk, 120), 1.0));
+		painter.drawPath(slotPath);
+	}
 	// The bezel's outline: the same colour all round (invariant 12), and the
 	// one edge the pointer and the focus recolour.
+	painter.setBrush(Qt::NoBrush);
 	painter.setPen(QPen(edge.isValid() ? edge : withAlpha(shadowInk, dark ? 230 : 150), 1.0));
 	painter.drawRoundedRect(bezel.adjusted(0.5, 0.5, -0.5, -0.5), bezel.width() / 2.0 - 0.5, bezel.width() / 2.0 - 0.5);
 
