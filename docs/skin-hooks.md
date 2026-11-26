@@ -418,13 +418,12 @@ add-card row (`addrow` normal/hover/focused), one for the insertion seam's hover
 reveal (`seam`) and one for the update toast (`toast`). Keyboard focus has its
 own shots, judged against shared article 8 of docs/skins/README.md: the metric
 switch in `segment_focused` and `segment_focushover`, and the `focus` scene
-with the focused card (`card`), the GraphicEQ plot (`geqplot`) and the
-subwoofer summary (`subwoofer`). The card is focused through
-`FilterTable::selectOnlyFromCard`, the path a click takes; the other widgets
-take their `setPreviewFocused` hook rather than real focus, which offscreen
-depends on window activation. Output names are
+with the focused card (`card`) and the GraphicEQ plot (`geqplot`). The card
+is focused through `FilterTable::selectOnlyFromCard`, the path a click takes;
+the plot takes its `setPreviewFocused` hook rather than real focus, which
+offscreen depends on window activation. Output names are
 stable: `<skin>_<dark|light>_<row>_<state>.png`,
-5 × 2 × (21 × 3 + 12) = 750 PNGs
+5 × 2 × (40 × 3 + 55) = 1,750 PNGs
 for a full run; the run self-checks the count, so adding a gallery row needs
 no external count update. A row shot fails the render (non-zero exit) if a
 visible horizontal scrollbar is found inside the row — rows must fit the

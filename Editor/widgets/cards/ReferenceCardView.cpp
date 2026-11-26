@@ -34,6 +34,7 @@ QString actionRoleName(ReferenceCardView::ActionRole role)
 	case ReferenceCardView::ActionRole::OpenPanel: return QStringLiteral("openPanel");
 	case ReferenceCardView::ActionRole::Options: return QStringLiteral("options");
 	case ReferenceCardView::ActionRole::EditPath: return QStringLiteral("editPath");
+	case ReferenceCardView::ActionRole::Preset: return QStringLiteral("preset");
 	}
 	return QString();
 }

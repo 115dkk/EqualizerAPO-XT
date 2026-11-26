@@ -40,6 +40,9 @@ protected:
 	void applyState(const ReferenceCardState& state) override;
 
 private:
+	// The reference kind, kept for the command words: placeActionButton runs
+	// before the first setState, so the state's kind is not there yet.
+	QString cardKind;
 	QHBoxLayout* lineLayout = nullptr;
 	ElidedLabel* nameLabel = nullptr;
 	QLabel* missingToken = nullptr;
