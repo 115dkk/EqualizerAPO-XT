@@ -103,7 +103,7 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	// second body row spent that width on nothing; the body sits in the card's
 	// horizontal scroll wrapper, so a narrowed dock scrolls instead of
 	// breaking.
-	QHBoxLayout* parameterRow = new QHBoxLayout();
+	parameterRow = new QHBoxLayout();
 	parameterRow->setContentsMargins(0, 0, 0, 0);
 	parameterRow->setSpacing(24);
 
@@ -114,8 +114,9 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	frequencyValue->setUnit(QStringLiteral("Hz"));
 	frequencyValue->setDecimals(2);
 	connect(frequencyValue, SIGNAL(valueChanged(double)), this, SLOT(frequencyValueChanged(double)));
-	parameterRow->addWidget(buildKnobBlock(this, frequencyKnob,
-		QStringLiteral("AllPassCardFrequencyKnob"), frequencyCaption, frequencyValue));
+	frequencyBlock = buildKnobBlock(this, frequencyKnob,
+		QStringLiteral("AllPassCardFrequencyKnob"), frequencyCaption, frequencyValue);
+	parameterRow->addWidget(frequencyBlock);
 	connect(frequencyKnob, SIGNAL(valueChanged(int)), this, SLOT(frequencyKnobChanged(int)));
 	// Double-click defaults are the all-pass templates' (FilterCommandCatalog):
 	// Fc 100 Hz, and the filter's default Q in whichever spelling is shown.
@@ -205,7 +206,7 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	// comes from the active skin's tokens the way the dynamic value token in
 	// ScalarKnobCardEditor takes it, because a static value has no sheet rule
 	// of its own.
-	QWidget* magnitudeBlock = new QWidget(this);
+	magnitudeBlock = new QWidget(this);
 	magnitudeBlock->setObjectName(QStringLiteral("AllPassCardMagnitudeBlock"));
 	QVBoxLayout* magnitudeLayout = new QVBoxLayout(magnitudeBlock);
 	magnitudeLayout->setContentsMargins(0, 0, 0, 0);
@@ -232,6 +233,45 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	setWidth(command.bandwidthOrQOrS != 0.0 ? command.bandwidthOrQOrS
 		: BiQuadWidth::defaultQ(BiQuad::ALL_PASS), false);
 	applyOrderVisibility();
+}
+
+void AllPassCardEditor::resizeEvent(QResizeEvent* event)
+{
+	IFilterGUI::resizeEvent(event);
+	fitToRow();
+}
+
+void AllPassCardEditor::fitToRow()
+{
+	// A row marks its frame with the "inlineRow" property; a card list never
+	// does, so nothing below runs there.
+	bool inRow = false;
+	for (const QWidget* ancestor = parentWidget(); ancestor != nullptr && !inRow; ancestor = ancestor->parentWidget())
+		inRow = ancestor->property("inlineRow").toBool();
+	if (!inRow || parameterRow == nullptr || magnitudeBlock == nullptr)
+		return;
+
+	// The row puts the left column and a title before the card, and a
+	// 960 px window then leaves too little for the groups at their card
+	// spacing: the order and graph switches were cut to "Ph..." and "Gr...".
+	if (!rowSpacingApplied)
+	{
+		rowSpacingApplied = true;
+		parameterRow->setSpacing(2);
+		for (QWidget* block : { frequencyBlock, widthBlock })
+			if (block != nullptr && block->layout() != nullptr)
+				block->layout()->setSpacing(2);
+	}
+
+	// The magnitude readout always says 0.0 dB and carries no setting, so it
+	// is the group that gives way. It stays while the whole card fits at its
+	// natural width, measured with the readout shown so that hiding it does
+	// not bring it straight back.
+	const int readout = magnitudeBlock->sizeHint().width() + parameterRow->spacing();
+	const int whole = sizeHint().width() + (magnitudeBlock->isHidden() ? readout : 0);
+	const bool show = width() >= whole;
+	if (magnitudeBlock->isHidden() == show)
+		magnitudeBlock->setVisible(show);
 }
 
 bool AllPassCardEditor::firstOrder() const

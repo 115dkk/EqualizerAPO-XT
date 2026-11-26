@@ -15,6 +15,7 @@
 
 class AudioKnob;
 class EditableValue;
+class QBoxLayout;
 class QComboBox;
 class QLabel;
 class SegmentedControl;
@@ -43,6 +44,9 @@ public:
 
 	void store(QString& command, QString& parameters) override;
 
+protected:
+	void resizeEvent(QResizeEvent* event) override;
+
 private slots:
 	void orderChanged(int index);
 	void frequencyKnobChanged(int value);
@@ -57,6 +61,10 @@ private:
 	bool bandwidthMode() const;
 	bool firstOrder() const;
 	void applyOrderVisibility();
+	// Inside a row of the filter list (FilterTable::ModernRows) the card
+	// gets less width than in a card list: the groups move closer together,
+	// and the magnitude readout gives way when the rest would not fit whole.
+	void fitToRow();
 
 	// The command keyword exactly as the line spelled it ("Filter", "Filter 1",
 	// "Filter 99"), so editing a numbered line does not renumber it.
@@ -71,6 +79,10 @@ private:
 	QWidget* widthBlock = nullptr;
 	QLabel* magnitudeNote = nullptr;
 	SegmentedControl* graphSegment = nullptr;
+	QWidget* frequencyBlock = nullptr;
+	QWidget* magnitudeBlock = nullptr;
+	QBoxLayout* parameterRow = nullptr;
+	bool rowSpacingApplied = false;
 
 	double currentFrequency = 1000.0;
 	// Always in the unit the mode selector currently shows.
