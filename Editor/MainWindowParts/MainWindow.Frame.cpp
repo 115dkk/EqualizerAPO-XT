@@ -36,10 +36,10 @@
 void MainWindow::setupWindowChrome()
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	// Heritage (legacy rows) keeps the stock Windows caption: the custom
-	// title strip is part of the modern presentation.
+	// The legacy editor keeps the stock Windows caption: the custom title strip
+	// is part of the modern presentation.
 	useCustomFrame = !settings.value(QLatin1String(EditorSettings::Keys::NativeTitleBar), false).toBool()
-		&& !settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool();
+		&& EditorSettings::readListMode(settings) != EditorSettings::ListMode::LegacyEditor;
 	if (!useCustomFrame)
 		return;
 

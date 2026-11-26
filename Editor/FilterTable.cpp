@@ -395,7 +395,7 @@ QWidget* FilterTable::buildRow(int index, Item* item, FilterCardDescriptor descr
 	if (timing != nullptr)
 		timing->guiNs += phaseTimer.nsecsElapsed();
 
-	// LegacyRows is a frozen fallback that must not be extended; see the
+	// LegacyEditor is a frozen fallback that must not be extended; see the
 	// RenderMode enum and docs/FilterListUiPolicy.md.
 	// Parent the card here instead of letting addWidget() reparent it: moving
 	// a finished ~40-widget card under the stylesheet-dressed table forces a

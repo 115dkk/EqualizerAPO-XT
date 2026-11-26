@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: the Legacy rows interface is now called Legacy editor.** View >
+  Interface shows the new name. Nothing else about that interface changed,
+  and whichever interface you were using stays selected after the update.
+  The new name makes room for a third interface, Modern rows, which is in
+  the works.
+  ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546))
+
 ## v2.85.2 — 2026-11-26
 
 - **Editor: opening a plug-in's panel could freeze the Editor for good.**

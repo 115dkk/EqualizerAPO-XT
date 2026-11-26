@@ -2370,7 +2370,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="139"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="437"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="461"/>
         <source>Graph</source>
         <translation>Graphique</translation>
     </message>
@@ -2975,84 +2975,88 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>Voulez-vous enregistrer les modifications avant de fermer le fichier?</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="246"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="270"/>
         <source>Interface</source>
         <translation>Interface</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="250"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="274"/>
         <source>Modern cards</source>
         <translation>Cartes modernes</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="254"/>
         <source>Legacy rows</source>
-        <translation>Lignes classiques</translation>
+        <translation type="vanished">Lignes classiques</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="269"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="278"/>
+        <source>Legacy editor</source>
+        <translation>Éditeur classique</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="293"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="270"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="294"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="271"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="295"/>
         <source>Stock Flat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="272"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="296"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="273"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="297"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="285"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="309"/>
         <source>Dark theme</source>
         <translation>Thème sombre</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="303"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="327"/>
         <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="185"/>
         <source>Knob gain range</source>
         <translation>Plage de gain des boutons</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="308"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="332"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="313"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="371"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="337"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="395"/>
         <source>Custom...</source>
         <translation>Personnalisé...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="323"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="347"/>
         <source>Fullscreen graph</source>
         <translation>Graphique plein écran</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="332"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="356"/>
         <source>Native title bar</source>
         <translation>Barre de titre native</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="340"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="364"/>
         <source>Windows file dialog</source>
         <translation>Boîte de dialogue de fichiers Windows</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="372"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="396"/>
         <source>Custom (±%1 dB)...</source>
         <translation>Personnalisé (±%1 dB)...</translation>
     </message>

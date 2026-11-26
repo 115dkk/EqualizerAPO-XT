@@ -58,6 +58,8 @@ TEST_CASE(EditorLogicTests, testSelectedDeviceSettingsMigrateNamesAndSurviveRena
 TEST_CASE(EditorLogicTests, testPreferenceKeysKeepPersistedSpellings)
 {
 	const std::pair<const char*, const char*> names[] = {
+		{ EditorSettings::Keys::ListMode, "interface/listMode" },
+		{ EditorSettings::Keys::RetiredLegacyRows, "interface/legacyRows" },
 		{ EditorSettings::Keys::GraphDockPosition, "interface/graphDockPosition" },
 		{ EditorSettings::Keys::Geometry, "geometry" },
 		{ EditorSettings::Keys::WindowState, "windowState" },
@@ -74,6 +76,83 @@ TEST_CASE(EditorLogicTests, testPreferenceKeysKeepPersistedSpellings)
 	};
 	for (const auto& name : names)
 		expectEqual(QString::fromLatin1(name.first), QString::fromLatin1(name.second), "named key retains its stored spelling");
+}
+
+TEST_CASE(EditorLogicTests, testListModeWordsRoundTrip)
+{
+	const std::optional<EditorSettings::ListMode> cards =
+		EditorSettings::listModeFromWord(EditorSettings::listModeWord(EditorSettings::ListMode::Cards));
+	expectTrue(cards.has_value() && *cards == EditorSettings::ListMode::Cards,
+		QStringLiteral("the cards word round trips"));
+	const std::optional<EditorSettings::ListMode> legacy =
+		EditorSettings::listModeFromWord(EditorSettings::listModeWord(EditorSettings::ListMode::LegacyEditor));
+	expectTrue(legacy.has_value() && *legacy == EditorSettings::ListMode::LegacyEditor,
+		QStringLiteral("the legacy editor word round trips"));
+	expectFalse(EditorSettings::listModeFromWord(QStringLiteral("rows")).has_value(),
+		QStringLiteral("an unknown list-mode word is rejected"));
+	expectFalse(EditorSettings::listModeFromWord(QString()).has_value(),
+		QStringLiteral("an empty list-mode word is rejected"));
+}
+
+TEST_CASE(EditorLogicTests, testListModeSettingReadsWordsAndRetiredBoolean)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary settings directory exists");
+	QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
+		QStringLiteral("cards are the default when neither list-mode key exists"));
+
+	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("cards"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
+		QStringLiteral("the cards word selects cards"));
+	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("legacy"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor,
+		QStringLiteral("the legacy word selects the legacy editor"));
+	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("rows"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
+		QStringLiteral("an unknown word falls back to cards"));
+
+	settings.remove(QLatin1String(EditorSettings::Keys::ListMode));
+	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), true);
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor,
+		QStringLiteral("the retired true boolean migrates to the legacy editor"));
+	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), false);
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
+		QStringLiteral("the retired false boolean migrates to cards"));
+
+	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), true);
+	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("cards"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
+		QStringLiteral("the new cards word wins over a retired true boolean"));
+	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("unknown"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
+		QStringLiteral("an unknown new word does not revive the retired boolean"));
+}
+
+TEST_CASE(EditorLogicTests, testListModeSettingWritesWordsAndRetiresBoolean)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary settings directory exists");
+	QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+
+	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), true);
+	EditorSettings::writeListMode(settings, EditorSettings::ListMode::Cards);
+	expectEqual(settings.value(QLatin1String(EditorSettings::Keys::ListMode)).toString(), QStringLiteral("cards"),
+		"writing cards stores its word");
+	expectFalse(settings.contains(QLatin1String(EditorSettings::Keys::RetiredLegacyRows)),
+		QStringLiteral("writing cards removes the retired boolean"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
+		QStringLiteral("written cards read back as cards"));
+
+	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), false);
+	EditorSettings::writeListMode(settings, EditorSettings::ListMode::LegacyEditor);
+	expectEqual(settings.value(QLatin1String(EditorSettings::Keys::ListMode)).toString(), QStringLiteral("legacy"),
+		"writing the legacy editor stores its word");
+	expectFalse(settings.contains(QLatin1String(EditorSettings::Keys::RetiredLegacyRows)),
+		QStringLiteral("writing the legacy editor removes the retired boolean"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor,
+		QStringLiteral("the written legacy editor reads back"));
 }
 
 TEST_CASE(EditorLogicTests, testAutomaticUpdateSettingDefaultsAndRoundTrips)
