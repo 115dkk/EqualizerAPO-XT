@@ -33,7 +33,7 @@
 #include "Editor/skins/ISkin.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
 #include "Editor/widgets/cards/ReferenceCardView.h"
-#include "Editor/widgets/cards/SubwooferRoutingCardView.h"
+#include "Editor/widgets/cards/SubwooferRoutingCardState.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingStateReads.h"
@@ -612,7 +612,7 @@ void SubwooferRoutingCardEditor::showCard(
 		state.readout.append(card.layoutLabel);
 		if (card.highPassHz > 0.0 || card.lowPassHz > 0.0)
 			state.readout.append(
-				SubwooferRoutingCardView::crossoverSummary(card));
+				SubwooferRoutingCardText::crossoverSummary(card));
 		state.readout.append(card.sourceLfePreserved
 			? tr("LFE %1 dB").arg(signedOneDecimal(card.sourceLfeGainDb))
 			: tr("LFE off"));
@@ -624,7 +624,7 @@ void SubwooferRoutingCardEditor::showCard(
 	}
 
 	// One status sentence at most, error first (the status contract in
-	// SubwooferRoutingCardView.h). A linked profile that is not found gets
+	// SubwooferRoutingCardState.h). A linked profile that is not found gets
 	// none: the views' broken state already says so beside the file's name
 	// (NOT FOUND, MISSING, the red lamp), as it does for a missing include or
 	// impulse file, and the sentence only repeated it - and pushed the name

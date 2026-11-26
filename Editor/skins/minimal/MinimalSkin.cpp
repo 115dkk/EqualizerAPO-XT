@@ -12,7 +12,6 @@
 
 #include "Editor/skins/shared/SkinSupport.h"
 #include "cards/MinimalReferenceCardView.h"
-#include "cards/MinimalSubwooferRoutingCardView.h"
 #include "picker/MinimalFilterPicker.h"
 #include "routing/StepListRoutingRenderer.h"
 
@@ -35,13 +34,6 @@ ReferenceCardView* MinimalSkin::createReferenceCardView(const QString& kind, QWi
 {
 	Q_UNUSED(tokens);
 	return new MinimalReferenceCardView(kind, parent);
-}
-
-SubwooferRoutingCardView* MinimalSkin::createSubwooferRoutingCardView(QWidget* parent,
-	const SkinTokens& tokens) const
-{
-	Q_UNUSED(tokens);
-	return new MinimalSubwooferRoutingCardView(parent);
 }
 
 ISkin* minimalSkin()

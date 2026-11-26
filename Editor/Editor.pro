@@ -330,7 +330,7 @@ SOURCES += main.cpp\
 	widgets/subwooferrouting/SubwooferRoutingUiState.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.cpp \
 	widgets/routing/SubwooferRoutingRoutingAdapter.cpp \
-	widgets/cards/SubwooferRoutingCardView.cpp \
+	widgets/cards/SubwooferRoutingCardState.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
@@ -717,7 +717,7 @@ HEADERS  += \
 	widgets/subwooferrouting/SubwooferRoutingUiState.h \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.h \
 	widgets/routing/SubwooferRoutingRoutingAdapter.h \
-	widgets/cards/SubwooferRoutingCardView.h \
+	widgets/cards/SubwooferRoutingCardState.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \

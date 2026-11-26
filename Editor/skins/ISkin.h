@@ -37,7 +37,6 @@ class QPainter;
 class QToolBar;
 class QWidget;
 class ReferenceCardView;
-class SubwooferRoutingCardView;
 
 // One value object owns both halves of the type-badge treatment.  Keeping the
 // stylesheet and pictogram ink together prevents a skin from changing one
@@ -750,12 +749,6 @@ public:
 	// DefaultReferenceCardView. Ownership passes to the caller via the usual
 	// QWidget parent mechanism.
 	virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,
-		const SkinTokens& tokens) const;
-
-	// The compact SubwooferRouting card body. The editor computes and owns the
-	// state and actions; the returned view owns their presentation. The
-	// default is DefaultSubwooferRoutingCardView.
-	virtual SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent,
 		const SkinTokens& tokens) const;
 
 	// Painted decoration over the custom title bar's QSS background (screws,

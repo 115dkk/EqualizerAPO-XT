@@ -16,7 +16,6 @@
 
 #include "Editor/skins/shared/SkinSupport.h"
 #include "cards/FlatReferenceCardView.h"
-#include "cards/FlatSubwooferRoutingCardView.h"
 #include "picker/FlatFilterPicker.h"
 #include "routing/BlockChipRoutingRenderer.h"
 #include "FlatPaint.h"
@@ -39,12 +38,6 @@ ReferenceCardView* FlatSkin::createReferenceCardView(const QString& kind, QWidge
 	const SkinTokens& tokens) const
 {
 	return new FlatReferenceCardView(kind, tokens, parent);
-}
-
-SubwooferRoutingCardView* FlatSkin::createSubwooferRoutingCardView(QWidget* parent,
-	const SkinTokens& tokens) const
-{
-	return new FlatSubwooferRoutingCardView(tokens, parent);
 }
 
 // The card head's power control is a switch. The sheets draw its track

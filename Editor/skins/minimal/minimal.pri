@@ -10,7 +10,6 @@ SOURCES += \
 	$$PWD/MinimalFileIcons.cpp \
 	$$PWD/picker/MinimalFilterPicker.cpp \
 	$$PWD/cards/MinimalReferenceCardView.cpp \
-	$$PWD/cards/MinimalSubwooferRoutingCardView.cpp \
 	$$PWD/routing/StepListRoutingRenderer.cpp
 
 HEADERS += \
@@ -18,7 +17,6 @@ HEADERS += \
 	$$PWD/MinimalChannelInk.h \
 	$$PWD/picker/MinimalFilterPicker.h \
 	$$PWD/cards/MinimalReferenceCardView.h \
-	$$PWD/cards/MinimalSubwooferRoutingCardView.h \
 	$$PWD/routing/StepListRoutingRenderer.h
 
 OTHER_FILES += \

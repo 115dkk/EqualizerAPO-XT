@@ -8,7 +8,6 @@
 
 #include "Editor/skins/Skins.h"
 #include "Editor/skins/rack/cards/RackReferenceCardView.h"
-#include "Editor/skins/rack/cards/RackSubwooferRoutingCardView.h"
 #include "Editor/skins/rack/picker/RackFilterPicker.h"
 #include "Editor/skins/rack/routing/HardwarePatchbayRoutingRenderer.h"
 
@@ -32,12 +31,6 @@ ReferenceCardView* RackSkin::createReferenceCardView(const QString& kind, QWidge
 	const SkinTokens& tokens) const
 {
 	return new RackReferenceCardView(kind, tokens, parent);
-}
-
-SubwooferRoutingCardView* RackSkin::createSubwooferRoutingCardView(QWidget* parent,
-	const SkinTokens& tokens) const
-{
-	return new RackSubwooferRoutingCardView(tokens, parent);
 }
 
 ISkin* rackSkin()
