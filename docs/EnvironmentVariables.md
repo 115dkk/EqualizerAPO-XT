@@ -55,6 +55,13 @@ variables and do not belong in this list.
 - `EAPO_GALLERY_LANG` — renders the gallery with a shipped translation
   (for example `ko`) instead of the default untranslated English, to judge
   translated typography.
+- `EAPO_GALLERY_PROBE` — a review tool: the named spec file lists whole
+  documents, one per line
+  (`name|channel count|channel mask (hex)|viewport width|line 1;;line 2;;...`),
+  and each skin and mode renders only those, each as one table capture
+  `<skin>_<mode>_probe_<name>.png`, logging every card's height on a `PROBE`
+  line. The registered scenes are not rendered, so the run reports their
+  output as missing and exits 1.
 - `EAPO_GALLERY_OUTLINE_REPORT` — appends one TSV line per measured outline
   side to the named file while the gallery checks a skin's control contract
   (`Editor/gallery/GalleryOutlineCheck.cpp`): skin, mode, scene, state,
