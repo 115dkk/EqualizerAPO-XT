@@ -1370,9 +1370,11 @@ QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
    keeps its latched outline while focused (:!checked): its edge is already
    lit, and keeping it leaves one colour on four sides with the lamp row or
    top bar. A key whose resting rule is more specific (a latched variant)
-   keeps that rule's single colour too. */
+   keeps that rule's single colour too. Push buttons light only in the card
+   list: in a dialog the default button's edge already marks where Enter
+   goes, and a clicked dialog button would stay amber. */
 QToolButton:focus:!checked,
-QPushButton:focus,
+QFrame#FilterCardRow QPushButton:focus,
 QToolBar#MainToolBar QToolButton:focus:!checked,
 QToolButton[rackTransport="true"]:focus:!checked,
 QTabBar QToolButton:focus:!checked,

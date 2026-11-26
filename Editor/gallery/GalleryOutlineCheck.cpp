@@ -40,6 +40,7 @@
 #include <QStringList>
 #include <QStyle>
 #include <QStyleOption>
+#include <QTabBar>
 #include <QToolButton>
 #include <QVariant>
 
@@ -295,13 +296,14 @@ const std::vector<Exemption>& exemptions()
 {
 	static const std::vector<Exemption> table = {
 		// The plain QToolButton rule has a transparent border at rest: a bare
-		// glyph button (tab-bar scroll arrows, dialog and toolbar extras) is
-		// printed on the plate and grows a cap only under the pointer or
-		// latched. The main toolbar's and the file dialog's transport keys
-		// are caps at rest and are not exempt.
+		// glyph button (dialog and toolbar extras) is printed on the plate
+		// and grows a cap only under the pointer or latched. The main
+		// toolbar's and the file dialog's transport keys and a tab bar's
+		// scroll keys are caps at rest and are not exempt.
 		{ [](const OutlinedPart& part) {
 			 return part.cls == QLatin1String("QToolButton") && part.name.isEmpty()
-				 && !hasProp(part, "rackTransport=true") && !underAncestorNamed(part.widget, "MainToolBar");
+				 && !hasProp(part, "rackTransport=true") && !underAncestorNamed(part.widget, "MainToolBar")
+				 && qobject_cast<const QTabBar*>(part.widget->parentWidget()) == nullptr;
 		 },
 			true, "plain tool button: bare glyph at rest" },
 		// #456: a card header's actions (fold, add, remove, raw edit) rest as
