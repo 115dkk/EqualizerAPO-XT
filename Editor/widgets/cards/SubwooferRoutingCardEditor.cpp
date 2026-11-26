@@ -647,12 +647,14 @@ void SubwooferRoutingCardEditor::showCard(
 	// missing it is the Locate entry (the Include card's words).
 	const bool locate = state.missing && !profilePath.isEmpty();
 	browseButton->setVisible(card.linkedProfile);
-	browseButton->setText(locate
-		? QCoreApplication::translate("IncludeCardEditor", "Locate...")
-		: QString());
-	browseButton->setToolTip(locate
-		? QCoreApplication::translate("IncludeCardEditor", "Locate the missing file")
-		: tr("Choose profile file"));
+	// Each text is its own statement: lupdate files a tr() that follows
+	// QCoreApplication::translate(...) in the same expression under the
+	// QCoreApplication context, where the card would never find it.
+	const QString locateText = QCoreApplication::translate("IncludeCardEditor", "Locate...");
+	const QString locateToolTip = QCoreApplication::translate("IncludeCardEditor", "Locate the missing file");
+	const QString chooseToolTip = tr("Choose profile file");
+	browseButton->setText(locate ? locateText : QString());
+	browseButton->setToolTip(locate ? locateToolTip : chooseToolTip);
 
 	// Without a loaded state the editor has nothing to open; the button says
 	// why instead of doing nothing on a click.
