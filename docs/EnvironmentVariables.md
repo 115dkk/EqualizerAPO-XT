@@ -19,6 +19,13 @@ variables and do not belong in this list.
 
 - `EAPO_GALLERY_LEGACY` — renders the heritage (legacy rows) gallery dumps
   instead of the per-skin card gallery.
+- `EAPO_MODERN_ROWS` - experiment, on the branch `exp/modern-row-rack`
+  only: draws the filter list of a skin that supports it as one-line rows
+  instead of cards. Not a supported setting; it goes away when the
+  experiment is judged.
+- `EAPO_GALLERY_PROBE` - experiment tooling on the same branch: names a spec
+  file whose documents the gallery renders as whole tables, with a sidecar
+  that lists every outlined part, instead of the registered scenes.
 - `EAPO_GATE_LOG` sends `Logging` output from a headless gate or gallery to
   the named UTF-8 file. When it is unset, empty, or cannot be opened, that
   output goes to `NUL`; Qt messages continue to use stderr.
