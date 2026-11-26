@@ -288,8 +288,8 @@ bool underAncestorNamed(const QWidget* widget, const char* name)
 struct Exemption
 {
 	std::function<bool(const OutlinedPart&)> matches;
-	bool atRestOnly;
-	const char* reason;
+	bool atRestOnly = false;
+	const char* reason = nullptr;
 };
 
 const std::vector<Exemption>& exemptions()
@@ -725,7 +725,7 @@ bool isListCap(const OutlinedPart& part)
 struct HeightException
 {
 	std::function<bool(const OutlinedPart&)> matches;
-	const char* reason;
+	const char* reason = nullptr;
 };
 
 const std::vector<HeightException>& heightExceptions()
