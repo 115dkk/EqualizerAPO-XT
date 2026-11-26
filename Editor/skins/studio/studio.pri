@@ -13,7 +13,6 @@ SOURCES += \
 	$$PWD/StudioFileIcons.cpp \
 	$$PWD/picker/StudioFilterPicker.cpp \
 	$$PWD/cards/StudioReferenceCardView.cpp \
-	$$PWD/cards/StudioSubwooferRoutingCardView.cpp \
 	$$PWD/routing/LightTraceRoutingRenderer.cpp
 
 HEADERS += \
@@ -23,7 +22,6 @@ HEADERS += \
 	$$PWD/StudioFileIcons.h \
 	$$PWD/picker/StudioFilterPicker.h \
 	$$PWD/cards/StudioReferenceCardView.h \
-	$$PWD/cards/StudioSubwooferRoutingCardView.h \
 	$$PWD/routing/LightTraceRoutingRenderer.h
 
 DISTFILES += \

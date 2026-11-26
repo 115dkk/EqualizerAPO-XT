@@ -12,7 +12,6 @@ SOURCES += \
 	$$PWD/MatrixFileIcons.cpp \
 	$$PWD/picker/MatrixFilterPicker.cpp \
 	$$PWD/cards/MatrixReferenceCardView.cpp \
-	$$PWD/cards/MatrixSubwooferRoutingCardView.cpp \
 	$$PWD/routing/CrosspointMatrixRoutingRenderer.cpp
 
 HEADERS += \
@@ -21,5 +20,4 @@ HEADERS += \
 	$$PWD/MatrixSkinDetail.h \
 	$$PWD/picker/MatrixFilterPicker.h \
 	$$PWD/cards/MatrixReferenceCardView.h \
-	$$PWD/cards/MatrixSubwooferRoutingCardView.h \
 	$$PWD/routing/CrosspointMatrixRoutingRenderer.h

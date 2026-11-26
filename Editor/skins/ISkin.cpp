@@ -23,7 +23,6 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/cards/DefaultReferenceCardView.h"
-#include "Editor/widgets/cards/SubwooferRoutingCardView.h"
 #include "Editor/widgets/cards/VSTSlotFillRail.h"
 #include "shared/SkinPaint.h"
 #include "SkinThemeData.h"
@@ -474,12 +473,6 @@ ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* 
 	// skins that split their answer per kind branch on it.
 	Q_UNUSED(kind);
 	return new DefaultReferenceCardView(tokens, parent);
-}
-
-SubwooferRoutingCardView* ISkin::createSubwooferRoutingCardView(QWidget* parent,
-	const SkinTokens& tokens) const
-{
-	return new DefaultSubwooferRoutingCardView(tokens, parent);
 }
 
 void ISkin::paintTitleBarChrome(QPainter&, const QRect&, const SkinTokens&) const

@@ -24,7 +24,6 @@ class QRect;
 class QToolBar;
 class QWidget;
 class ReferenceCardView;
-class SubwooferRoutingCardView;
 struct AnalysisGraphState;
 struct BadgeTreatment;
 struct CommandRowInfo;
@@ -140,9 +139,6 @@ public:
 	// The reference-card body view for the active skin
 	// (ISkin::createReferenceCardView). kind is ReferenceCardState::kind.
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
-
-	// The compact SubwooferRouting card body for the active skin.
-	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const;
 
 	// Main toolbar icons/chrome for the active skin (ISkin::styleMainToolbar).
 	void styleMainToolbar(QToolBar* toolBar) const;

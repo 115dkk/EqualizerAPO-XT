@@ -62,6 +62,4 @@ public:
 	FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const override;
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,
 		const SkinTokens& tokens) const override;
-	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent,
-		const SkinTokens& tokens) const override;
 };

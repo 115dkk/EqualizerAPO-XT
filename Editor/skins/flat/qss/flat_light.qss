@@ -773,58 +773,6 @@ QToolButton#VelvetAdvancedToggle {
 QToolButton#VelvetAdvancedToggle:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
 QToolButton#VelvetAdvancedToggle:checked { background: @CARD_SELECTED@; border-color: @EDGE@; }
 
-/* Subwoofer routing summary: one headline sentence, one caption under it,
-   the facts as tags, and ordinary buttons. */
-QLabel#FlatBassHeadline {
-    color: @TEXT@;
-    background: transparent;
-    border: 0;
-    font-size: 11.5pt;
-    font-weight: 600;
-}
-QLabel#FlatBassHeadline:disabled { color: @MUTED@; }
-
-QLabel#FlatBassCaption {
-    color: @MUTED@;
-    background: transparent;
-    border: 0;
-    font-size: 10pt;
-}
-QLabel#FlatBassCaption[severity="warning"] { color: @WARNING@; }
-QLabel#FlatBassCaption[severity="danger"] { color: @DANGER@; }
-QLabel#FlatBassCaption:disabled { color: @MUTED@; }
-
-QLabel#FlatBassFactPill {
-    color: @TEXT@;
-    background: transparent;
-    border: 1px solid @BORDER_STRONG@;
-    border-radius: 10px;
-    padding: 1px 9px;
-    min-height: 18px;
-    font-size: 10pt;
-}
-QLabel#FlatBassFactPill:disabled { color: @MUTED@; }
-
-QToolButton#FlatBassActionButton {
-    background: @CARD@;
-    color: @TEXT@;
-    border: 1px solid @BORDER_STRONG@;
-    border-radius: 6px;
-    padding: 0 12px;
-    min-width: 28px;
-    min-height: 30px;
-}
-QToolButton#FlatBassActionButton:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
-QToolButton#FlatBassActionButton:pressed,
-QToolButton#FlatBassActionButton:checked { background: @CARD_SELECTED@; border-color: @EDGE@; }
-QToolButton#FlatBassActionButton:focus { border-color: @FOCUS@; }
-QToolButton#FlatBassActionButton:disabled { color: rgba(@MUTED_RGB@, 0.55); border-color: @BORDER@; }
-QToolButton#FlatBassActionButton::menu-indicator {
-    image: none;
-    width: 0;
-    height: 0;
-}
-
 /* A checked box carries a real check glyph. The stylesheet engine replaces
    the native indicator drawing wholesale, so without an image the checked
    state was only a filled square - state read through colour alone. The

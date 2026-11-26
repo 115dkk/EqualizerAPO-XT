@@ -8,7 +8,6 @@ SOURCES += \
 	$$PWD/FlatFileIcons.cpp \
 	$$PWD/picker/FlatFilterPicker.cpp \
 	$$PWD/cards/FlatReferenceCardView.cpp \
-	$$PWD/cards/FlatSubwooferRoutingCardView.cpp \
 	$$PWD/routing/BlockChipRoutingRenderer.cpp
 
 HEADERS += \
@@ -16,7 +15,6 @@ HEADERS += \
 	$$PWD/FlatPaint.h \
 	$$PWD/picker/FlatFilterPicker.h \
 	$$PWD/cards/FlatReferenceCardView.h \
-	$$PWD/cards/FlatSubwooferRoutingCardView.h \
 	$$PWD/routing/BlockChipRoutingRenderer.h
 
 OTHER_FILES += \
