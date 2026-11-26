@@ -852,8 +852,14 @@ bool FilterCardRow::centresRowMarkers() const
 	// In a Send or MultiConvolution row the routing board is a section under
 	// the row's main line, so the row's markers stand beside that line at the
 	// top. A Copy row has no main line: the board is the row, so its markers
-	// (left column, title, channel badges) are centred on the whole row.
-	return inlineRow && hasEditor && descriptor.kind == FilterCardKind::Copy;
+	// (left column, title, channel badges) are centred on the whole row. The
+	// GraphicEQ row (its plot) and the IIR coefficient row (its table) are
+	// one body for the same reason. The IIR row shares the biquad kind with
+	// the one-line Filter and the all-pass rows, so its editor tells it.
+	if (!inlineRow || !hasEditor)
+		return false;
+	return descriptor.kind == FilterCardKind::Copy || descriptor.kind == FilterCardKind::GraphicEq
+		|| (gui != nullptr && gui->inherits("IIRCardEditor"));
 }
 
 bool FilterCardRow::rowEditorNamesItself() const
