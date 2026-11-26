@@ -294,6 +294,8 @@ Include/Convolution/MultiConvolution/VST 행의 본문(`MinimalReferenceCardView
 - 결손은 반전 블록 `MISSING`이다.
 - 액션은 줄 끝의 대문자 모노 각인 명령(`BROWSE`/`LOCATE`/`EDIT`/`IMPORT`/
   `PANEL`/`OPT`, 미번역 각인 문법)이고, 아이콘·필·둥근 배지는 없다.
+  SubwooferRouting 줄의 명령은 `EDITOR`와 `PRESET`이다(전체 편집기를 여는
+  명령이라 `PANEL` 대신 `EDITOR`). (판례: 2026-11-26 사용자 지시)
 - VST2/VST3와 ABS는 맨몸 모노 토큰이다. 총강 조문 2(정체성 사실은 기존 장식이
   게시)에서 이 스킨의 게시 자리는 줄 위의 맨몸 토큰이다.
 - 멀티컨볼루션의 출력 채널 콤보는 줄머리에서 '캐럿을 단 캡션'(X5 선택기

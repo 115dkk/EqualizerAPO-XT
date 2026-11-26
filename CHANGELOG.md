@@ -14,6 +14,26 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.84.0 — 2026-11-26
+
+- **Editor: the Subwoofer Routing card is one line, like the Include,
+  Convolution and VST cards.** The card had a layout of its own in every skin:
+  two very large buttons with icons nobody could read (in Stock Flat and Signal
+  Matrix the buttons were the icons alone), a row of instruments, and
+  placeholder values when the profile could not be loaded. It now uses the
+  reference card the other three use. It shows the profile's name, four facts
+  about what the line does to the sound (speaker layout, crossover frequency,
+  the LFE channel's gain, the headroom trim) and two worded buttons, **Open
+  editor** and **Preset**. The card is 15 to 151 px lower, depending on the
+  skin. A line that links a profile file also has a folder button to pick the
+  file, and when that file is missing the button becomes **Locate...**; until
+  now a broken link could not be repaired on the card, only replaced by a
+  preset. While there is no profile to edit, **Open editor** is switched off
+  and its tooltip says why (it used to do nothing when clicked). The card's
+  words are translated into Korean, German, French and Chinese for the first
+  time.
+  ([#539](https://github.com/115dkk/EqualizerAPO-XT/pull/539))
+
 ## v2.83.1 — 2026-11-26
 
 - **Editor: buttons that show only an icon or a sign have a name for screen
