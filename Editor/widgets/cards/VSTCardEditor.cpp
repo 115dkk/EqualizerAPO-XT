@@ -95,7 +95,8 @@ VSTCardEditor::VSTCardEditor(shared_ptr<VSTPluginLibrary> library, const wstring
 	// not). Shown only when the readability probe fails - unlike the
 	// convolution card, a readable plugin is never offered for import,
 	// because plugin binaries are machine-installed dependencies
-	// (ConfigDependencyScanner states the same rule for bundle imports).
+	// (ConfigDependencyScanner::scan keeps config imports external; this
+	// button explicitly imports the library, including a whole VST3 bundle).
 	importButton = new QToolButton(view);
 	importButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	importButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/import.svg"), actionColor, 18));
@@ -658,7 +659,7 @@ void VSTCardEditor::importToConfig()
 		return;
 
 	reference->setResolvedPath(QString::fromStdWString(session->library()->getLibPath()));
-	if (!reference->importIntoConfig(this, filterTable->getConfigPath()))
+	if (!reference->importIntoConfig(this, filterTable->getConfigPath(), /*pluginLibrary=*/ true))
 		return;
 
 	// The engine resolves relative Library references against the install

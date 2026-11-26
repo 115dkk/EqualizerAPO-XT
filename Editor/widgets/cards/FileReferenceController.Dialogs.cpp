@@ -111,13 +111,14 @@ QString FileReferenceController::chooseVstLibrary(QWidget* parent, const QString
 }
 
 bool FileReferenceController::importIntoConfig(
-	QWidget* parent, const QString& configPath)
+	QWidget* parent, const QString& configPath, bool pluginLibrary)
 {
 	if (resolved.isEmpty() || !QFileInfo::exists(resolved))
 		return false;
 	const QString configDir = QFileInfo(configPath).absolutePath();
-	EqAPO::Import::ImportManifest manifest =
-		EqAPO::Import::ConfigDependencyScanner::scan(resolved, configDir);
+	EqAPO::Import::ImportManifest manifest = pluginLibrary
+		? EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(resolved, configPath)
+		: EqAPO::Import::ConfigDependencyScanner::scan(resolved, configDir);
 	if (manifest.items.isEmpty())
 	{
 		QMessageBox::warning(parent,
@@ -133,13 +134,15 @@ bool FileReferenceController::importIntoConfig(
 		manifest, configDir, EqAPO::Import::Disposition::KeepSources);
 	if (result.success && result.filesAlreadyInPlace > 0)
 	{
-		const QString destination = QDir(configDir).absoluteFilePath(manifest.rootDest);
-		if (AudioEngineAccess::grantOwnedFileReadAccess(
-				QDir::toNativeSeparators(destination).toStdWString()) != AudioEngineAccess::Grant::Applied)
+		for (const QString& destination : result.alreadyInPlace)
 		{
-			result.success = false;
-			result.errors.append(QCoreApplication::translate("FileReferenceController",
-				"Could not grant audio service access to %1.").arg(destination));
+			if (AudioEngineAccess::grantOwnedFileReadAccess(
+					QDir::toNativeSeparators(destination).toStdWString()) != AudioEngineAccess::Grant::Applied)
+			{
+				result.success = false;
+				result.errors.append(QCoreApplication::translate("FileReferenceController",
+					"Could not grant audio service access to %1.").arg(destination));
+			}
 		}
 	}
 	if (!result.success)

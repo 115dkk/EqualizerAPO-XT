@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: importing a VST3 plug-in folder (bundle) reported a missing file
+  and left the Import button disabled.** Import now copies the whole bundle,
+  including its resources. The Korean and Chinese import summaries also no
+  longer display the total size as a file count.
+  ([#542](https://github.com/115dkk/EqualizerAPO-XT/pull/542))
+
 ## v2.85.0 — 2026-11-26
 
 - **Hardware Rack: a choice between two is a toggle switch.** The ORDER switch

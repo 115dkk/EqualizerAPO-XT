@@ -39,7 +39,7 @@
         <translation type="unfinished">Mittenfrequenz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="98"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="99"/>
         <source>An all-pass changes phase and group delay around Fc. The magnitude response stays at 0 dB, so this filter is invisible in the magnitude graph.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -54,42 +54,7 @@
         <translation type="unfinished">Bandbreite</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="189"/>
-        <source>Phase</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="189"/>
-        <source>Group delay</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="189"/>
-        <source>Graph</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
-        <source>Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="213"/>
-        <source>Magnitude</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="217"/>
-        <source>0.0 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="220"/>
-        <source>An all-pass does not change level at any frequency, so there is nothing to set here.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="371"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="334"/>
         <source>Oct</source>
         <translation type="unfinished"></translation>
     </message>
@@ -434,32 +399,37 @@
 <context>
     <name>ConfigDependencyScanner</name>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="129"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="130"/>
         <source>Missing file: %1</source>
         <translation>Fehlende Datei: %1</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="144"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="145"/>
         <source>Recursion limit reached at %1; nested references were not followed.</source>
         <translation>Rekursionsgrenze bei %1 erreicht; verschachtelte Verweise wurden nicht verfolgt.</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="156"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="157"/>
         <source>Cannot open %1 for scanning.</source>
         <translation>%1 kann nicht zum Einlesen geöffnet werden.</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="179"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="180"/>
         <source>VSTPlugin line has no Library reference: %1 (in %2)</source>
         <translation>VSTPlugin-Zeile ohne Library-Verweis: %1 (in %2)</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="199"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="200"/>
         <source>Reference outside the source folder will be skipped: %1 (in %2)</source>
         <translation>Verweis außerhalb des Quellordners wird übersprungen: %1 (in %2)</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="226"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="264"/>
+        <source>Link not copied: %1</source>
+        <translation>Verknüpfung nicht kopiert: %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="293"/>
         <source>Root file does not exist: %1</source>
         <translation>Stammdatei existiert nicht: %1</translation>
     </message>
@@ -1236,23 +1206,23 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="125"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="151"/>
         <source>Import</source>
         <translation type="unfinished">Importieren</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="125"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="126"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">Nichts zu importieren: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="141"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="143"/>
         <source>Could not grant audio service access to %1.</source>
         <translation>Dem Audiodienst konnte kein Zugriff auf %1 gewährt werden.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="149"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="152"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">Einige Dateien konnten nicht kopiert werden:
@@ -2256,49 +2226,49 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>ImportExecutor</name>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="145"/>
+        <location filename="../import/ImportExecutor.cpp" line="142"/>
         <source>Import target directory is empty.</source>
         <translation>Das Zielverzeichnis für den Import ist leer.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="153"/>
+        <location filename="../import/ImportExecutor.cpp" line="150"/>
         <source>Could not create config directory %1.</source>
         <translation>Konfigurationsverzeichnis %1 konnte nicht erstellt werden.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="163"/>
+        <location filename="../import/ImportExecutor.cpp" line="160"/>
         <source>Destination outside the config directory, skipped: %1</source>
         <translation>Ziel außerhalb des Konfigurationsverzeichnisses, übersprungen: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="170"/>
+        <location filename="../import/ImportExecutor.cpp" line="167"/>
         <source>Source missing, skipped: %1</source>
         <translation>Quelle fehlt, übersprungen: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="178"/>
+        <location filename="../import/ImportExecutor.cpp" line="175"/>
         <source>Could not create %1.</source>
         <translation>%1 konnte nicht erstellt werden.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="200"/>
+        <location filename="../import/ImportExecutor.cpp" line="198"/>
         <source>Could not overwrite %1.</source>
         <translation>%1 konnte nicht überschrieben werden.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="233"/>
+        <location filename="../import/ImportExecutor.cpp" line="231"/>
         <source>Source kept because the copied file size could not be verified: %1</source>
         <translation>Quelle beibehalten, da die Größe der kopierten Datei nicht überprüft werden konnte: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="239"/>
+        <location filename="../import/ImportExecutor.cpp" line="237"/>
         <source>Could not remove source after copying: %1</source>
         <translation>Quelle konnte nach dem Kopieren nicht entfernt werden: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="194"/>
-        <location filename="../import/ImportExecutor.cpp" line="207"/>
-        <location filename="../import/ImportExecutor.cpp" line="218"/>
+        <location filename="../import/ImportExecutor.cpp" line="192"/>
+        <location filename="../import/ImportExecutor.cpp" line="205"/>
+        <location filename="../import/ImportExecutor.cpp" line="216"/>
         <source>Failed to copy %1 to %2.</source>
         <translation>Kopieren von %1 nach %2 fehlgeschlagen.</translation>
     </message>
@@ -5122,44 +5092,44 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="647"/>
         <source>Select VST plugin</source>
         <translation>VST-Plugin auswählen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="108"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="703"/>
         <source>Open panel</source>
         <translation>Bedienfeld öffnen</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="102"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="103"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>Bibliothek in das Konfigurationsverzeichnis kopieren, damit der Audiodienst sie lesen kann</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="118"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="119"/>
         <source>Embed panel in card</source>
         <translation>Bedienfeld in Karte einbetten</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="125"/>
         <source>Remove Input/Output layouts</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="125"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="126"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
         <source>Remove channel fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="133"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5180,7 +5150,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation type="vanished">Plugin ist während der Initialisierung abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="437"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="438"/>
         <source>No plugin selected</source>
         <translation>Kein Plugin ausgewählt</translation>
     </message>
@@ -5189,12 +5159,12 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation type="vanished">Für den Audiodienst nicht lesbar</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="545"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
         <source>Locate...</source>
         <translation>Suchen...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
         <source>Locate the missing plugin library</source>
         <translation>Fehlende Plugin-Bibliothek suchen</translation>
     </message>
@@ -5235,7 +5205,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="647"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST-Plugins (*.dll *.vst3)</translation>
     </message>
@@ -5244,7 +5214,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
         <translation type="vanished">Plugin ist beim Öffnen des Bedienfelds abgestürzt.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="703"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5257,7 +5227,7 @@ Change the file permissions or copy the files to the config directory.</source>
 Ändern Sie die Dateiberechtigungen oder kopieren Sie die Dateien in das Konfigurationsverzeichnis.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
         <source>Loading plugin...</source>
         <translation>Plugin wird geladen...</translation>
     </message>

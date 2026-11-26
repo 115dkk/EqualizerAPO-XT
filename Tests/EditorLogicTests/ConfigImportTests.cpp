@@ -18,7 +18,12 @@
 
 #include <string>
 
+#include <QDebug>
 #include <QDir>
+#include <QProcess>
+#include <QScopeGuard>
+
+#include "filters/ConfigFileReference.h"
 #include <QFile>
 #include <QFileInfo>
 #include <QString>
@@ -33,7 +38,304 @@
 #include "Editor/import/LegacyMigrationPolicy.h"
 #include "Editor/widgets/cards/FileReferenceController.h"
 
+#include "../TestHarness.h"
 #include "EditorLogicTestSupport.h"
+
+namespace
+{
+QString bundleModuleRelative()
+{
+#if defined(_M_ARM64)
+	return QStringLiteral("Contents/arm64-win/Foo.vst3");
+#elif defined(_WIN64)
+	return QStringLiteral("Contents/x86_64-win/Foo.vst3");
+#else
+	return QStringLiteral("Contents/x86-win/Foo.vst3");
+#endif
+}
+
+void writeBundleFile(const QString& path, const QByteArray& bytes)
+{
+	requireTrue(QDir().mkpath(QFileInfo(path).absolutePath()), "create bundle file directory");
+	QFile file(path);
+	requireTrue(file.open(QIODevice::WriteOnly), "open bundle fixture file");
+	requireTrue(file.write(bytes) == bytes.size(), "write bundle fixture bytes");
+}
+
+QString makePluginBundle(const QString& root)
+{
+	const QString bundle = root + QStringLiteral("/VST3/Foo.vst3");
+	writeBundleFile(bundle + "/" + bundleModuleRelative(), QByteArray(128, 'm'));
+	writeBundleFile(bundle + "/Contents/Resources/moduleinfo.json", QByteArray("{}"));
+	writeBundleFile(bundle + "/note.json", QByteArray("{\"note\":1}"));
+	return bundle;
+}
+
+void expectManifestEqual(const EqAPO::Import::ImportManifest& actual,
+	const EqAPO::Import::ImportManifest& expected)
+{
+	expectEqual(actual.rootSource, expected.rootSource, "same rootSource");
+	expectEqual(actual.rootSourceDir, expected.rootSourceDir, "same rootSourceDir");
+	expectEqual(actual.rootDest, expected.rootDest, "same rootDest");
+	expectEqual(actual.externalReferences, expected.externalReferences, "same externalReferences");
+	expectEqual(actual.warnings, expected.warnings, "same warnings");
+	expectTrue(actual.totalBytes == expected.totalBytes, "same totalBytes");
+	expectTrue(actual.hasErrors == expected.hasErrors, "same hasErrors");
+	requireEqual(int(actual.items.size()), int(expected.items.size()), "same item count");
+	for (qsizetype i = 0; i < actual.items.size(); ++i)
+	{
+		const auto& left = actual.items[i];
+		const auto& right = expected.items[i];
+		expectEqual(left.sourceAbsolute, right.sourceAbsolute, "same sourceAbsolute");
+		expectEqual(left.destRelative, right.destRelative, "same destRelative");
+		expectTrue(left.sizeBytes == right.sizeBytes, "same sizeBytes");
+		expectTrue(left.exists == right.exists, "same exists");
+		expectEqual(left.kind, right.kind, "same kind");
+	}
+}
+
+void expectBundleFiles(const EqAPO::Import::ImportManifest& manifest, const QString& bundle)
+{
+	expectFalse(manifest.hasErrors, "bundle has no scan errors");
+	expectTrue(manifest.externalReferences.isEmpty(), "explicit import has no external references");
+	requireEqual(int(manifest.items.size()), 3, "bundle has three plain files");
+	expectPath(manifest.rootSourceDir, QFileInfo(bundle).absolutePath());
+	expectTrue(manifest.totalBytes == 140, "bundle total includes module, resources and metadata");
+	QStringList destinations;
+	for (const auto& item : manifest.items)
+	{
+		destinations.append(item.destRelative);
+		expectEqual(item.kind, "VSTPlugin", "every bundle item is a plugin file");
+		expectTrue(item.exists, "every bundle file exists");
+		expectPath(item.sourceAbsolute, QDir(manifest.rootSourceDir).filePath(
+			item.destRelative.mid(QStringLiteral("VST3/").size())));
+		expectTrue(item.sizeBytes == QFileInfo(item.sourceAbsolute).size(), "each item has its file size");
+	}
+	expectTrue(destinations.contains("VST3/Foo.vst3/" + bundleModuleRelative()), "module keeps platform folder");
+	expectTrue(destinations.contains("VST3/Foo.vst3/Contents/Resources/moduleinfo.json"), "resources keep their folder");
+	expectTrue(destinations.contains("VST3/Foo.vst3/note.json"), "root metadata is included");
+}
+
+void expectImportedBundleOpens(const EqAPO::Import::ImportManifest& manifest, const QString& configDir)
+{
+	const auto result = EqAPO::Import::ImportExecutor::execute(manifest, configDir);
+	expectTrue(result.success, "bundle copy succeeds");
+	expectEqual(result.filesCopied, 3, "copies every bundle file");
+	expectTrue(result.bytesCopied == manifest.totalBytes, "copies the expected number of bytes");
+	const auto target = ConfigFileReference::library(L"",
+		QDir::toNativeSeparators(configDir + "/" + manifest.rootDest).toStdWString(),
+		QDir::toNativeSeparators(configDir + "/config.txt").toStdWString());
+	requireTrue(bool(target), "the engine opens the imported library reference");
+	const QString module = QString::fromStdWString(target.path.path());
+	expectPath(module, configDir + "/VST3/Foo.vst3/" + bundleModuleRelative());
+	expectFalse(QDir(configDir).relativeFilePath(module).startsWith(".."), "opened module stays below config");
+}
+
+bool makeBundleLink(const QString& link, const QString& target, bool junction)
+{
+	QProcess process;
+	process.setProgram(qEnvironmentVariable("COMSPEC", "C:/Windows/System32/cmd.exe"));
+	process.setNativeArguments(QStringLiteral("/d /c mklink %1\"%2\" \"%3\"")
+		.arg(junction ? QStringLiteral("/J ") : QString(),
+			QDir::toNativeSeparators(link), QDir::toNativeSeparators(target)));
+	process.start();
+	const bool finished = process.waitForFinished(10000);
+	if (!finished || process.exitStatus() != QProcess::NormalExit || process.exitCode() != 0)
+	{
+		qInfo().noquote() << (junction ? "SKIP bundle junction:" : "SKIP bundle file symlink:")
+			<< process.readAllStandardError();
+		return false;
+	}
+	return true;
+}
+}
+
+TEST_CASE(EditorLogicTests, testPluginBundleFolderImport)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config/config.txt");
+	expectFalse(manifest.hasErrors,
+		QStringLiteral("bundle folder must import instead of Missing file: %1").arg(manifest.warnings.join('\n')));
+	requireEqual(int(manifest.items.size()), 3, "bundle import includes module, resources and root metadata");
+	expectBundleFiles(manifest, bundle);
+	expectTrue(manifest.warnings.isEmpty(), "plain bundle has no warnings");
+	expectPath(manifest.rootSource, bundle);
+	expectEqual(manifest.rootDest, "VST3/Foo.vst3", "folder reference still names the folder");
+	expectImportedBundleOpens(manifest, temp.path() + "/config");
+}
+
+TEST_CASE(EditorLogicTests, testPluginBundleModuleImport)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const QString module = bundle + "/" + bundleModuleRelative();
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		module, temp.path() + "/config/config.txt");
+	expectBundleFiles(manifest, bundle);
+	expectTrue(manifest.warnings.isEmpty(), "plain module has no warnings");
+	expectPath(manifest.rootSource, module);
+	expectEqual(manifest.rootDest, "VST3/Foo.vst3/" + bundleModuleRelative(), "module reference still names the module");
+	expectImportedBundleOpens(manifest, temp.path() + "/config");
+}
+
+TEST_CASE(EditorLogicTests, testPluginBundleSkipsJunction)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const QString outside = temp.path() + "/private";
+	writeBundleFile(outside + "/secret.txt", QByteArray("private-content"));
+	const QString link = bundle + "/linked";
+	if (!makeBundleLink(link, outside, true))
+		return;
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config/config.txt");
+	expectBundleFiles(manifest, bundle);
+	expectTrue(manifest.warnings.contains("Link not copied: " + link), "junction is reported, not followed");
+	expectImportedBundleOpens(manifest, temp.path() + "/config");
+	expectFalse(QFileInfo::exists(temp.path() + "/config/VST3/Foo.vst3/linked/secret.txt"), "junction target is never copied");
+	expectFalse(QFileInfo::exists(temp.path() + "/config/VST3/Foo.vst3/linked"), "junction itself is never copied");
+	requireTrue(QDir().rmdir(link), "remove only the test junction");
+	expectTrue(QFile::exists(outside + "/secret.txt"), "original junction target is untouched");
+	qInfo("Bundle junction: skipped with warning, no target content copied");
+}
+
+TEST_CASE(EditorLogicTests, testPluginBundleSkipsFileSymlink)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const QString outside = temp.path() + "/private/secret.txt";
+	writeBundleFile(outside, QByteArray("private-content"));
+	const QString link = bundle + "/secret.txt";
+	if (!makeBundleLink(link, outside, false))
+		return;
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config/config.txt");
+	expectBundleFiles(manifest, bundle);
+	expectTrue(manifest.warnings.contains("Link not copied: " + link), "file symlink is reported, not followed");
+	expectImportedBundleOpens(manifest, temp.path() + "/config");
+	expectFalse(QFileInfo::exists(temp.path() + "/config/VST3/Foo.vst3/secret.txt"), "file link target is never copied");
+	requireTrue(QFile::remove(link), "remove only the test file symlink");
+	expectTrue(QFile::exists(outside), "original file link target is untouched");
+	qInfo("Bundle file symlink: skipped with warning, no target content copied");
+}
+
+TEST_CASE(EditorLogicTests, testPluginSingleFileMatchesConfigScan)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary plugin directory must be valid");
+	const QString config = temp.path() + "/config/config.txt";
+	for (const QString& suffix : {QStringLiteral("dll"), QStringLiteral("vst3")})
+	{
+		const QString library = temp.path() + "/VST3/Foo." + suffix;
+		writeBundleFile(library, QByteArray("single-module"));
+		expectManifestEqual(EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(library, config),
+			EqAPO::Import::ConfigDependencyScanner::scan(library, QFileInfo(config).absolutePath()));
+	}
+}
+
+TEST_CASE(EditorLogicTests, testConfigScanKeepsPluginBundleExternal)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const QString config = temp.path() + "/source/main.txt";
+	writeBundleFile(config, QStringLiteral("VSTPlugin: Library \"%1\"\n").arg(bundle).toUtf8());
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scan(config, temp.path() + "/config");
+	expectFalse(manifest.hasErrors, "external bundle does not block config import");
+	requireEqual(int(manifest.items.size()), 1, "only config is copied, not the external bundle");
+	expectPath(manifest.items[0].sourceAbsolute, config);
+	expectEqual(manifest.externalReferences, QStringList{bundle}, "config scan records the bundle reference");
+}
+
+TEST_CASE(EditorLogicTests, testPluginBundleAlreadyInPlace)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config.txt");
+	const auto result = EqAPO::Import::ImportExecutor::execute(manifest, temp.path());
+	expectTrue(result.success, "in-place bundle import succeeds");
+	expectEqual(result.filesCopied, 0, "in-place bundle copies nothing");
+	expectEqual(result.filesAlreadyInPlace, 3, "every bundle file is already in place");
+	expectTrue(result.bytesCopied == 0, "no bytes copied in place");
+	QStringList destinations;
+	for (const auto& item : manifest.items)
+		destinations.append(QDir(temp.path()).absoluteFilePath(item.destRelative));
+	expectEqual(result.alreadyInPlace, destinations, "per-file grants receive every in-place destination");
+}
+
+TEST_CASE(EditorLogicTests, testPluginFolderWithoutModuleStillReportsMissingFile)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary plugin directory must be valid");
+	for (const QString& name : {QStringLiteral("ordinary"), QStringLiteral("Empty.vst3")})
+	{
+		const QString folder = temp.path() + "/" + name;
+		requireTrue(QDir().mkpath(folder), "create non-bundle folder");
+		const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(folder, temp.path() + "/config.txt");
+		expectTrue(manifest.hasErrors, "folder without platform module remains an error");
+		expectTrue(manifest.warnings.contains("Missing file: " + folder), "keeps existing missing-file warning");
+		expectManifestEqual(manifest, EqAPO::Import::ConfigDependencyScanner::scan(folder, temp.path()));
+	}
+}
+
+TEST_CASE(EditorLogicTests, testPluginBundleUnreadableResourcesBlockImportButKeepModuleItem)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const QString resources = bundle + "/Contents/Resources";
+	const auto changeAccess = [&](const QString& action, const QString& principal) {
+		QProcess process;
+		process.setProgram(qEnvironmentVariable("SystemRoot", "C:/Windows") + "/System32/icacls.exe");
+		process.setArguments({QDir::toNativeSeparators(resources), action, principal});
+		process.start();
+		if (!process.waitForFinished(10000))
+		{
+			process.kill();
+			process.waitForFinished();
+			return false;
+		}
+		return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
+	};
+	// Register cleanup before applying the deny, including the skip and failed
+	// assertion paths. The deny is not inherited by the resource file.
+	auto restoreAccess = qScopeGuard([&] {
+		if (!changeAccess(QStringLiteral("/remove:d"), QStringLiteral("*S-1-1-0")))
+			qFatal("Bundle unreadable resources: could not remove the test deny entry");
+		qInfo("Bundle unreadable resources: test deny entry removed");
+	});
+	if (!changeAccess(QStringLiteral("/deny"), QStringLiteral("*S-1-1-0:(RD)")))
+	{
+		qInfo("SKIP bundle unreadable resources: could not deny directory listing");
+		return;
+	}
+	qInfo("Bundle unreadable resources: directory listing deny applied");
+	expectTrue(QDir(resources).entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot).isEmpty(),
+		"Qt returns an empty listing for the denied resource folder");
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config/config.txt");
+	// Keep scanning readable siblings for the dialog, but forbid an incomplete import.
+	bool moduleListed = false;
+	for (const auto& item : manifest.items)
+		moduleListed = moduleListed || item.sourceAbsolute == bundle + "/" + bundleModuleRelative();
+	qInfo().noquote() << "Bundle unreadable resources: hasErrors=" << manifest.hasErrors
+		<< "moduleListed=" << moduleListed << "warnings=" << manifest.warnings.join('\n');
+	expectTrue(manifest.hasErrors, "an unreadable bundle resource folder must block import");
+	expectTrue(manifest.warnings.contains("Cannot open " + resources + " for scanning."),
+		"an unreadable bundle resource folder must have a warning naming the folder");
+	expectTrue(moduleListed, "readable module remains listed despite unreadable resources");
+	restoreAccess.commit();
+	expectBundleFiles(EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config/config.txt"), bundle);
+}
 
 TEST_CASE(EditorLogicTests, testLegacyConvolutionPathRules)
 {
