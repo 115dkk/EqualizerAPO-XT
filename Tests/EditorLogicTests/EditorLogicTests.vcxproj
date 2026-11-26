@@ -209,6 +209,7 @@
     <ClInclude Include="..\..\Benchmark\OutputFormat.h" />
     <ClInclude Include="..\..\Editor\import\ConfigDependencyScanner.h" />
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h" />
+    <ClInclude Include="..\..\Editor\import\ImportFileSystem.h" />
     <ClInclude Include="..\..\Editor\import\LegacyMigrationPolicy.h" />
     <ClInclude Include="..\..\Editor\import\CallerProfileCheck.h" />
     <ClInclude Include="..\..\services\security\ConfigDirectoryHandles.h" />
