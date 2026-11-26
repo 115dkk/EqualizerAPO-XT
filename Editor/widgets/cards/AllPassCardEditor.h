@@ -62,7 +62,7 @@ private:
 	bool firstOrder() const;
 	void applyOrderVisibility();
 	// Inside a row of the filter list (FilterTable::ModernRows) the card
-	// gets less width than in a card list: the groups move closer together,
+	// gets less width than in a card list: the graph switch is left out,
 	// and the magnitude readout gives way when the rest would not fit whole.
 	void fitToRow();
 
@@ -79,10 +79,9 @@ private:
 	QWidget* widthBlock = nullptr;
 	QLabel* magnitudeNote = nullptr;
 	SegmentedControl* graphSegment = nullptr;
-	QWidget* frequencyBlock = nullptr;
+	QWidget* graphBlock = nullptr;
 	QWidget* magnitudeBlock = nullptr;
 	QBoxLayout* parameterRow = nullptr;
-	bool rowSpacingApplied = false;
 
 	double currentFrequency = 1000.0;
 	// Always in the unit the mode selector currently shows.

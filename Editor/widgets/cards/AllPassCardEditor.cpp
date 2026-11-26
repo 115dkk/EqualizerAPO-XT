@@ -114,9 +114,8 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	frequencyValue->setUnit(QStringLiteral("Hz"));
 	frequencyValue->setDecimals(2);
 	connect(frequencyValue, SIGNAL(valueChanged(double)), this, SLOT(frequencyValueChanged(double)));
-	frequencyBlock = buildKnobBlock(this, frequencyKnob,
-		QStringLiteral("AllPassCardFrequencyKnob"), frequencyCaption, frequencyValue);
-	parameterRow->addWidget(frequencyBlock);
+	parameterRow->addWidget(buildKnobBlock(this, frequencyKnob,
+		QStringLiteral("AllPassCardFrequencyKnob"), frequencyCaption, frequencyValue));
 	connect(frequencyKnob, SIGNAL(valueChanged(int)), this, SLOT(frequencyKnobChanged(int)));
 	// Double-click defaults are the all-pass templates' (FilterCommandCatalog):
 	// Fc 100 Hz, and the filter's default Q in whichever spelling is shown.
@@ -186,7 +185,7 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	// One segment rather than two buttons: two buttons side by side would fill
 	// the row with nothing but buttons, and these are two views of one thing,
 	// not two independent actions.
-	QWidget* graphBlock = captionedSegment(QStringLiteral("AllPassCardGraphBlock"),
+	graphBlock = captionedSegment(QStringLiteral("AllPassCardGraphBlock"),
 		QStringLiteral("AllPassCardGraphSegment"), tr("Graph"), {tr("Phase"), tr("Group delay")}, graphSegment);
 	graphSegment->setToolTip(tr("Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again."));
 	connect(graphSegment, &SegmentedControl::currentIndexChanged, this, [](int index) {
@@ -251,17 +250,12 @@ void AllPassCardEditor::fitToRow()
 	if (!inRow || parameterRow == nullptr || magnitudeBlock == nullptr)
 		return;
 
-	// The row puts the left column and a title before the card, and a
-	// 960 px window then leaves too little for the groups at their card
-	// spacing: the order and graph switches were cut to "Ph..." and "Gr...".
-	if (!rowSpacingApplied)
-	{
-		rowSpacingApplied = true;
-		parameterRow->setSpacing(2);
-		for (QWidget* block : { frequencyBlock, widthBlock })
-			if (block != nullptr && block->layout() != nullptr)
-				block->layout()->setSpacing(2);
-	}
+	// A row leaves the card less width than a card list does, and the
+	// graph switch is the part it gives up for good: which reading the
+	// analysis graph shows is chosen in the analysis panel below the list,
+	// so in a row the switch only repeated it (maintainer, row round 4).
+	if (graphBlock != nullptr && !graphBlock->isHidden())
+		graphBlock->setVisible(false);
 
 	// The magnitude readout always says 0.0 dB and carries no setting, so it
 	// is the group that gives way. It stays while the whole card fits at its

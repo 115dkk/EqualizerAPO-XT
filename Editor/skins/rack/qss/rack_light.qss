@@ -580,27 +580,6 @@ QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
 QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
     min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
 }
-/* The all-pass value readouts are sized for a card; in a row they take
-   the width "20,000.00 Hz" needs, so the order and graph switches beside
-   them keep their whole labels at 960 px. */
-QFrame#FilterCardRow[inlineRow="true"] EditableValue#AllPassCardFrequencyValue {
-    max-width: 106px;
-}
-/* The width readout holds at most "999.9999 Oct" in a narrower box. */
-QFrame#FilterCardRow[inlineRow="true"] EditableValue#AllPassCardWidthValue {
-    max-width: 96px;
-}
-/* The two all-pass knob boxes give up 6 px each beside the instrument,
-   the last width the row needs at 960 px; the knob draws 60 px across. */
-QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
-QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
-    min-width: 60px; max-width: 60px;
-}
-/* And its captions print at half the card's tracking: CENTER FREQUENCY is
-   the widest thing over the frequency knob. */
-QFrame#FilterCardRow[inlineRow="true"] QLabel#AllPassCardCaption {
-    letter-spacing: 1px;
-}
 QToolButton#FilterCardIconButton:hover { border-color: @ACCENT@; border-top-color: #E4E0D7; }
 QToolButton#FilterCardIconButton:pressed {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #E6DFCF);
