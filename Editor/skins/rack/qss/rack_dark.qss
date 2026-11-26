@@ -561,6 +561,29 @@ QToolButton#FilterCardIconButton[headerAction="true"] {
 QToolButton#FilterCardIconButton[headerAction="true"]:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
 }
+/* Experiment (EAPO_MODERN_ROWS): a one-line unit stacks its three bare
+   actions in one column beside the editor, so each glyph takes a slimmer
+   cap and the column stays within the height of the knob row. */
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
+    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
+}
+/* The biquad knobs are 84 px boxes around a 66 px instrument (the editor
+   pins that width for the cards). On one line the width goes to the
+   value fields instead, so the knob box is trimmed to the instrument. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
+    min-width: 66px; max-width: 66px;
+}
+/* The same trade for the type selector: a little less air around its
+   text and arrow keeps the whole editor beside the left column. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
+    padding-left: 8px; padding-right: 22px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down { width: 18px; }
+/* The Preamp knob is 74 px in its card; on one line it takes the 66 px
+   of the biquad knobs, so the Preamp unit is as tall as a Filter unit. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob {
+    min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
+}
 QToolButton#FilterCardIconButton:hover { border-color: #787164; border-top-color: #3E474F; }
 QToolButton#FilterCardIconButton:pressed {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #161B1F, stop:1 #242B31);
