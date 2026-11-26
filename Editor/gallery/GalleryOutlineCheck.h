@@ -53,7 +53,9 @@ QList<OutlinedPart> collectOutlinedParts(QWidget* root);
 // is grabbed's grab. Prints one "SkinGallery:" line per failing part and one
 // summary line per capture, appends every measured side to the file named by
 // EAPO_GALLERY_OUTLINE_REPORT, and returns the number of failing parts. A
-// skin that promises nothing returns 0 without measuring.
+// skin that promises nothing returns 0 without measuring, and so does a
+// capture that is not at device pixel ratio 1 (the levels are defined on 1:1
+// pixels; one line says that nothing was checked).
 int checkControlOutlines(QWidget* grabbed, const QImage& image, const QString& skinId, const QString& mode,
 	const QString& scene, const QString& state);
 

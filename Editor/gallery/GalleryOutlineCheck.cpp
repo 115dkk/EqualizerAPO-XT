@@ -862,11 +862,32 @@ int checkListCaps(QWidget* grabbed, const QImage& pixels, const QList<OutlinedPa
 }
 }
 
+// The levels and the pixel offsets are defined on 1:1 captures, which is what
+// the offscreen platform gives (CI and the local scripts run there). On a
+// scaled display a grab is in physical pixels while the parts are listed in
+// logical ones, so the readings would come from the wrong pixels: nothing is
+// measured there, and one line says so instead of a run of false failures.
+static bool measuresAtThisScale(qreal devicePixelRatio)
+{
+	if (qFuzzyCompare(devicePixelRatio, 1.0))
+		return true;
+	static bool told = false;
+	if (!told)
+	{
+		told = true;
+		qWarning("SkinGallery: control contract not checked: captures are at device pixel ratio %.2f, the check measures at 1",
+			devicePixelRatio);
+	}
+	return false;
+}
+
 int checkControlOutlines(QWidget* grabbed, const QImage& image, const QString& skinId, const QString& mode,
 	const QString& scene, const QString& state)
 {
 	const SkinControlContract contract = SkinManager::instance()->controlContract();
 	if (!contract.closedOutlines && contract.listCapHeight <= 0)
+		return 0;
+	if (!measuresAtThisScale(image.devicePixelRatio()))
 		return 0;
 	const QImage pixels = image.convertToFormat(QImage::Format_RGB32);
 	const QList<OutlinedPart> parts = collectOutlinedParts(grabbed);
@@ -950,6 +971,8 @@ int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, c
 			qPrintable(mode));
 		return 1;
 	}
+	if (!measuresAtThisScale(table->devicePixelRatioF()))
+		return 0;
 	// Offscreen, a widget takes keyboard focus only inside the active window.
 	scrollArea.activateWindow();
 	QApplication::processEvents();
