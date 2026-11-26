@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.84.3 — 2026-11-26
+
 - **Editor: the Hilbert card no longer has a GRAPH switch.** Like the
   all-pass card's, it did not change the filter: it asked the analysis panel
   to show phase or group delay, and the panel has that switch itself. In every
