@@ -109,6 +109,8 @@
     <ClCompile Include="TroubleshootingNoticesTests.cpp" />
     <ClInclude Include="..\..\Editor\helpers\TroubleshootingNotices.h" />
     <ClCompile Include="PanelMonitorGateTests.cpp" />
+    <ClCompile Include="PluginUiThreadBridgeTests.cpp" />
+    <ClCompile Include="..\..\Editor\helpers\PluginUiThreadBridge.cpp" />
     <ClCompile Include="InfrastructureTests.cpp" />
     <ClCompile Include="..\..\Editor\helpers\CrashHandler.cpp" />
     <ClCompile Include="FilterCardModelTests.cpp" />
@@ -212,6 +214,7 @@
     <ClInclude Include="..\..\services\security\ConfigDirectoryHandles.h" />
     <ClInclude Include="..\..\Editor\skins\SkinThemeData.h" />
     <ClInclude Include="..\..\Editor\import\ImportManifest.h" />
+    <ClInclude Include="..\..\Editor\helpers\PluginUiThreadBridge.h" />
     <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h" />
     <ClInclude Include="..\..\Editor\helpers\VstChunkState.h" />
     <ClInclude Include="..\..\Editor\helpers\VstPanelCrashMarker.h" />
