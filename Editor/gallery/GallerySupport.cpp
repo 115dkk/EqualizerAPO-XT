@@ -428,7 +428,7 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	scrollArea.setWidgetResizable(true);
 	FilterTable* table = new FilterTable();
 	if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY"))
-		table->setRenderMode(FilterTable::LegacyRows);
+		table->setRenderMode(FilterTable::LegacyEditor);
 	scrollArea.setWidget(table);
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices, inputDevices;
 	galleryDevices(outputDevices, inputDevices);

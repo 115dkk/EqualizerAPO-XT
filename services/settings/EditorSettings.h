@@ -35,7 +35,6 @@ inline constexpr char ListMode[] = "interface/listMode";
 // Up to v2.85 the same choice as a boolean. Read once when ListMode is
 // absent; writeListMode removes it.
 inline constexpr char RetiredLegacyRows[] = "interface/legacyRows";
-inline constexpr char LegacyRows[] = "interface/legacyRows";
 inline constexpr char NativeTitleBar[] = "interface/nativeTitleBar";
 // Off by default: file dialogs are the skinned widget-based ones. On, every
 // file dialog is the Windows one (issue #508).
