@@ -1589,6 +1589,44 @@ int SkinGallery::runRoutingEditTest()
 		}
 	}
 
+	// Part 6: the name a button takes from its tooltip follows its label. A
+	// skin swaps a reference card's browse icon for a word (LOCATE, BROWSE)
+	// and back as the state changes, on the same button. Without words the
+	// button is named by its tooltip; with a word it is named by that word,
+	// which is what a user sees and says; and a name given by hand is never
+	// replaced.
+	{
+		const auto spokenName = [](QWidget* widget) -> QString {
+			QAccessibleInterface* accessible = QAccessible::queryAccessibleInterface(widget);
+			return accessible != nullptr ? accessible->text(QAccessible::Name) : QString();
+		};
+		QToolButton browse;
+		browse.setToolTip(QStringLiteral("Select impulse response file"));
+		nameButtonByToolTip(&browse);
+		check(spokenName(&browse) == QLatin1String("Select impulse response file"),
+			QStringLiteral("an icon-only button is named '%1', not by its tooltip").arg(spokenName(&browse)));
+
+		browse.setText(QStringLiteral("LOCATE"));
+		browse.setToolTip(QStringLiteral("Locate the missing file"));
+		nameButtonByToolTip(&browse);
+		check(browse.accessibleName().isEmpty() && spokenName(&browse) == QLatin1String("LOCATE"),
+			QStringLiteral("a button that gained the label LOCATE is named '%1' (accessible name '%2')")
+			.arg(spokenName(&browse), browse.accessibleName()));
+
+		browse.setText(QString());
+		browse.setToolTip(QStringLiteral("Select impulse response file"));
+		nameButtonByToolTip(&browse);
+		check(spokenName(&browse) == QLatin1String("Select impulse response file"),
+			QStringLiteral("a button that lost its label is named '%1', not by its tooltip").arg(spokenName(&browse)));
+
+		QToolButton named;
+		named.setAccessibleName(QStringLiteral("Remove filter"));
+		named.setToolTip(QStringLiteral("Remove this filter."));
+		nameButtonByToolTip(&named);
+		check(spokenName(&named) == QLatin1String("Remove filter"),
+			QStringLiteral("a button named by hand was renamed to '%1'").arg(spokenName(&named)));
+	}
+
 	qWarning("RoutingEditTest: %s (%d failure(s))", failures == 0 ? "PASS" : "FAIL", failures);
 	return GalleryFixture::finish(failures == 0 ? 0 : 1);
 }
