@@ -780,12 +780,12 @@ QToolButton#TitleBarMin:pressed, QToolButton#TitleBarMax:pressed {
 QToolButton#TitleBarClose:hover {
     background: qradialgradient(cx:0.5, cy:0.45, radius:0.9, fx:0.5, fy:0.4,
         stop:0 #E8745C, stop:0.6 #C84A33, stop:1 #98301E);
-    border-color: #8A2A1A; border-top-color: #F09078;
+    border-color: #8A2A1A;
 }
 QToolButton#TitleBarClose:pressed {
     background: qradialgradient(cx:0.5, cy:0.5, radius:0.9, fx:0.5, fy:0.5,
         stop:0 #A83A26, stop:1 #7A2415);
-    border-color: #6B1D10; border-top-color: #581808;
+    border-color: #6B1D10;
 }
 
 /* =====================================================================
