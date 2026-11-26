@@ -110,10 +110,8 @@ unsigned tableSampleRate(FilterTable* table)
 // and never "-0.0".
 QString oneDecimal(double value)
 {
-	double rounded = std::round(value * 10.0) / 10.0;
-	if (rounded == 0.0)
-		rounded = 0.0;
-	return QString::number(rounded, 'f', 1);
+	const double rounded = std::round(value * 10.0) / 10.0;
+	return QString::number(std::abs(rounded) < 0.05 ? 0.0 : rounded, 'f', 1);
 }
 
 // A gain with its sign: "+10.0", "-3.5", "+0.0".
