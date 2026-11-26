@@ -33,6 +33,9 @@ public:
 		Logging::useStream(stream, true, true, false);
 	}
 
+	LogCapture(const LogCapture&) = delete;
+	LogCapture& operator=(const LogCapture&) = delete;
+
 	~LogCapture()
 	{
 		// HybridConvTests starts with this destination and these options.
