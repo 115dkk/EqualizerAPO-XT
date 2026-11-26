@@ -106,7 +106,7 @@ QToolButton {
 }
 QToolButton:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
-    border: 1px solid #11161A; border-top-color: #3E474F;
+    border: 1px solid #4E565E;
 }
 QToolButton:pressed, QToolButton:checked {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #282319, stop:1 #363024);
@@ -133,7 +133,7 @@ QWidget#RackToolbarPlate, QWidget#RackToolbarEarSpacer { background: transparent
 QToolBar#MainToolBar QToolButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
     color: @TEXT@;
-    border: 1px solid #11161A; border-top-color: #3E474F;
+    border: 1px solid #4E565E;
     border-radius: 2px;
     min-width: 22px; min-height: 22px; padding: 3px 5px; margin: 0 1px;
 }
@@ -151,7 +151,7 @@ QToolBar#MainToolBar QToolButton:pressed {
    every sheet). */
 QToolButton[rackTransport="true"] {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
-    border: 1px solid #11161A; border-top-color: #3E474F;
+    border: 1px solid #4E565E;
     border-radius: 2px;
     min-width: 22px; min-height: 22px; padding: 3px 5px; margin: 0 1px;
 }
@@ -166,7 +166,7 @@ QToolButton[rackTransport="true"]:checked {
 }
 QToolButton[rackTransport="true"]:disabled {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #23282E, stop:1 #191E23);
-    border-color: #14181C; border-top-color: #2A3138;
+    border-color: #4E483B;
 }
 /* Instant mode is a panel switch read by its lamp: the stock indicator
    collapses and RackSkin paints a real LED in the padding-reserved well. */
@@ -184,7 +184,9 @@ QCheckBox#AnalysisFormCheck { padding: 2px 4px; spacing: 8px; }
 QCheckBox#AnalysisFormCheck::indicator {
     width: 11px; height: 11px; border-radius: 2px;
     background: #0B0F0C;
-    border: 1px solid #050807; border-bottom-color: #39424A;
+    /* Rule 12: a check-box frame shows four sides; #050807 with a #39424A
+       lip measured 7 dE against the plate on three of them. */
+    border: 1px solid #4E565E;
     image: none;
 }
 QCheckBox#AnalysisFormCheck::indicator:checked { background: #86F2BA; }
@@ -232,19 +234,24 @@ QPushButton:pressed {
 QPushButton:default { border: 1px solid #8C8578; }
 QPushButton:disabled { color: #4E4A40; background: @SURFACE@; border-color: #4E483B; }
 
-/* Inputs are recessed display wells milled into the plate. */
+/* Inputs are recessed display wells milled into the plate. Rule 12: the
+   well's edge is the resting outline on all four sides; #060809 with a
+   #39424A lip measured 6-8 dE against the plate on three sides. */
 QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
     background: #0A0D0F; color: @TEXT@;
-    border: 1px solid #060809; border-bottom-color: #39424A;
+    border: 1px solid #4E565E;
     border-radius: 2px;
     padding: 3px 8px;
     selection-background-color: @ACCENT@; selection-color: #1A1208;
 }
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; }
-QLineEdit:disabled, QAbstractSpinBox:disabled { color: #4E4A40; background: @BG@; }
+QLineEdit:disabled, QAbstractSpinBox:disabled { color: #4E4A40; background: @BG@; border-color: #4E483B; }
 
+/* The step buttons sit inside the field's border (padding origin): seated
+   on the border they painted over its right side, which then did not show
+   in either finish. */
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
-    subcontrol-origin: border;
+    subcontrol-origin: padding;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
     width: 16px; border-left: 1px solid #060809;
 }
@@ -352,13 +359,13 @@ QCheckBox::indicator:checked, QRadioButton::indicator:checked {
 QScrollBar:vertical { background: transparent; width: 10px; margin: 2px; border: 0; }
 QScrollBar::handle:vertical {
     background: qlineargradient(x1:0, y1:0, x2:1, y2:0, stop:0 #39424A, stop:1 #232A30);
-    border: 1px solid #11161A; min-height: 32px; border-radius: 2px;
+    border: 1px solid #4E565E; min-height: 32px; border-radius: 2px;
 }
 QScrollBar::handle:vertical:hover { border-color: #787164; }
 QScrollBar:horizontal { background: transparent; height: 10px; margin: 2px; border: 0; }
 QScrollBar::handle:horizontal {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #39424A, stop:1 #232A30);
-    border: 1px solid #11161A; min-width: 32px; border-radius: 2px;
+    border: 1px solid #4E565E; min-width: 32px; border-radius: 2px;
 }
 QScrollBar::handle:horizontal:hover { border-color: #787164; }
 QScrollBar::add-line, QScrollBar::sub-line { background: transparent; border: 0; width: 0; height: 0; }
@@ -386,7 +393,7 @@ QTabBar { background: @BG@; border: 0; qproperty-drawBase: 0; }
 QTabBar::tab {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
     color: @MUTED@;
-    border: 1px solid #11161A; border-top-color: #3E474F; border-bottom: 0;
+    border: 1px solid #4E565E; border-bottom: 0;
     border-top-left-radius: 3px; border-top-right-radius: 3px;
     padding: 5px 14px; min-width: 80px; margin: 2px 2px 0 0;
     text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
@@ -401,7 +408,7 @@ QTabBar QToolButton#TabCloseButton { background: transparent; border: none; bord
 QTabBar QToolButton#TabCloseButton:hover { background: #5A1A1A; }
 QTabBar QToolButton {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
-    border: 1px solid #11161A; border-top-color: #3E474F; border-radius: 2px; margin: 4px 2px; padding: 0;
+    border: 1px solid #4E565E; border-radius: 2px; margin: 4px 2px; padding: 0;
 }
 /* Two 28px scroll buttons: room for the chevrons the tab bar asks the
    style for (Qt 6.12 SP_TabScroll*Button) inside the margin and border. */
@@ -755,7 +762,7 @@ QToolButton#UpdateToastClose:pressed {
 QTreeView::indicator, QListView::indicator, QTableView::indicator {
     width: 14px; height: 14px;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #161B1F);
-    border: 1px solid #11161A; border-top-color: #3E474F;
+    border: 1px solid #4E565E;
     border-radius: 2px;
 }
 QTreeView::indicator:hover, QListView::indicator:hover, QTableView::indicator:hover { border-color: #787164; }
@@ -764,7 +771,7 @@ QTreeView::indicator:checked, QListView::indicator:checked, QTableView::indicato
     border: 1px solid #8A5C12;
 }
 QTreeView::indicator:disabled, QListView::indicator:disabled, QTableView::indicator:disabled {
-    background: #171B1F; border-color: #22282D;
+    background: #171B1F; border-color: #4E483B;
 }
 QTreeView::indicator:checked:disabled, QListView::indicator:checked:disabled, QTableView::indicator:checked:disabled {
     background: #4A3A1C; border-color: #40300B;
@@ -794,7 +801,7 @@ QLabel#TitleBarText {
 }
 QToolButton#TitleBarMin, QToolButton#TitleBarMax, QToolButton#TitleBarClose {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
-    border: 1px solid #11161A; border-top-color: #3E474F;
+    border: 1px solid #4E565E;
     border-radius: 2px;
     margin: 5px 3px;
 }
@@ -1315,6 +1322,13 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid #4E565E;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: #787164; }
+/* Regenerate is a worded key of the card like Advanced (rule 12); under the
+   plain tool-button rule it was a bare word with no edge at rest. */
+QToolButton#VelvetRegenerate {
+    padding: 0 10px; color: @MUTED@;
+    background: transparent; border: 1px solid #4E565E;
+}
+QToolButton#VelvetRegenerate:hover { color: @TEXT@; border-color: #787164; }
 
 
 

@@ -235,8 +235,10 @@ QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; }
 QLineEdit:disabled, QAbstractSpinBox:disabled { color: #A99F8E; background: #E2DCCE; }
 
+/* The step buttons sit inside the field's border (padding origin): seated
+   on the border they painted over its right side, which then did not show. */
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
-    subcontrol-origin: border;
+    subcontrol-origin: padding;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E4E0D7, stop:1 #E6DECC);
     width: 16px; border-left: 1px solid #8F8268;
 }
@@ -1252,6 +1254,13 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid #AFA288;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
+/* Regenerate is a worded key of the card like Advanced (rule 12); under the
+   plain tool-button rule it was a bare word with no edge at rest. */
+QToolButton#VelvetRegenerate {
+    padding: 0 10px; color: @MUTED@;
+    background: transparent; border: 1px solid #AFA288;
+}
+QToolButton#VelvetRegenerate:hover { color: @TEXT@; border-color: @ACCENT@; }
 
 
 
