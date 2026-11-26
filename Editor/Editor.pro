@@ -282,6 +282,7 @@ SOURCES += main.cpp\
 	../filters/VSTChannelPlan.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
+	../vst/PluginUiThread.cpp \
 	../vst/VSTPluginInstance.cpp \
 	../vst/VST2Instance.cpp \
 	../vst/VST3Instance.cpp \
@@ -661,6 +662,7 @@ HEADERS  += \
 	../filters/VSTChannelPlan.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
+	../vst/PluginUiThread.h \
 	../vst/VSTPluginInstance.h \
 	../vst/VST3Instance.h \
 	../vst/VST3HostContext.h \

@@ -72,9 +72,11 @@
   <ItemGroup>
     <ClInclude Include="..\..\Editor\helpers\PanelFeedEngine.h" />
     <ClInclude Include="..\..\Editor\helpers\PanelMonitorGate.h" />
+    <ClInclude Include="..\..\vst\PluginUiThread.h" />
     <ClInclude Include="..\..\vst\VSTPluginInstance.h" />
     <ClInclude Include="..\..\vst\VSTPluginLibrary.h" />
     <ClInclude Include="..\..\platform\windows\ComPtr.h" />
+    <ClInclude Include="..\PluginUiThreadRunner.h" />
     <ClInclude Include="..\ProbeSupport\CommandLine.h" />
     <ClInclude Include="..\ProbeSupport\ToneMeter.h" />
     <ClInclude Include="..\ProbeSupport\WasapiEndpoint.h" />

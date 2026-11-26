@@ -451,6 +451,12 @@ public:
 		: combinedController(scenario == ComponentScenario::combinedDouble),
 		supportsDouble(scenario != ComponentScenario::splitFloat)
 	{
+		if (uiThreadBoundMode)
+		{
+			std::lock_guard<std::mutex> lock(uiThreadMutex);
+			uiThreadFirst = uiThreadCounters.liveComponents++ == 0;
+			uiThreadCounted = true;
+		}
 		if (combinedController)
 			controllerDelegate = createTestController();
 	}
@@ -481,15 +487,10 @@ public:
 		if (uiThreadBoundMode)
 		{
 			std::lock_guard<std::mutex> lock(uiThreadMutex);
-			if (uiThreadCounters.liveComponents == 0)
+			if (uiThreadFirst && uiThreadCounters.boundThread == 0)
 				uiThreadCounters.boundThread = GetCurrentThreadId();
-			if (uiThreadCounters.boundThread != GetCurrentThreadId())
+			if (uiThreadCounters.boundThread != 0 && uiThreadCounters.boundThread != GetCurrentThreadId())
 				++uiThreadCounters.initializeViolations;
-			if (!uiThreadCounted)
-			{
-				++uiThreadCounters.liveComponents;
-				uiThreadCounted = true;
-			}
 		}
 		if (rejectComponentInitialize)
 			return kResultFalse;
@@ -527,7 +528,7 @@ public:
 		if (uiThreadCounted)
 		{
 			std::lock_guard<std::mutex> lock(uiThreadMutex);
-			if (uiThreadCounters.boundThread != GetCurrentThreadId())
+			if (uiThreadCounters.boundThread != 0 && uiThreadCounters.boundThread != GetCurrentThreadId())
 				++uiThreadCounters.terminateViolations;
 		}
 		if (!initialized)
@@ -808,13 +809,14 @@ private:
 		if (uiThreadCounted)
 		{
 			std::lock_guard<std::mutex> lock(uiThreadMutex);
-			if (uiThreadCounters.boundThread != GetCurrentThreadId())
+			if (uiThreadCounters.boundThread != 0 && uiThreadCounters.boundThread != GetCurrentThreadId())
 				++uiThreadCounters.releaseViolations;
 			if (--uiThreadCounters.liveComponents == 0)
 				uiThreadCounters.boundThread = 0;
 		}
 	}
 	bool uiThreadCounted = false;
+	bool uiThreadFirst = false;
 	bool combinedController = false;
 	bool supportsDouble = true;
 	bool doubleInitialized = false;

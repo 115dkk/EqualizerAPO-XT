@@ -289,6 +289,7 @@
     <ClInclude Include="platform\windows\ShellLink.h" />
     <ClInclude Include="platform\windows\Win32Error.h" />
     <ClInclude Include="parser\NumericText.h" />
+    <ClInclude Include="vst\PluginUiThread.h" />
     <ClInclude Include="vst\VSTPluginInstance.h" />
     <ClInclude Include="vst\VST3BusLayout.h" />
     <ClInclude Include="vst\VST3Lifecycle.h" />
@@ -433,6 +434,7 @@
     <ClCompile Include="vst\VST3PluginIIDs.cpp" />
     <ClCompile Include="vst\VST3Lifecycle.cpp" />
     <ClCompile Include="vst\VST3SpeakerMapping.cpp" />
+    <ClCompile Include="vst\PluginUiThread.cpp" />
     <ClCompile Include="vst\VSTPluginInstance.cpp" />
     <ClCompile Include="vst\VST2Instance.cpp" />
     <ClCompile Include="vst\VST3Instance.cpp" />

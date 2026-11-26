@@ -1089,7 +1089,7 @@ private:
 		return initializeResult;
 	}
 
-	void destroyInstance(std::unique_ptr<VSTPluginInstance>& instance,
+	void destroyInstance(VSTPluginInstancePtr& instance,
 		WorkerOperationThread destroyThread)
 	{
 		if (!instance)
@@ -1118,8 +1118,8 @@ private:
 		WorkerOperationThread destroyThread, WorkerDestroyTiming destroyTiming, int cycles)
 	{
 		threadIds.worker.store(GetCurrentThreadId(), std::memory_order_release);
-		std::unique_ptr<VSTPluginInstance> instance;
-		std::unique_ptr<VSTPluginInstance> liveInstance;
+		VSTPluginInstancePtr instance;
+		VSTPluginInstancePtr liveInstance;
 		try
 		{
 			for (int cycle = 0; cycle < cycles; cycle++)
@@ -1401,7 +1401,7 @@ int runPanelProbe(const PanelOptions& options)
 		return 2;
 	}
 
-	std::unique_ptr<VSTPluginInstance> instance;
+	VSTPluginInstancePtr instance;
 	const auto setUpMainInstance = [&]() {
 		instance = timedPanelPhase(L"create", [&]() {
 			return VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
