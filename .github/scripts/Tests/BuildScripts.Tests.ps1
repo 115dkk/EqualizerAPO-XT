@@ -156,6 +156,32 @@ Describe "extracted build script decisions" {
         ([regex]::Matches($workflow, "Invoke-InstallerGate\.ps1")).Count | Should -BeGreaterOrEqual 2
     }
 
+    It "lets a cancelled run stop: no job condition in build.yml uses always()" {
+        # A running job whose condition still evaluates to true is not cancelled
+        # with its run, and always() is true. With it on the build job and the
+        # gates, the run a pull-request push had superseded went on to the end
+        # and the new commit's run waited behind it (27 minutes on PR #542).
+        # Job conditions use !cancelled(); a step may keep always() so that a
+        # failed or cancelled job still uploads its logs.
+        $lines = Get-Content -LiteralPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml")
+        $offending = @()
+        for ($i = 0; $i -lt $lines.Count; $i++) {
+            # A job-level key is indented four spaces; a step's `if` six or more.
+            if ($lines[$i] -notmatch '^    if:') { continue }
+            $condition = $lines[$i]
+            # A block scalar (`if: |` or `if: >-`) continues on deeper lines.
+            for ($j = $i + 1; $j -lt $lines.Count -and $lines[$j] -match '^      \S'; $j++) {
+                $condition += "`n" + $lines[$j]
+            }
+            if ($condition -match 'always\(\)') { $offending += "line $($i + 1)" }
+        }
+        $offending | Should -BeNullOrEmpty
+        # The jobs that must still run when a needed job was skipped say so
+        # with the status function that a cancellation switches off.
+        $workflow = $lines -join "`n"
+        ([regex]::Matches($workflow, '(?m)^\s+(if: \$\{\{ )?!cancelled\(\) && needs\.')).Count | Should -Be 5
+    }
+
     It "runs the ASIO suite where the variant executes and lists the ASIO projects" {
         $avx2 = & (Join-Path $PSScriptRoot "..\Build-Solution.ps1") `
             -WorkspaceRoot $root -Platform x64 -SimdVariant avx2 -ArchFlag AdvancedVectorExtensions2 -PlanOnly
