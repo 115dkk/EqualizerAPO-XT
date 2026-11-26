@@ -23,6 +23,7 @@
 #include <cstdio>
 #include <cstring>
 #include <limits>
+#include <mutex>
 
 #include "pluginterfaces/base/funknown.h"
 #include "pluginterfaces/base/ibstream.h"
@@ -57,6 +58,9 @@ enum class ComponentScenario
 };
 
 bool moduleInitialized = false;
+bool uiThreadBoundMode = false;
+std::mutex uiThreadMutex;
+testvst3::UiThreadCounters uiThreadCounters;
 bool rejectComponentInitialize = false;
 bool componentStateUnavailable = false;
 bool upmixerMode = false;
@@ -256,6 +260,15 @@ public:
 	}
 	tresult PLUGIN_API attached(void* parent, FIDString type) override
 	{
+		if (uiThreadBoundMode)
+		{
+			std::lock_guard<std::mutex> lock(uiThreadMutex);
+			if (uiThreadCounters.boundThread != GetCurrentThreadId())
+			{
+				++uiThreadCounters.attachViolations;
+				return kResultFalse;
+			}
+		}
 		if (isPlatformTypeSupported(type) != kResultOk || parent == nullptr)
 			return kInvalidArgument;
 		parentWindow = static_cast<HWND>(parent);
@@ -465,6 +478,19 @@ public:
 
 	tresult PLUGIN_API initialize(FUnknown* context) override
 	{
+		if (uiThreadBoundMode)
+		{
+			std::lock_guard<std::mutex> lock(uiThreadMutex);
+			if (uiThreadCounters.liveComponents == 0)
+				uiThreadCounters.boundThread = GetCurrentThreadId();
+			if (uiThreadCounters.boundThread != GetCurrentThreadId())
+				++uiThreadCounters.initializeViolations;
+			if (!uiThreadCounted)
+			{
+				++uiThreadCounters.liveComponents;
+				uiThreadCounted = true;
+			}
+		}
 		if (rejectComponentInitialize)
 			return kResultFalse;
 		if (context == nullptr)
@@ -498,6 +524,12 @@ public:
 	}
 	tresult PLUGIN_API terminate() override
 	{
+		if (uiThreadCounted)
+		{
+			std::lock_guard<std::mutex> lock(uiThreadMutex);
+			if (uiThreadCounters.boundThread != GetCurrentThreadId())
+				++uiThreadCounters.terminateViolations;
+		}
 		if (!initialized)
 		{
 			HANDLE violation = OpenEventW(EVENT_MODIFY_STATE, FALSE, testvst3::invalidTerminateEvent);
@@ -773,7 +805,16 @@ private:
 	{
 		if (controllerDelegate != nullptr)
 			controllerDelegate->release();
+		if (uiThreadCounted)
+		{
+			std::lock_guard<std::mutex> lock(uiThreadMutex);
+			if (uiThreadCounters.boundThread != GetCurrentThreadId())
+				++uiThreadCounters.releaseViolations;
+			if (--uiThreadCounters.liveComponents == 0)
+				uiThreadCounters.boundThread = 0;
+		}
 	}
+	bool uiThreadCounted = false;
 	bool combinedController = false;
 	bool supportsDouble = true;
 	bool doubleInitialized = false;
@@ -1531,6 +1572,11 @@ extern "C" __declspec(dllexport) bool InitDll()
 	auxBusMode = wcsstr(moduleName, testvst3::mode::auxBusUpmixer) != nullptr;
 	auxBusPartialProposalCount.store(0);
 	retainHandlerMode = wcsstr(moduleName, testvst3::mode::retainHandler) != nullptr;
+	wchar_t uiThreadMode[8] = {};
+	uiThreadBoundMode = GetEnvironmentVariableW(L"EAPO_TEST_VST3_UI_THREAD_BOUND", uiThreadMode,
+		static_cast<DWORD>(sizeof(uiThreadMode) / sizeof(uiThreadMode[0]))) > 0
+		&& wcscmp(uiThreadMode, L"1") == 0;
+	uiThreadCounters = {};
 	wchar_t hostContextMode[32] = {};
 	hostContextNotImplementedMode = GetEnvironmentVariableW(L"EAPO_TEST_VST3_HOST_CONTEXT", hostContextMode,
 		static_cast<DWORD>(sizeof(hostContextMode) / sizeof(hostContextMode[0]))) > 0
@@ -1580,6 +1626,13 @@ extern "C" __declspec(dllexport) bool ExitDll()
 // In-process test hook: the host test asserts that a multichannel device is
 // served by exactly one full-width component instance rather than several
 // stereo copies.
+extern "C" __declspec(dllexport) void GetUiThreadCounters(testvst3::UiThreadCounters* counters)
+{
+	std::lock_guard<std::mutex> lock(uiThreadMutex);
+	if (counters != nullptr)
+		*counters = uiThreadCounters;
+}
+
 extern "C" __declspec(dllexport) int GetUpmixerComponentCount()
 {
 	return upmixerComponentCount.load();

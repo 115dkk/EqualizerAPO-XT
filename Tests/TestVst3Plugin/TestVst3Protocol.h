@@ -6,6 +6,18 @@ namespace testvst3
 {
 constexpr uint32_t stateMagic = 0x33545354u; // TST3
 
+struct UiThreadCounters
+{
+	uint32_t liveComponents = 0;
+	uint32_t boundThread = 0;
+	uint32_t initializeViolations = 0;
+	uint32_t terminateViolations = 0;
+	uint32_t releaseViolations = 0;
+	uint32_t attachViolations = 0;
+};
+using ReadUiThreadCounters = void (*)(UiThreadCounters*);
+constexpr char uiThreadCountersExport[] = "GetUiThreadCounters";
+
 namespace mode
 {
 constexpr wchar_t floatOnly[] = L"FloatOnly.vst3";

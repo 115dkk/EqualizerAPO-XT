@@ -200,6 +200,48 @@ SurroundScenario loadSurroundScenario()
 	return {surround41Library, surround41AcceptedArrangement};
 }
 
+TEST_CASE(Vst3HostTests, testUiThreadRunnerKeepsWorkerFirstPanelOnMain)
+{
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_UI_THREAD_BOUND", L"1");
+	const wstring bundle = prepareBundle(exeDirectory(), L"UiThreadBundle.vst3", L"UiThread.vst3");
+	auto loaded = VSTPluginLibrary::load(bundle);
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_UI_THREAD_BOUND", nullptr);
+	harness.require(loaded.succeeded(), "thread-bound fixture loads");
+	const auto counters = reinterpret_cast<testvst3::ReadUiThreadCounters>(
+		GetProcAddress(GetModuleHandleW(L"UiThread.vst3"), testvst3::uiThreadCountersExport));
+	harness.require(counters != nullptr, "thread counters are exported");
+	winutil::UniqueHandle ready(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+	winutil::UniqueHandle release(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+	harness.require(ready && release, "worker coordination events exist");
+	bool workerInitialized = false;
+	std::thread worker([&] {
+		auto instance = VSTPluginInstance::create(loaded.library, VSTPluginInstance::ProcessLevel::Realtime);
+		workerInitialized = instance->initialize();
+		SetEvent(ready.get());
+		WaitForSingleObject(release.get(), INFINITE);
+	});
+	WaitForSingleObject(ready.get(), INFINITE);
+	auto card = VSTPluginInstance::create(loaded.library, VSTPluginInstance::ProcessLevel::User);
+	const bool cardInitialized = card->initialize();
+	HWND parent = CreateWindowExW(0, L"STATIC", L"UI thread test", WS_OVERLAPPED,
+		0, 0, 640, 480, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+	short width = 0, height = 0;
+	const bool attached = parent != nullptr && card->startEditing(parent, &width, &height);
+	card->stopEditing();
+	DestroyWindow(parent);
+	card.reset();
+	SetEvent(release.get());
+	worker.join();
+	testvst3::UiThreadCounters measured;
+	counters(&measured);
+	std::printf("UI thread worker-first: panel=%d initializeViolations=%u terminateViolations=%u releaseViolations=%u attachViolations=%u\n",
+		attached, measured.initializeViolations, measured.terminateViolations, measured.releaseViolations, measured.attachViolations);
+	harness.expectTrue(workerInitialized && cardInitialized, "both thread-bound instances initialize");
+	harness.expectTrue(attached, "a worker-first instance must not prevent the main-thread panel from opening");
+	harness.expectEqual(measured.initializeViolations + measured.terminateViolations + measured.releaseViolations
+		+ measured.attachViolations, uint32_t(0), "all instance lifecycle operations use the UI thread");
+}
+
 TEST_CASE(Vst3HostTests, testAutomaticUpmixerVerdictMatchesEngine)
 {
 	const wstring bundle = prepareBundle(exeDirectory(), L"AuditUpmixerBundle.vst3", L"DeclaredUpmixer.vst3");
