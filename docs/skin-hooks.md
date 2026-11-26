@@ -352,9 +352,15 @@ reduces interaction to connect/disconnect (no gain labels, captions or
 editors; a double-click on a chip/pill removes it where the grid views
 toggle by click). The MultiConvolution card
 (`Editor/widgets/cards/MultiConvolutionCardEditor`) hosts the view under its
-reference card with a `Channel mapping` caption strip
-(`#MultiConvolutionMappingCaption` in every skin's QSS) and a `+` entry that
-adds output channels (a new name becomes a virtual channel, like Copy). Data
+reference card with a `Channel mapping` section head
+(`Editor/widgets/routing/RoutingSectionHead`): the card header's fold button,
+the caption (`#MultiConvolutionMappingCaption` in every skin's QSS) and a `+`
+entry that adds output channels (a new name becomes a virtual channel, like
+Copy). The Send card puts the same head over its routing view, with
+`#SendFieldCaption` as the caption. Folded, the head hides the view and the
+`+` and prints the routing as the line writes it (`#RoutingSectionSummary`,
+the one thing a skin's sheet adds for this head); the rules are in
+[skins/README.md](skins/README.md). Data
 rides `Editor/widgets/routing/MultiConvolutionRoutingAdapter` both ways;
 without a readable IR file the whole mapping block hides, because the simple
 form ("every file channel") has no known expansion to edit and the reference

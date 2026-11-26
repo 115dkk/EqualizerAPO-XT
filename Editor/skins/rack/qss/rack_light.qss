@@ -652,6 +652,12 @@ QLabel#SendFieldCaption {
     font-size: 8pt; font-weight: 700; letter-spacing: 2px;
     text-transform: uppercase;
 }
+/* A folded channel-mapping section (Send, MultiConvolution) leaves its
+   routing beside the caption, as the line writes it. */
+QLabel#RoutingSectionSummary {
+    color: @MUTED@; background: transparent;
+    font-family: @MONO_STACK@;
+}
 
 /* ── GraphicEQ unit: the oscilloscope display, its readout strip, machine
    keys ───────────────────────────────────────────────────────────────────

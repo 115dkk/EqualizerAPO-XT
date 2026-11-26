@@ -1452,7 +1452,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
@@ -1481,27 +1481,27 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="837"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="847"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
         <source>Collapse filter card</source>
         <translation>Replier la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1036"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1046"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Désactiver cette ligne. Elle reste dans le fichier sous forme de commentaire.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1037"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1047"/>
         <source>Switch this line back on.</source>
         <translation>Réactiver cette ligne.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="835"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="845"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO n’a pas pu préparer ce filtre : la configuration entière n’a donc pas été appliquée et les réglages précédents continuent d’être lus. Vérifiez le fichier ou le plug-in qu’utilise cette ligne, ou désactivez la ligne.</translation>
     </message>
@@ -3757,78 +3757,78 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="89"/>
         <source>Copy this file into the config directory</source>
         <translation>Copier ce fichier dans le dossier de configuration</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="105"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="107"/>
         <source>Channel mapping</source>
         <translation>Mappage des canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="116"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>Ajouter un canal de sortie (un nouveau nom crée un canal virtuel)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="199"/>
         <source>Add output channel</source>
         <translation>Ajouter un canal de sortie</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="172"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="200"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>Nom du canal (un nom inconnu crée un canal virtuel) :</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="245"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="276"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>Select impulse response file</source>
         <translation>Sélectionner le fichier de réponse impulsionnelle</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="246"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="277"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="270"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
         <source>No file selected</source>
         <translation>Aucun fichier sélectionné</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="283"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
         <source>Unsupported file format</source>
         <translation>Format de fichier non pris en charge</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="323"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="293"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="324"/>
         <source>%1 samples</source>
         <translation>%1 éch.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="294"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="325"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="326"/>
         <source>%1 ch</source>
         <translation>%1 can.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="300"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="331"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>La fréquence d&apos;échantillonnage ne correspond pas au périphérique (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="349"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>Le mappage référence le canal %1, mais le fichier ne compte que %2 canaux</translation>
     </message>
@@ -3837,12 +3837,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="339"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="370"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -4351,6 +4351,24 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     </message>
 </context>
 <context>
+    <name>RoutingSectionHead</name>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="84"/>
+        <source>No connections</source>
+        <translation>Aucune connexion</translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <source>Expand channel mapping</source>
+        <translation>Développer le mappage des canaux</translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <source>Collapse channel mapping</source>
+        <translation>Replier le mappage des canaux</translation>
+    </message>
+</context>
+<context>
     <name>ScalarKnobCardEditor</name>
     <message>
         <location filename="../widgets/cards/ScalarKnobCardEditor.cpp" line="66"/>
@@ -4361,62 +4379,67 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>SendCardEditor</name>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="65"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="67"/>
         <source>To</source>
         <translation>Vers</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="70"/>
         <source>The playback endpoint that receives these channels</source>
         <translation>Le point de terminaison de lecture qui reçoit ces canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="78"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="80"/>
         <source>Mix with its audio</source>
         <translation>Mélanger à son audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="79"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="81"/>
         <source>Replace its audio</source>
         <translation>Remplacer son audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="80"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="82"/>
         <source>Whether the received channels are added to what the endpoint already plays, or take its place</source>
         <translation>Mélanger les canaux reçus à l’audio déjà lu par le point de terminaison, ou remplacer cet audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="84"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="86"/>
         <source>Latency</source>
         <translation>Latence</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="89"/>
         <source>Default</source>
         <translation>Défaut</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="88"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="90"/>
         <source>Milliseconds, or a whole number followed by &quot;samples&quot;. Empty uses two processing periods of this device; raise it if the log reports underruns.</source>
         <translation>Millisecondes, ou un entier suivi de &quot;samples&quot;. Si le champ est vide, le délai vaut deux périodes de traitement de ce périphérique. Augmentez la valeur si le journal signale des sous-alimentations du tampon.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="96"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
         <source>Delay this device to match</source>
         <translation>Retarder ce périphérique pour le synchroniser</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="100"/>
         <source>Delays this device&apos;s own channels by the same latency, so both devices play in time</source>
         <translation>Retarde les canaux propres à ce périphérique de la même durée pour que les deux périphériques jouent en même temps</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="181"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="115"/>
+        <source>Channel mapping</source>
+        <translation>Mappage des canaux</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="207"/>
         <source>The Send option of this endpoint is off in the Device Selector</source>
         <translation>L’option Envoi de ce point de terminaison est désactivée dans le Device Selector</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="184"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="210"/>
         <source>Choose an endpoint</source>
         <translation>Choisir un point de terminaison</translation>
     </message>
@@ -5017,12 +5040,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="113"/>
+        <location filename="../widgets/TitleBar.cpp" line="119"/>
         <source>Restore</source>
         <translation>Restaurer</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="113"/>
+        <location filename="../widgets/TitleBar.cpp" line="119"/>
         <source>Maximize</source>
         <translation>Agrandir</translation>
     </message>
@@ -5065,14 +5088,14 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
         <source>Select VST plugin</source>
         <translation>Sélectionner le plugin VST</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
         <source>Open panel</source>
         <translation>Ouvrir le panneau</translation>
     </message>
@@ -5123,7 +5146,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Le plugin a planté lors de l&apos;initialisation.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="437"/>
         <source>No plugin selected</source>
         <translation>Aucun plugin sélectionné</translation>
     </message>
@@ -5132,12 +5155,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="543"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="545"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
         <source>Locate the missing plugin library</source>
         <translation>Localiser la bibliothèque de plugin manquante</translation>
     </message>
@@ -5178,7 +5201,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>Plugins VST (*.dll *.vst3)</translation>
     </message>
@@ -5187,7 +5210,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Le plugin a planté à l&apos;ouverture du panneau.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5200,7 +5223,7 @@ Change the file permissions or copy the files to the config directory.</source>
 Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="538"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
         <source>Loading plugin...</source>
         <translation>Chargement du plugin...</translation>
     </message>
@@ -5219,13 +5242,13 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.cpp" line="74"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="313"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="314"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="417"/>
         <source>Open panel</source>
         <translation>Ouvrir le panneau</translation>
     </message>
@@ -5255,42 +5278,42 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
         <translation>Intégré</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="248"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="249"/>
         <source>Channel fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="250"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="251"/>
         <source>Choose which channels occupy the negotiated bus slots.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="256"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="257"/>
         <source>Output fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="256"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="257"/>
         <source>Input fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="269"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="270"/>
         <source>Discard (-)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="269"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="270"/>
         <source>Silence (-)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="306"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="307"/>
         <source>A VST2 plugin ignores the Input and Output layouts.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="312"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="313"/>
         <source>Not available while Input and Output layouts are set.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5325,12 +5348,12 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
         <translation>Le plugin a planté lors de l&apos;initialisation.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="387"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
         <source>Select VST plugin</source>
         <translation>Sélectionnez un plugin VST</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="387"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>Plugins VST (*.dll *.vst3)</translation>
     </message>
@@ -5340,7 +5363,7 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
         <translation>Le plugin a planté lors de l&apos;ouverture du panneau.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="417"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5361,7 +5384,7 @@ Change the file permissions or copy the files to the config directory.</source>
 Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier de configuration.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="372"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="373"/>
         <source>Loading plugin...</source>
         <translation>Chargement du plugin...</translation>
     </message>

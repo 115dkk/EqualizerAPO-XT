@@ -29,6 +29,7 @@ class FileReferenceController;
 class QLabel;
 class QToolButton;
 class QVBoxLayout;
+class RoutingSectionHead;
 class RoutingView;
 class RoutingViewScroll;
 
@@ -52,6 +53,11 @@ public:
 	void store(QString& command, QString& parameters) override;
 	// The channels that exist at this row seed the routing view's output side.
 	void setChannelFlow(const ChannelFlowAtLine& flow) override;
+	// A mapping section the user folded stays folded when the row is rebuilt
+	// and when the file is opened again. Nothing is stored for a section the
+	// user never touched; it is open.
+	void loadPreferences(const QVariantMap& prefs) override;
+	void storePreferences(QVariantMap& prefs) override;
 
 private slots:
 	void chooseFile();
@@ -65,6 +71,7 @@ private:
 	void updateFileInfo();
 	void showAudioServiceProblem(const QString& problem);
 	void rebuildRoutingView();
+	void updateRoutingSummary();
 
 	FilterTable* filterTable = nullptr;
 	FileReferenceController* reference = nullptr;
@@ -83,13 +90,18 @@ private:
 	ReferenceCardView* view = nullptr;
 	// What the view shows, so the audio-service answer can be laid over it.
 	ReferenceCardState shownState;
-	// The whole mapping block (caption, + button, routing view). Hidden while
+	// The whole mapping block (section head, routing view). Hidden while
 	// no readable file is selected: the reference view's own status grammar
 	// already says what is missing, and a mapping that cannot be edited would
 	// only dangle under it as loose text.
 	QWidget* mappingArea = nullptr;
 	QVBoxLayout* routingLayout = nullptr;
-	QLabel* mappingCaption = nullptr;
+	// The fold toggle named "Channel mapping", the + button while the section
+	// is open, and the mapping in one line while it is folded.
+	RoutingSectionHead* routingHead = nullptr;
+	// True once the user folded or opened the section, or a stored choice
+	// was loaded.
+	bool routingFoldChosen = false;
 	RoutingView* routingView = nullptr;
 	RoutingViewScroll* routingScroll = nullptr;
 	QToolButton* addChannelButton = nullptr;

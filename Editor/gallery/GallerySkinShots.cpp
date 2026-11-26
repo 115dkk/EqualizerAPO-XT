@@ -80,6 +80,7 @@
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
 #include "Editor/widgets/cards/ReferenceCardView.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/routing/RoutingSectionHead.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingEditorDialog.h"
 #include "SubwooferRouting/Preset.h"
@@ -133,6 +134,11 @@ const QList<GalleryScenario>& galleryScenarios()
 			QStringLiteral("expanded"), QStringLiteral("editor"), QStringLiteral("sourceeditor") } },
 		{ QStringLiteral("multiconvfold"), { QStringLiteral("normal"),
 			QStringLiteral("expanded") } },
+		// The channel-mapping section of the Send and MultiConvolution cards,
+		// folded (renderRoutingSectionScene). The rows' own normal shots show
+		// the same cards with the section open, which is the default.
+		{ QStringLiteral("routingfold"), { QStringLiteral("send"),
+			QStringLiteral("multiconvolution"), QStringLiteral("long") } },
 		{ QStringLiteral("logic"), { QStringLiteral("normal") } },
 		{ QStringLiteral("setuperror"), { QStringLiteral("normal") } },
 		{ QStringLiteral("channelscope"), { QStringLiteral("normal") } },
@@ -1340,6 +1346,70 @@ void renderMultiConvFoldScene(SkinRenderContext& ctx)
 	}
 }
 
+// The channel-mapping section of the Send and MultiConvolution cards with its
+// fold closed: the section head keeps its caption and prints the routing as
+// the line writes it. The third row is a Send line whose routing is longer
+// than the card is wide, which the summary must elide instead of widening the
+// card (the no-horizontal-scrollbar check is the gate for that).
+void renderRoutingSectionScene(SkinRenderContext& ctx)
+{
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	const QString& configPath = ctx.configPath;
+	int& failures = ctx.failures;
+	const QStringList states = { QStringLiteral("send"), QStringLiteral("multiconvolution"),
+		QStringLiteral("long") };
+	auto surround = std::make_shared<GalleryAPOInfo>(
+		L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
+	QScrollArea scrollArea;
+	scrollArea.resize(960, 720);
+	QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		{ QStringLiteral("Send: {0d6a0000-0000-4000-8000-000000000002} L=L+0.5*R R=R Latency=20"),
+		  QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav"),
+		  QStringLiteral("Send: {0d6a0000-0000-4000-8000-000000000002}"
+			  " L=0.5*L+0.5*C+0.35*SL+0.35*RL+0.25*LFE+0.1*R+0.1*SR+0.1*RR"
+			  " R=0.5*R+0.5*C+0.35*SR+0.35*RR+0.25*LFE+0.1*L+0.1*SL+0.1*RL") },
+		surround, 0x63F);
+	if (rows.size() != states.size())
+	{
+		qWarning("SkinGallery: routing fold scene expected %lld rows, got %lld (%s %s)",
+			static_cast<long long>(states.size()), static_cast<long long>(rows.size()),
+			qPrintable(skinId), qPrintable(mode));
+		failures += int(states.size());
+		return;
+	}
+
+	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+	auto settle = [&]() {
+		QApplication::processEvents();
+		if (table != nullptr && table->layout() != nullptr)
+			table->layout()->activate();
+		QApplication::processEvents();
+	};
+	for (int i = 0; i < rows.size(); i++)
+	{
+		RoutingSectionHead* head = rows[i]->findChild<RoutingSectionHead*>();
+		if (head == nullptr || !head->isVisibleTo(rows[i]))
+		{
+			qWarning("SkinGallery: routing fold scene '%s' has no section head (%s %s)",
+				qPrintable(states[i]), qPrintable(skinId), qPrintable(mode));
+			failures++;
+			continue;
+		}
+		head->foldButton()->click();
+		settle();
+		if (!head->isFolded())
+		{
+			qWarning("SkinGallery: routing fold scene '%s' did not fold (%s %s)",
+				qPrintable(states[i]), qPrintable(skinId), qPrintable(mode));
+			failures++;
+		}
+		failures += assertNoHorizontalScrollBar(rows[i], skinId, mode, QStringLiteral("routingfold"), states[i]);
+		failures += saveGrab(rows[i], outDir, skinId, mode, QStringLiteral("routingfold"), states[i]) ? 0 : 1;
+	}
+}
+
 // Whole-table shots whose presentation spans rows.
 void renderTableScenes(SkinRenderContext& ctx)
 {
@@ -1624,6 +1694,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 	renderGraphScenes(ctx);
 	renderCopyFoldScene(ctx);
 	renderMultiConvFoldScene(ctx);
+	renderRoutingSectionScene(ctx);
 	renderTableScenes(ctx);
 	renderVelvetScenes(ctx);
 	ctx.failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);

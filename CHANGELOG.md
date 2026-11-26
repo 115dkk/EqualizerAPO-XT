@@ -14,6 +14,29 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: the channel mapping of a Send or MultiConvolution card folds down
+  to one line.** These two cards carry a routing board under their own
+  controls, which made them the tallest cards of most configurations. A fold
+  arrow, the same `v` a card's head has, now stands before the **Channel
+  mapping** caption (a Send card gains that caption). Click the arrow or the
+  caption and the board goes away; the caption's line then shows the routing
+  as the configuration line writes it (`L=L+0.5*R R=R`). A routing longer than
+  the card ends in an ellipsis and its tooltip has the whole text. The section
+  is open unless you fold it, and a fold you chose is remembered for that row,
+  also when the file is opened again. Folding does not change the line and
+  does not mark the file as edited. In the Hardware Rack skin a folded Send
+  card is 191 px tall (387 px open) and a folded MultiConvolution card 159 px
+  (353 px open). An open Send card is one caption row taller than before.
+  ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533),
+  [#491](https://github.com/115dkk/EqualizerAPO-XT/issues/491))
+- **Fixed: in the Signal Matrix and Precision Minimal skins a Copy card did
+  not grow when its hidden channels were shown.** After `+N CH` the new rows
+  were cut off at the card's old height, and the control that folds them
+  again was among what was cut off. A MultiConvolution card on a surround
+  device was also a scroll bar's height taller than its content. Both came
+  from the same missed size update and are fixed together.
+  ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533))
+
 ## v2.82.0 — 2026-11-25
 
 - **Device Selector: an ASIO entry's options include "Use 64-bit float
