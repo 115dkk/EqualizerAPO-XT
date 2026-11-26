@@ -14,6 +14,15 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Hardware Rack: a choice between two is a small slide switch.** The ORDER
+  switch of the all-pass card, the Direction and Graph switches of the Hilbert
+  card and the Mode switch of the Velvet card were a recessed bank of two
+  machined keys, each with its own lamp, over a groove with a slide: a lot of
+  metal for a choice between two. They are now two legends printed on the
+  panel with one slide switch under them, and the side the knob rests on is
+  the choice. The switch that picks among three readings in the analysis
+  panel keeps its bank of keys.
+  ([#538](https://github.com/115dkk/EqualizerAPO-XT/pull/538))
 - **Editor: the all-pass card no longer shows a MAGNITUDE figure or a GRAPH
   switch.** Under MAGNITUDE the card printed `0.0 dB`, which said only that an
   all-pass does not change the level, and the card's tooltip says that. The
