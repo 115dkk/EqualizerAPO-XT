@@ -1302,3 +1302,51 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 /* Send card: the field captions read like the MultiConvolution mapping
    caption; a latency the card cannot read takes the danger colour. */
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
+
+/* Experiment (EAPO_MODERN_ROWS): inside a one-line unit every cap is one
+   22 px module including its outline, so the caps carry about half the
+   empty room above and below their legend that a card's caps do. The
+   content box is 18 px and the vertical padding plus borders always add
+   up to 4 px: a latched cap moves its 1 px label drop from the bottom
+   padding to the top, and a lamp row or top bar that is 2 px thick takes
+   its extra pixel out of the padding on its own side, so no state changes
+   the box. Widths, side padding, type and glyphs stay as on a card. A text
+   field on the same line as caps takes the same box so the line stays
+   level. The header's three bare glyphs keep their own 16 px rule above
+   (it is more specific). */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow[inlineRow="true"] QPushButton,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"],
+QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendTargetCombo,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendModeCombo,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChip,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChipMore,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChip,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChipUnknown,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#NewChannelAdd {
+    min-height: 18px; max-height: 18px; padding-top: 1px; padding-bottom: 1px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#VelvetAdvancedToggle {
+    min-height: 20px; max-height: 20px; padding-top: 0px; padding-bottom: 0px;
+}
+/* Latched and pressed caps drop their label 1 px (the cards' 4px/2px
+   padding shift, 1px/1px becomes 2px/0px here). */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChip:checked,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChip:pressed,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChipMore:checked,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChipMore:pressed,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#GraphicEQActionButton:pressed {
+    padding-top: 2px; padding-bottom: 0px;
+}
+/* An engaged Channel key's 2 px lamp row and an engaged Stage key's 2 px
+   top bar take their extra pixel from the padding on their own side. */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip:checked {
+    padding-top: 1px; padding-bottom: 0px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChip:checked {
+    padding-top: 0px; padding-bottom: 1px;
+}

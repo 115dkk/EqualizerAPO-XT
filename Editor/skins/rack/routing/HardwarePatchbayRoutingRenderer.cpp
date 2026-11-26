@@ -49,6 +49,32 @@ void HardwarePatchbayView::updateMetrics()
 	// The row label right-aligns into rowHeaderWidth - 11 (the unpatch
 	// target's slot stays clear).
 	rowHeaderWidth = qMax(60, longestOutput + 17);
+
+	// Experiment (EAPO_MODERN_ROWS): in a one-line unit the caps are 8 px
+	// shorter, and the pitch and the strip give up the same 8 px so the gap
+	// between stacked caps stays what it is on a card.
+	inlineRow = inInlineRow();
+	cellH = inlineRow ? 42 : 50;
+	stripH = inlineRow ? 26 : 34;
+}
+
+bool HardwarePatchbayView::inInlineRow() const
+{
+	for (const QWidget* w = parentWidget(); w != nullptr; w = w->parentWidget())
+	{
+		if (w->property("inlineRow").toBool())
+			return true;
+	}
+	return false;
+}
+
+bool HardwarePatchbayView::event(QEvent* event)
+{
+	// The view is normally created inside its row, but a host that mounts
+	// it later must still get the row's metrics.
+	if (event->type() == QEvent::ParentChange && inInlineRow() != inlineRow)
+		rebuildMatrix();
+	return GridRoutingViewBase::event(event);
 }
 
 QRect HardwarePatchbayView::stripRect() const
@@ -192,7 +218,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			// switch bank in rack_dark.qss / rack_light.qss; a routed cap
 			// latches like the header caps (RackPalette).
 			const int capW = qMin(cellW - 10, 46);
-			const int capH = 30;
+			const int capH = capHeight();
 			QRect cap(cr.center().x() - capW / 2, cr.center().y() - capH / 2, capW, capH);
 
 			if (!cell.present)
@@ -298,18 +324,18 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		const QString capText = channelsExpanded
 			? QStringLiteral("ALL")
 			: QStringLiteral("+%1").arg(fold.hiddenChannels);
-		revealRect = QRect(x, strip.top(), 44, 30);
+		revealRect = QRect(x, strip.top(), 44, capHeight());
 		drawCap(revealRect, channelsExpanded, capText, hoveredControl == 1);
 		// Tracked engraving under the cap's right shoulder names the bank.
 		p.setFont(label);
 		p.setPen(withAlpha(QColor(t.mutedText), 220));
 		const QString engrave = QStringLiteral("CHANNELS");
-		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, 30),
+		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, capHeight()),
 			Qt::AlignVCenter | Qt::AlignLeft, engrave);
 		x += 52 + fm.horizontalAdvance(engrave) + 24;
 	}
 
-	addRect = QRect(x, strip.top(), 44, 30);
+	addRect = QRect(x, strip.top(), 44, capHeight());
 	drawCap(addRect, false, QStringLiteral("ADD"), hoveredControl == 2);
 }
 
@@ -321,6 +347,13 @@ QRect HardwarePatchbayView::factorEditorRect(int outRow, int inCol) const
 
 QRect HardwarePatchbayView::channelEditorRect() const
 {
+	// In a one-line unit the field is a 22 px module level with the ADD cap.
+	if (inlineRow)
+	{
+		return addRect.isNull()
+			? QRect(6, stripRect().top(), 110, capHeight())
+			: QRect(addRect.right() + 10, addRect.top(), 110, capHeight());
+	}
 	return addRect.isNull()
 		? QRect(6, stripRect().top() + 4, 110, 24)
 		: QRect(addRect.right() + 10, addRect.top() + 3, 110, 24);
