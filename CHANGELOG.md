@@ -20,7 +20,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   panel, so they looked cut off at the top, and text fields looked cut off at
   the bottom. A control under the pointer, or latched, was lit on three sides
   only. This had been fixed for the LOCATE cap alone. The whole sheet has now
-  been checked, and 82 rules (52 on the light finish, 30 on the dark one) were
+  been checked, and 84 rules (54 on the light finish, 30 on the dark one) were
   changed so that an edge has one colour all the way round. A raised cap and a
   latched one still differ by the direction of the face's gradient and by the
   label's 1 px shift. The lamp line under a latched channel key and the bar on

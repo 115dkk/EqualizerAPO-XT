@@ -894,8 +894,8 @@ QToolButton#DeviceChip[deviceInstalled="false"] {
     color: #6E685C;
 }
 
-/* Hover on a capture well (0x121): keep the recessed orientation (dark
-   top, lit lower lip) while the amber edge warms. */
+/* Hover on a capture well (0x121): the face keeps the well's gradient while
+   the bronze edge warms, on all four sides. */
 QToolButton#DeviceChip[deviceInput="true"]:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #20272D, stop:1 #2E363C);
     border: 1px solid #787164;
@@ -1009,7 +1009,7 @@ QToolButton#DeviceChipMore {
     font-weight: 700; font-size: 9pt;
     text-transform: uppercase; letter-spacing: 0.5px;
 }
-QToolButton#DeviceChipMore:hover { border-color: #787164;color: #E0D6BC; }
+QToolButton#DeviceChipMore:hover { border-color: #787164; color: #E0D6BC; }
 QToolButton#DeviceChipMore:checked,
 QToolButton#DeviceChipMore:pressed {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #14181C, stop:1 #20262B);
