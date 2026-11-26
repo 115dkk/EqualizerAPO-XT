@@ -27,8 +27,11 @@ class SegmentedControl;
 // like it does nothing at all, which is how it has read until now.
 //
 // What the card adds over the knobs: it names what the two values do in terms
-// of phase, states outright that the magnitude is fixed, and offers to switch
-// the analysis graph to a reading where the filter is visible.
+// of phase, and its tooltip says that the magnitude is fixed. It used to state
+// that as a "0.0 dB" readout and to carry a switch that turned the analysis
+// graph to phase or group delay; both were removed (maintainer's verdict,
+// 2026-11-26): the readout told nothing more, and the analysis panel has that
+// switch itself.
 //
 // Value preservation is the rule the round trip depends on. A line written as
 // "BW Oct 1" is saved as a bandwidth; a line written as "Q 10" is saved as a
@@ -69,8 +72,6 @@ private:
 	QComboBox* widthModeCombo = nullptr;
 	SegmentedControl* orderSegment = nullptr;
 	QWidget* widthBlock = nullptr;
-	QLabel* magnitudeNote = nullptr;
-	SegmentedControl* graphSegment = nullptr;
 
 	double currentFrequency = 1000.0;
 	// Always in the unit the mode selector currently shows.
