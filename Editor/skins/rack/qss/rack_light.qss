@@ -854,10 +854,12 @@ QToolButton#DeviceChip:pressed {
     padding: 4px 9px 2px 9px;
 }
 
-/* Capture device = recessed input well: shadowed top, lit lower lip. */
+/* Capture device = recessed input well. At rest its outline is the darker
+   well line the text fields have (#8F8268), which is what tells it from a
+   playback cap (#AFA288); latched it lights like any other switch. */
 QToolButton#DeviceChip[deviceInput="true"] {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6DECC, stop:1 #E4E0D7);
-    border: 1px solid #AFA288;
+    border: 1px solid #8F8268;
     color: #3A352C;
 }
 /* Unwired endpoint (APO not installed) = flat blank position, recedes. */
@@ -1156,10 +1158,11 @@ QToolButton#StageChip:checked:disabled {
     border: 1px solid #C9B896; border-top: 2px solid #C49A4A;
     color: #9A7A3A;
 }
-/* Capture inserts on the input side: a recessed well at rest. */
+/* Capture inserts on the input side: a recessed well at rest, with the
+   darker well line of a capture endpoint on the Device bank. */
 QToolButton#StageChip[stage="capture"] {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6DECC, stop:1 #E4E0D7);
-    border: 1px solid #AFA288;
+    border: 1px solid #8F8268;
     color: #3A352C;
 }
 QToolButton#StageChip[stage="capture"]:hover {
