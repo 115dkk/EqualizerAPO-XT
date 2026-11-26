@@ -80,6 +80,7 @@
     <ClCompile Include="SubwooferRoutingJsonTests.cpp" />
     <ClCompile Include="SubwooferRoutingProcessorTests.cpp" />
     <ClCompile Include="BiQuadKernelTests.cpp" />
+    <ClCompile Include="BiQuadCommandTests.cpp" />
     <ClCompile Include="ChannelCommandTests.cpp" />
     <ClCompile Include="CommonLogicTests.cpp" />
     <ClCompile Include="ConfigPathPolicyTests.cpp" />

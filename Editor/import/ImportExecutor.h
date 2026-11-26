@@ -33,6 +33,8 @@ struct ExecutionResult
     bool success = true;
     int filesCopied = 0;
     int filesAlreadyInPlace = 0;
+    // Absolute destinations that already name the source file, for per-file grants.
+    QStringList alreadyInPlace;
     int filesRemovedFromSource = 0;
     qint64 bytesCopied = 0;
     QStringList warnings;

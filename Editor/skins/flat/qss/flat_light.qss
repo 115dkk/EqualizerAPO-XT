@@ -404,9 +404,9 @@ QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
 QWidget#AllPassCardEditor, QWidget#AllPassCardParamBlock, QWidget#AllPassCardValueBlock,
-QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock, QWidget#AllPassCardMagnitudeBlock,
+QWidget#AllPassCardOrderBlock,
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
-QLabel#AllPassCardCaption, QLabel#AllPassCardMagnitudeValue,
+QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#AllPassCardCaption,
@@ -415,16 +415,6 @@ QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @EDGE@; border-radius: 6px;
     padding: 5px 10px;
-}
-/* The all-pass card states its fixed magnitude as a reading. It takes the
-   value's weight but none of the field's box: there is nothing to type into
-   it, and a box would say there is. */
-QLabel#AllPassCardMagnitudeValue {
-    color: @TEXT@;
-    font-weight: 600;
-    background: transparent;
-    border: 0;
-    padding: 6px 0;
 }
 
 QLineEdit#EditableValueEditor {

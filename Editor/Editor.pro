@@ -798,6 +798,7 @@ HEADERS  += \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \
 	import/ImportExecutor.h \
+	import/ImportFileSystem.h \
 	import/ImportManifest.h \
 	import/CallerProfileCheck.h \
 	../services/security/ConfigDirectoryHandles.h \

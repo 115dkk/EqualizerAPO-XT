@@ -259,6 +259,16 @@ void SkinManager::paintSegmentedControl(QPainter& painter, const SegmentedContro
 	activeSkin->paintSegmentedControl(painter, state, currentTokens);
 }
 
+Qt::Orientation SkinManager::segmentedControlAxis(int optionCount) const
+{
+	return activeSkin->segmentedControlAxis(optionCount);
+}
+
+QSize SkinManager::segmentedControlSizeHint(const QStringList& labels, const QFont& font) const
+{
+	return activeSkin->segmentedControlSizeHint(labels, font);
+}
+
 void SkinManager::paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state) const
 {
 	activeSkin->paintVstBusSelector(painter, state, currentTokens);

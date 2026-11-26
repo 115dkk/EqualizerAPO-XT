@@ -17,7 +17,6 @@
 #include <QVBoxLayout>
 
 #include "Editor/FilterTable.h"
-#include "Editor/analysis/AnalysisViewController.h"
 #include "Editor/widgets/FlowLayout.h"
 #include "Editor/widgets/SegmentedControl.h"
 #include "Editor/widgets/cards/ChannelSelectionModel.h"
@@ -254,6 +253,7 @@ HilbertCardEditor::HilbertCardEditor(const HilbertCommand& command,
 	direction = new SegmentedControl(directionBlock);
 	direction->setObjectName(QStringLiteral("HilbertDirection"));
 	direction->setLabels({QStringLiteral("−90°"), QStringLiteral("+90°")});
+	direction->setRisingScale(true);
 	direction->setMinimumHeight(40);
 	direction->setCurrentIndex(current.directionDegrees < 0 ? 0 : 1);
 	connect(direction, &SegmentedControl::currentIndexChanged, this, [this](int index) {
@@ -264,25 +264,10 @@ HilbertCardEditor::HilbertCardEditor(const HilbertCommand& command,
 	directionLayout->addWidget(direction);
 	modeRow->addWidget(directionBlock);
 
-	QWidget* graphBlock = new QWidget(this);
-	graphBlock->setObjectName(QStringLiteral("HilbertModeBlock"));
-	QVBoxLayout* graphLayout = new QVBoxLayout(graphBlock);
-	graphLayout->setContentsMargins(0, 0, 0, 0);
-	graphLayout->setSpacing(6);
-	QLabel* graphCaption = new QLabel(tr("Graph"), graphBlock);
-	graphCaption->setObjectName(QStringLiteral("HilbertCaption"));
-	graphCaption->setAlignment(Qt::AlignCenter);
-	graphLayout->addWidget(graphCaption);
-	graph = new SegmentedControl(graphBlock);
-	graph->setObjectName(QStringLiteral("HilbertGraph"));
-	graph->setLabels({tr("Phase"), tr("Group delay")});
-	graph->setMinimumHeight(40);
-	connect(graph, &SegmentedControl::currentIndexChanged, this, [](int index) {
-		AnalysisViewController::instance()->requestMetric(index == 0
-			? AnalysisMetric::PhaseDegrees : AnalysisMetric::GroupDelayMs);
-	});
-	graphLayout->addWidget(graph);
-	modeRow->addWidget(graphBlock);
+	// A Graph switch (Phase / Group delay) stood here. It asked the analysis
+	// panel for that reading and did not touch the filter; the panel has its
+	// own metric switch, so the card's copy was removed with the all-pass
+	// card's (maintainer's verdict, 2026-11-26).
 	// The four readouts share the switch row: the channel selectors below make
 	// the card tall already, and a separate footer row of fixed figures spent
 	// another line on nothing (the same judgement that folded the all-pass

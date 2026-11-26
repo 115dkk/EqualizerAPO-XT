@@ -14,6 +14,58 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: importing a VST3 plug-in folder (bundle) reported a missing file
+  and left the Import button disabled.** Import now copies the whole bundle,
+  including its resources. The Korean and Chinese import summaries also no
+  longer display the total size as a file count.
+  ([#542](https://github.com/115dkk/EqualizerAPO-XT/pull/542))
+
+## v2.85.0 — 2026-11-26
+
+- **Hardware Rack: a choice between two is a toggle switch.** The ORDER switch
+  of the all-pass card, the Direction switch of the Hilbert card and the Mode
+  switch of the Velvet card were a recessed bank of two machined keys, each
+  with its own lamp, over a groove with a slide: a lot of metal for a choice
+  between two. They are now one upright toggle switch with the two names
+  printed beside it, one above the other. The lever's tip stands level with
+  the chosen name, so it is plain which one is set, and clicking a name
+  selects it. On the Hilbert card +90° is on top. The switch that picks among
+  three readings in the analysis panel keeps its bank of keys.
+  ([#538](https://github.com/115dkk/EqualizerAPO-XT/pull/538))
+
+## v2.84.3 — 2026-11-26
+
+- **Editor: the Hilbert card no longer has a GRAPH switch.** Like the
+  all-pass card's, it did not change the filter: it asked the analysis panel
+  to show phase or group delay, and the panel has that switch itself. In every
+  skin the card keeps its Direction switch, its readouts and its channel lists.
+  ([#540](https://github.com/115dkk/EqualizerAPO-XT/pull/540))
+
+## v2.84.2 — 2026-11-26
+
+- **Editor: rebuilding the filter list is about a quarter faster, and the
+  Editor's log no longer gets a line for every filter.** Each time the list
+  was rebuilt (a skin switch, an undo, opening a file) every filter line was
+  parsed again on the window's own thread to decide which card it gets, and
+  each parse appended a trace line to `Editor.log`, opening and closing the
+  file for it. On a 240-line configuration one rebuild took 2.5 s and now
+  takes 1.9 s (medians on one development machine). The engine still writes
+  the same trace lines when it builds its filters.
+  ([#541](https://github.com/115dkk/EqualizerAPO-XT/pull/541))
+
+## v2.84.1 — 2026-11-26
+
+- **Editor: the all-pass card no longer shows a MAGNITUDE figure or a GRAPH
+  switch.** Under MAGNITUDE the card printed `0.0 dB`, which said only that an
+  all-pass does not change the level, and the card's tooltip says that. The
+  Phase / Group delay switch turned the analysis graph to that reading, and
+  the analysis panel has the same switch. Both are gone in every skin, so the
+  card is the two knobs and the ORDER switch. In the Hardware Rack skin the
+  figure had also been lit green on the bare panel, which was a glaring green
+  on the cream finish.
+  ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
+
+
 ## v2.84.0 — 2026-11-26
 
 - **Editor: the Subwoofer Routing card is one line, like the Include,

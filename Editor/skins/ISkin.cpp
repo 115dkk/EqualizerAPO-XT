@@ -256,6 +256,19 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	}
 }
 
+Qt::Orientation ISkin::segmentedControlAxis(int optionCount) const
+{
+	Q_UNUSED(optionCount);
+	return Qt::Horizontal;
+}
+
+QSize ISkin::segmentedControlSizeHint(const QStringList& labels, const QFont& font) const
+{
+	Q_UNUSED(labels);
+	Q_UNUSED(font);
+	return QSize();
+}
+
 void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: a token-coloured pill, the chosen cell filled in accent,

@@ -337,6 +337,35 @@ card keeps just the latch as its slim reminder. A slot list wider than the
 card is cut at the card's edge in both arrangements (the widgets' minimum
 width is 40 px, the cells keep their positions).
 
+## Segmented control layout hooks
+
+`SegmentedControl` (a few mutually exclusive options shown at once) is drawn
+entirely by `ISkin::paintSegmentedControl`. Two more hooks let a skin lay the
+options out in a different shape, with input following the drawing:
+
+- `ISkin::segmentedControlAxis(int optionCount)` tells the widget whether the
+  cells sit side by side (`Qt::Horizontal`, the default) or stacked
+  (`Qt::Vertical`). The widget puts the answer in
+  `SegmentedControlState::axis` and hit-tests with the same tiling
+  (`SegmentedControlState::cellRect`, which `segmentRect` also goes through),
+  so the cell a skin paints for an option is the cell that answers the pointer
+  for it.
+- `ISkin::segmentedControlSizeHint(labels, font)` gives the size the skin's
+  part wants. An invalid size (the default) keeps the widget's own formula:
+  equal padded cells in a row. `minimumSizeHint` keeps the widget's width rule
+  capped at a valid skin width and takes the skin's height. A skin switch
+  calls `updateGeometry()` so the new size applies.
+
+Both defaults keep the old behaviour byte for byte. Hardware Rack answers for
+exactly two options: stacked, with the part's own size (an upright toggle with
+the two names beside it, never lower than the widget's own height).
+
+A control whose options form a rising scale (the Hilbert card's Direction,
+-90° then +90°) sets `SegmentedControl::setRisingScale(true)`. Where a skin
+stacks the options, the higher index then takes the top cell, as up means
+more on a panel, and Up selects the next index; side by side the flag changes
+nothing. The state carries it as `SegmentedControlState::risingScale`.
+
 ## Routing renderer hook
 
 Copy's per-skin routing view generalizes to any command whose body is a
@@ -424,14 +453,22 @@ each for the toolbar, title bar, menu bar and an open menu, three for the
 add-card row (`addrow` normal/hover/focused), one for the insertion seam's hover
 reveal (`seam`) and one for the update toast (`toast`). Keyboard focus has its
 own shots, judged against shared article 8 of docs/skins/README.md: the metric
-switch in `segment_focused` and `segment_focushover`, and the `focus` scene
+switch in `segment_focused` and `segment_focushover` (and its two-option twin
+in `segment2_focused` and `segment2_focushover`), and the `focus` scene
 with the focused card (`card`) and the GraphicEQ plot (`geqplot`). The card
 is focused through `FilterTable::selectOnlyFromCard`, the path a click takes;
 the plot takes its `setPreviewFocused` hook rather than real focus, which
-offscreen depends on window activation. Output names are
+offscreen depends on window activation. After the `segment2` shots, the run
+presses and releases at the centre of each option's cell as the skin lays it
+out, for every skin and finish, on the plain two-option control and on a
+rising-scale twin, and fails unless the control then holds the option
+pressed; for Hardware Rack it also presses each printed legend (found by
+grabbing the control with its two labels swapped). Up, Down, Left and Right
+are checked on the same controls. Output names are
 stable: `<skin>_<dark|light>_<row>_<state>.png`,
-5 × 2 × (41 × 3 + 55) = 1,780 PNGs
-for a full run; the run self-checks the count, so adding a gallery row needs
+5 × 2 × (41 × 3 + 60) = 1,830 PNGs
+for a full run (the 60 single shots include the five `segment2` states); the
+run self-checks the count, so adding a gallery row needs
 no external count update. A row shot fails the render (non-zero exit) if a
 visible horizontal scrollbar is found inside the row — rows must fit the
 960px gallery viewport in every skin. Exit code 0 means every PNG was
