@@ -19,6 +19,9 @@ variables and do not belong in this list.
 
 - `EAPO_GALLERY_LEGACY` — renders the heritage (legacy rows) gallery dumps
   instead of the per-skin card gallery.
+- `EAPO_GATE_LOG` sends `Logging` output from a headless gate or gallery to
+  the named UTF-8 file. When it is unset, empty, or cannot be opened, that
+  output goes to `NUL`; Qt messages continue to use stderr.
 - `EAPO_SWITCH_LIMIT_MS` / `EAPO_SWITCH_WARN_MS` - override the
   skin-switch stopwatch gate in `--skin-switch-test` (defaults live in
   `Editor/gallery/GalleryGates.cpp`; `.github/scripts/Invoke-EditorOffscreenTest.ps1`
