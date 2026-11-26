@@ -144,15 +144,14 @@ QVBoxLayout* FilterCardRow::buildCardFrame()
 		cardFrame->setProperty("inlineRow", true);
 		headerWidget->setProperty("inlineRow", true);
 		headerWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
-		if (hasEditor)
-		{
-			// The column's controls stand in a top band as tall as a one-line
-			// row, so number and power keep one distance from the row's top
-			// edge whether the editor beside them is one line or many.
-			headerWidget->setFixedHeight(InlineBandHeight);
-			cardLayout->addWidget(headerWidget, 0, Qt::AlignTop);
-			return cardLayout;
-		}
+		// The column's controls stand in a top band as tall as a one-line
+		// row, so number and power keep one distance from the row's top edge
+		// whether the editor beside them is one line, many lines or none (a
+		// body-less line is one band tall). A Copy row centres the band on
+		// the row instead (centresRowMarkers).
+		headerWidget->setFixedHeight(InlineBandHeight);
+		cardLayout->addWidget(headerWidget, 0, centresRowMarkers() ? Qt::AlignVCenter : Qt::AlignTop);
+		return cardLayout;
 	}
 	cardLayout->addWidget(headerWidget);
 	return cardLayout;
@@ -519,14 +518,14 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	CommandRowInfo info = CommandRowFacts::describe(descriptor, context,
 		table != nullptr ? table->loadTraceFactsForRow(rowNumber - 1) : QList<ConfigLoadTraceEntry>());
 	info.inlineRow = inlineRow;
-	// A row centres its controls on its top band (a row with an editor) or
-	// on the whole line (a body-less row), not on a strip of rowHeight at
-	// its top, so a scope lane has to meet it there. Before the first layout
-	// a body-less row's height is unknown and the strip value stays.
-	if (inlineRow && hasEditor)
-		info.headerCenterY = CommandRowInfo::cardMarginTop + 1 + InlineBandHeight / 2.0;
-	else if (inlineRow && height() > 0)
+	// A row centres its controls on its top band, or on the whole row when
+	// it centres its markers (Copy), not on a strip of rowHeight at its top,
+	// so a scope lane has to meet it there. Before the first layout a
+	// centred row's height is unknown and the band value stands in.
+	if (inlineRow && centresRowMarkers() && height() > 0)
 		info.headerCenterY = height() / 2.0;
+	else if (inlineRow)
+		info.headerCenterY = CommandRowInfo::cardMarginTop + 1 + InlineBandHeight / 2.0;
 	return info;
 }
 
@@ -842,10 +841,19 @@ void FilterCardRow::addRowCell(QBoxLayout* layout, QWidget* cell, int stretch)
 	if (hasEditor && cell != lineEdit)
 	{
 		cell->setFixedHeight(InlineBandHeight);
-		layout->addWidget(cell, stretch, Qt::AlignTop);
+		layout->addWidget(cell, stretch, centresRowMarkers() ? Qt::AlignVCenter : Qt::AlignTop);
 	}
 	else
 		layout->addWidget(cell, stretch, Qt::AlignVCenter);
+}
+
+bool FilterCardRow::centresRowMarkers() const
+{
+	// In a Send or MultiConvolution row the routing board is a section under
+	// the row's main line, so the row's markers stand beside that line at the
+	// top. A Copy row has no main line: the board is the row, so its markers
+	// (left column, title, channel badges) are centred on the whole row.
+	return inlineRow && hasEditor && descriptor.kind == FilterCardKind::Copy;
 }
 
 bool FilterCardRow::rowEditorNamesItself() const
@@ -862,19 +870,38 @@ void FilterCardRow::setRowTitle(const QString& title)
 {
 	// The cell is narrow, so a two-word title wraps onto a second line
 	// instead of being cut ("Hilbert transform"). A single word wider than
-	// the cell cannot wrap, and is elided as in the card header.
+	// the cell is split before its inner capitals ("MultiConvolution" into
+	// MULTI over CONVOLUTION), without a hyphen. Only a word that still does
+	// not fit after that is elided as in the card header.
 	titleLabel->ensurePolished();
 	const QFontMetrics metrics = titleLabel->fontMetrics();
+	QStringList words;
 	bool wordsFit = true;
 	for (const QString& word : title.split(QLatin1Char(' '), Qt::SkipEmptyParts))
-		wordsFit = wordsFit && metrics.horizontalAdvance(word) <= InlineTitleWidth;
+	{
+		if (metrics.horizontalAdvance(word) <= InlineTitleWidth)
+		{
+			words.append(word);
+			continue;
+		}
+		int start = 0;
+		for (int i = 1; i <= word.size(); i++)
+		{
+			if (i < word.size() && !(word.at(i).isUpper() && word.at(i - 1).isLower()))
+				continue;
+			const QString part = word.mid(start, i - start);
+			wordsFit = wordsFit && metrics.horizontalAdvance(part) <= InlineTitleWidth;
+			words.append(part);
+			start = i;
+		}
+	}
 	titleLabel->setWordWrap(wordsFit);
 	if (wordsFit)
 	{
 		// ElidedLabel elides whatever it holds as full text; plain QLabel text
 		// lets the wrap through.
 		titleLabel->setFullText(QString());
-		titleLabel->setText(title);
+		titleLabel->setText(words.join(QLatin1Char(' ')));
 		titleLabel->setToolTip(title);
 	}
 	else

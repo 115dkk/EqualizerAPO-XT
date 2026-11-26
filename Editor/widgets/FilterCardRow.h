@@ -163,6 +163,9 @@ private:
 	// Whether the row's editor already prints the unit's name, so the title
 	// cell would say it twice.
 	bool rowEditorNamesItself() const;
+	// Whether the row centres its markers on the whole row instead of the
+	// top band (a Copy row, whose routing board is the row).
+	bool centresRowMarkers() const;
 	// Puts the title into a row's narrow title cell.
 	void setRowTitle(const QString& title);
 	// Whether the raw line editor is open.
