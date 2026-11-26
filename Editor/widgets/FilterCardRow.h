@@ -58,6 +58,7 @@ public:
 
 protected:
 	void paintEvent(QPaintEvent*) override;
+	void resizeEvent(QResizeEvent* event) override;
 	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
@@ -143,4 +144,8 @@ private:
 	// editor (#456).
 	bool editorClosedByFocusLoss = false;
 	bool expanded = false;
+	// Decided once, before the frame is built (ISkin::presentsRowInline):
+	// the row has no header strip, and the header's controls stand at the
+	// left of the editor on the same line.
+	bool inlineRow = false;
 };
