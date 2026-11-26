@@ -142,6 +142,19 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	legend.setPixelSize(11);
 	legend.setBold(true);
 
+	// A cap's 1 px outline is stroked on the pixel centres just inside its
+	// rectangle. Stroked on the rectangle's own integer edges, the
+	// antialiased pen fell half on the pixel outside and half on the pixel
+	// inside, so every side was a two-pixel smear at half strength that
+	// barely stood off the plate (rule 12).
+	const auto capOutline = [](const QRect& cap) { return QRectF(cap).adjusted(0.5, 0.5, -0.5, -0.5); };
+	// The bevel lines inside the outline sit on pixel centres for the same
+	// reason; on the integer row they bled into the outline and washed the
+	// top side out (light) or darkened it (dark latched caps).
+	const auto bevelLine = [&p](const QRect& cap, int y) {
+		p.drawLine(QPointF(cap.left() + 2, y + 0.5), QPointF(cap.right() - 1, y + 0.5));
+	};
+
 	// The control-cap recipe, shared by the crosspoint blanks and the
 	// faceplate strip buttons: raised = lit top bevel, latched = inverted
 	// bevel with the face dropped 1px (the machine's one latch law).
@@ -161,18 +174,18 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		}
 		p.setBrush(face);
 		p.setPen(QPen(RackPalette::CapOutline(dark), 1));
-		p.drawRoundedRect(cap, 2, 2);
+		p.drawRoundedRect(capOutline(cap), 2, 2);
 		if (latched)
 		{
 			p.setPen(QPen(RackPalette::PatchFieldShadowEdge(dark), 1));
-			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
+			bevelLine(cap, cap.top() + 1);
 			p.setPen(QPen(RackPalette::PatchFieldLitEdge(dark), 1));
-			p.drawLine(cap.left() + 2, cap.bottom() - 1, cap.right() - 2, cap.bottom() - 1);
+			bevelLine(cap, cap.bottom() - 1);
 		}
 		else
 		{
 			p.setPen(QPen(RackPalette::PatchFieldLitEdge(dark), 1));
-			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
+			bevelLine(cap, cap.top() + 1);
 		}
 		if (!capText.isEmpty())
 		{
@@ -231,9 +244,9 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 				face.setColorAt(1, RackPalette::CapFaceBottom(dark));
 				p.setBrush(face);
 				p.setPen(QPen(RackPalette::CapOutline(dark), 1));
-				p.drawRoundedRect(cap, 2, 2);
+				p.drawRoundedRect(capOutline(cap), 2, 2);
 				p.setPen(QPen(RackPalette::PatchFieldLitEdge(dark), 1));
-				p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
+				bevelLine(cap, cap.top() + 1);
 				p.setBrush(RackPalette::CapDimple(dark));
 				p.setPen(Qt::NoPen);
 				p.drawEllipse(cap.center() + QPoint(1, 1), 2, 2);
@@ -270,11 +283,11 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			}
 			p.setBrush(face);
 			p.setPen(QPen(edge, 1));
-			p.drawRoundedRect(cap, 2, 2);
+			p.drawRoundedRect(capOutline(cap), 2, 2);
 			p.setPen(QPen(bevelTop, 1));
-			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
+			bevelLine(cap, cap.top() + 1);
 			p.setPen(QPen(bevelBottom, 1));
-			p.drawLine(cap.left() + 2, cap.bottom() - 1, cap.right() - 2, cap.bottom() - 1);
+			bevelLine(cap, cap.bottom() - 1);
 
 			// A unity routing carries no legend: the lit latch already says
 			// "passed through as-is", and any printed value on it (x1, 0dB)
