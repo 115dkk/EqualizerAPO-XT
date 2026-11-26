@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **편집기: All-pass 카드에서 MAGNITUDE 값과 GRAPH 스위치를 뺐습니다.**
+  MAGNITUDE 아래의 `0.0 dB`에서 알 수 있는 것은 올패스가 음량을 바꾸지 않는다는
+  사실뿐이었고, 그 내용은 카드의 풍선 도움말에 있습니다. Phase / Group delay
+  스위치는 분석 그래프를 위상이나 군지연으로 바꾸는 것이었는데, 분석 패널에
+  같은 스위치가 있습니다. 둘 다 모든 스킨에서 없어져, 카드에는 노브 둘과 ORDER
+  스위치가 남습니다. Hardware Rack 스킨에서는 이 값이 맨 판 위에 표시창의
+  초록으로 나와 밝은 마감에서 보기 힘들기도 했습니다.
+  ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
+
 ## v2.84.0 — 2026-11-26
 
 - **편집기: 서브우퍼 라우팅 카드가 Include, Convolution, VST 카드처럼 한 줄이

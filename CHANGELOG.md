@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: the all-pass card no longer shows a MAGNITUDE figure or a GRAPH
+  switch.** Under MAGNITUDE the card printed `0.0 dB`, which said only that an
+  all-pass does not change the level, and the card's tooltip says that. The
+  Phase / Group delay switch turned the analysis graph to that reading, and
+  the analysis panel has the same switch. Both are gone in every skin, so the
+  card is the two knobs and the ORDER switch. In the Hardware Rack skin the
+  figure had also been lit green on the bare panel, which was a glaring green
+  on the cream finish.
+  ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
+
 ## v2.84.0 — 2026-11-26
 
 - **Editor: the Subwoofer Routing card is one line, like the Include,
