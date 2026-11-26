@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.84.0 — 2026-11-26
+
 - **Editor: the Subwoofer Routing card is one line, like the Include,
   Convolution and VST cards.** The card had a layout of its own in every skin:
   two very large buttons with icons nobody could read (in Stock Flat and Signal

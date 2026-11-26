@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.84.0 — 2026-11-26
+
 - **편집기: 서브우퍼 라우팅 카드가 Include, Convolution, VST 카드처럼 한 줄이
   됐습니다.** 이 카드는 스킨마다 따로 만든 화면이었습니다. 뜻을 알 수 없는
   아이콘이 달린 커다란 단추 둘(Stock Flat과 Signal Matrix에서는 아이콘뿐이었습니다),
