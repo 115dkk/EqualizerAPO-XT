@@ -899,7 +899,7 @@ int SkinGallery::runVstFillSelfTest()
 			scrollArea.setWidgetResizable(true);
 			scrollArea.resize(960, 720);
 			FilterTable* table = new FilterTable();
-			table->setRenderMode(legacy ? FilterTable::LegacyRows : FilterTable::ModernCards);
+			table->setRenderMode(legacy ? FilterTable::LegacyEditor : FilterTable::ModernCards);
 			scrollArea.setWidget(table);
 			QList<std::shared_ptr<AbstractAPOInfo>> outputDevices, inputDevices;
 			galleryDevices(outputDevices, inputDevices);

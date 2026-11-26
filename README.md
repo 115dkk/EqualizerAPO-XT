@@ -107,6 +107,17 @@ Current work areas:
     [docs/features/send.md](docs/features/send.md)). Remaining: measurements
     on a real multi-endpoint interface, and latency that follows the
     receiver's period (`Latency=Auto`).
+11. A shorter filter list ([#491](https://github.com/115dkk/EqualizerAPO-XT/issues/491)). A card takes 135 to 145 px
+    for a line the original rows showed in 77 px. So far the cards lost parts
+    they did not need: the graph switches of the all-pass and Hilbert cards
+    ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536), [#540](https://github.com/115dkk/EqualizerAPO-XT/pull/540)), the old Subwoofer Routing
+    card in favour of a one-line reference card
+    ([#539](https://github.com/115dkk/EqualizerAPO-XT/pull/539)), and an always-open channel mapping that now folds
+    ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). A third interface, Modern rows, is being added:
+    one line per filter in the skin's own look. As its first step the original
+    row layout is now called Legacy editor
+    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)). Next come lower caps and closed outlines in the
+    Hardware Rack cards, Modern rows for that skin, then the other four skins.
 
 ## Features
 

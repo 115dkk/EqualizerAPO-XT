@@ -94,15 +94,15 @@ void MainWindow::interfaceModeSelected(QAction* action)
 	if (mode == currentRenderMode)
 		return;
 
-	// The two modes are whole presentations, not just row widgets: heritage
-	// (legacy rows) runs unskinned on the native style, frame, font engine and
-	// system fonts. None of that can swap cleanly inside a live process, and a
-	// partial swap mixes modern chrome around legacy rows. Restart into the
-	// chosen presentation instead.
+	// The two modes are whole presentations, not just row widgets: the legacy
+	// editor runs unskinned on the native style, frame, font engine and system
+	// fonts. None of that can swap cleanly inside a live process, and a partial
+	// swap mixes modern chrome around legacy rows. Restart into the chosen
+	// presentation instead.
 	if (QMessageBox::question(this, tr("Restart required"), tr("Configuration Editor will be restarted to apply the changed settings. Proceed?")) == QMessageBox::Yes)
 	{
-		// savePreferences() persists interface/legacyRows from this member on
-		// close, so setting it is what makes the restart come back changed.
+		// savePreferences() persists interface/listMode from this member on close,
+		// so setting it is what makes the restart come back changed.
 		currentRenderMode = mode;
 		restart = true;
 		close();

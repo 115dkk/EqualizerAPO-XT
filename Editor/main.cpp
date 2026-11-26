@@ -493,15 +493,15 @@ int main(int argc, char* argv[])
 	do
 	{
 		ProcessShutdown::exitCode.store(1, std::memory_order_relaxed);
-		// LegacyRows is a whole presentation, not just a row widget: the
+		// LegacyEditor is a whole presentation, not just a row widget: the
 		// heritage editor runs with the platform's native widget style, the
 		// stock ClearType font engine, and system fonts. The skinned mode
 		// keeps the redesign stack below. Read the mode before QApplication
 		// so the font-engine choice follows an in-process restart.
-		bool legacyRowsMode;
+		bool legacyEditorMode;
 		{
 			QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-			legacyRowsMode = settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool();
+			legacyEditorMode = EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor;
 		}
 
 		// Font rendering (skinned mode): force Qt's FreeType font engine on
@@ -513,12 +513,12 @@ int main(int argc, char* argv[])
 		// Only set it when no platform is chosen externally (offscreen gallery
 		// / CI must win) or when we set it ourselves on a previous loop pass.
 		static bool platformEnvSetByUs = false;
-		if (!legacyRowsMode && (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") || platformEnvSetByUs))
+		if (!legacyEditorMode && (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") || platformEnvSetByUs))
 		{
 			qputenv("QT_QPA_PLATFORM", "windows:fontengine=freetype");
 			platformEnvSetByUs = true;
 		}
-		else if (legacyRowsMode && (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") || platformEnvSetByUs))
+		else if (legacyEditorMode && (qEnvironmentVariableIsEmpty("QT_QPA_PLATFORM") || platformEnvSetByUs))
 		{
 			// The stock ClearType engine for the heritage look (also when
 			// restarted from the skinned mode), and Windows dark mode off:
@@ -537,7 +537,7 @@ int main(int argc, char* argv[])
 		PluginLoadQueue::prepareUiThread();
 		// Qt 6.12.0 only: spin box text placement (QTBUG-151308).
 		SpinBoxEditFieldFix::installIfAffected(application);
-		if (!legacyRowsMode)
+		if (!legacyEditorMode)
 		{
 			application.setStyle(new CustomStyle(QStyleFactory::create(QStringLiteral("Fusion"))));
 			SkinThemeData::registerBundledFonts(true);
@@ -556,7 +556,7 @@ int main(int argc, char* argv[])
 		}
 
 		QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-		if (legacyRowsMode)
+		if (legacyEditorMode)
 		{
 			SkinManager::instance()->applyHeritage();
 		}

@@ -145,7 +145,7 @@ void FilterTable::addActionTriggered()
 	QRect rect = toolBar->actionGeometry(addAction);
 	QPoint p = toolBar->mapToGlobal(QPoint(rect.x(), rect.y() + rect.height()));
 	addAction->setChecked(false);
-	if (renderMode == LegacyRows)
+	if (renderMode == LegacyEditor)
 	{
 		// Heritage add flow: the classic cascading QMenu, the same one the
 		// legacy rows' own + button uses (FilterTableRow::on_actionAdd_triggered).

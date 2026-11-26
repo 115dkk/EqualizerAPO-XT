@@ -8,6 +8,15 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.86.0 — 2026-11-26
+
+- **Editor: Legacy rows 인터페이스의 이름이 Legacy editor로 바뀌었습니다.**
+  Interface 메뉴에 새 이름이 나옵니다(한국어 화면에서는 '레거시 에디터').
+  이름 말고는 바뀐 것이 없고, 쓰던 인터페이스는 업데이트 뒤에도 그대로
+  선택되어 있습니다. 세 번째 인터페이스인 Modern rows를 넣기 위한
+  준비입니다.
+  ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546))
+
 ## v2.85.2 — 2026-11-26
 
 - **편집기: 플러그인의 패널을 열면 편집기가 멈추고 돌아오지 않던 문제를

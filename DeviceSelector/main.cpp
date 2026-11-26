@@ -59,14 +59,14 @@ namespace
 {
 // The skin the user picked in the Editor (registry interface/skin +
 // interface/dark; both default to the Editor's own defaults, so a machine
-// that never chose gets Studio). In the Editor's heritage mode (legacyRows)
-// the dialog keeps its classic native look, matching the Editor's choice.
-// The windows take the skin's caption too, unless the Editor was told to
-// keep the native one (interface/nativeTitleBar) or runs the heritage look.
+// that never chose gets Studio). In the legacy editor the dialog keeps its
+// classic native look, matching the Editor's choice. The windows take the
+// skin's caption too, unless the Editor was told to keep the native one
+// (interface/nativeTitleBar) or runs the heritage look.
 void applyEditorTheme(QApplication& app)
 {
 	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	if (settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool())
+	if (EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor)
 	{
 		// Neutral base forms in classic light colours for the painted chrome;
 		// the stock sub-widgets keep the native style.
