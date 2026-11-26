@@ -15,7 +15,6 @@
 
 class AudioKnob;
 class EditableValue;
-class QBoxLayout;
 class QComboBox;
 class QLabel;
 class SegmentedControl;
@@ -28,8 +27,11 @@ class SegmentedControl;
 // like it does nothing at all, which is how it has read until now.
 //
 // What the card adds over the knobs: it names what the two values do in terms
-// of phase, states outright that the magnitude is fixed, and offers to switch
-// the analysis graph to a reading where the filter is visible.
+// of phase, and its tooltip says that the magnitude is fixed. It used to state
+// that as a "0.0 dB" readout and to carry a switch that turned the analysis
+// graph to phase or group delay; both were removed (maintainer's verdict,
+// 2026-11-26): the readout told nothing more, and the analysis panel has that
+// switch itself.
 //
 // Value preservation is the rule the round trip depends on. A line written as
 // "BW Oct 1" is saved as a bandwidth; a line written as "Q 10" is saved as a
@@ -43,9 +45,6 @@ public:
 	AllPassCardEditor(const BiQuadCommand& command, const QString& commandName, QWidget* parent = nullptr);
 
 	void store(QString& command, QString& parameters) override;
-
-protected:
-	void resizeEvent(QResizeEvent* event) override;
 
 private slots:
 	void orderChanged(int index);
@@ -61,10 +60,6 @@ private:
 	bool bandwidthMode() const;
 	bool firstOrder() const;
 	void applyOrderVisibility();
-	// Inside a row of the filter list (FilterTable::ModernRows) the card
-	// gets less width than in a card list: the graph switch is left out,
-	// and the magnitude readout gives way when the rest would not fit whole.
-	void fitToRow();
 
 	// The command keyword exactly as the line spelled it ("Filter", "Filter 1",
 	// "Filter 99"), so editing a numbered line does not renumber it.
@@ -77,11 +72,6 @@ private:
 	QComboBox* widthModeCombo = nullptr;
 	SegmentedControl* orderSegment = nullptr;
 	QWidget* widthBlock = nullptr;
-	QLabel* magnitudeNote = nullptr;
-	SegmentedControl* graphSegment = nullptr;
-	QWidget* graphBlock = nullptr;
-	QWidget* magnitudeBlock = nullptr;
-	QBoxLayout* parameterRow = nullptr;
 
 	double currentFrequency = 1000.0;
 	// Always in the unit the mode selector currently shows.

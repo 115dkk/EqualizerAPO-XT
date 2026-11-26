@@ -16,8 +16,6 @@ public:
 	FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const override;
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,
 		const SkinTokens& tokens) const override;
-	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent,
-		const SkinTokens& tokens) const override;
 
 	void styleMainToolbar(QToolBar* toolBar, const SkinTokens& tokens) const override;
 	void styleFileDialog(QFileDialog* dialog, const SkinTokens& tokens) const override;

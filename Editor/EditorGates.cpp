@@ -7,6 +7,8 @@
 #include "EditorGates.h"
 
 #include <cstdio>
+#include <share.h>
+#include <string>
 #include <utility>
 
 #include <QByteArray>
@@ -21,9 +23,35 @@
 #include "Editor/diagnostics/SkinSwitchStorm.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/import/LegacyMigration.h"
+#include "services/logging/Logging.h"
 
 namespace
 {
+FILE* openHeadlessLog()
+{
+	const QString requestedPath = qEnvironmentVariable("EAPO_GATE_LOG");
+	FILE* stream = nullptr;
+	if (!requestedPath.isEmpty())
+	{
+		const std::wstring path = requestedPath.toStdWString();
+		stream = _wfsopen(path.c_str(), L"wt, ccs=UTF-8", _SH_DENYWR);
+	}
+	if (stream == nullptr)
+		stream = _wfsopen(L"NUL", L"wt, ccs=UTF-8", _SH_DENYWR);
+	return stream;
+}
+
+void redirectHeadlessLog()
+{
+	// A list-rebuild gate can emit thousands of lines. Keep one stream for the
+	// process so gates neither reopen Editor.log per line nor write user data.
+	static FILE* stream = openHeadlessLog();
+	if (stream != nullptr)
+		Logging::useStream(stream, true, false, false);
+	else
+		Logging::useFile(L"NUL", true, false, false);
+}
+
 enum class Stage
 {
 	Headless,
@@ -504,6 +532,7 @@ std::optional<int> EditorGates::runHeadless(const QStringList& arguments)
 		if (entry.stage == Stage::Headless && entry.runHeadless != nullptr
 			&& arguments.contains(QString::fromLatin1(entry.flag)))
 		{
+			redirectHeadlessLog();
 			return entry.runHeadless(arguments);
 		}
 	}

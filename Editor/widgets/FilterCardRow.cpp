@@ -30,6 +30,7 @@
 #include "Editor/IFilterGUI.h"
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/ButtonName.h"
 #include "Editor/widgets/ChBadge.h"
 #include "Editor/widgets/CommandRowFacts.h"
 #include "Editor/widgets/routing/ChannelIdentity.h"
@@ -240,6 +241,8 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	addButton->setProperty("headerAction", true);
 	addButton->setText(QStringLiteral("+"));
 	addButton->setToolTip(tr("Add filter above this card"));
+	// "+" is a sign, not a name: a screen reader is given the tooltip.
+	nameButtonByToolTip(addButton);
 	connect(addButton, &QToolButton::clicked, this, &FilterCardRow::addAbove);
 	actionLayout->addWidget(addButton);
 
@@ -269,6 +272,7 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	editButton->setIcon(GUIHelper::tintedIcon(QStringLiteral(":/icons/modern/code-line.svg"),
 		QColor(SkinManager::instance()->tokens().text), 14));
 	editButton->setToolTip(tr("Edit raw command"));
+	nameButtonByToolTip(editButton);
 	connect(editButton, &QToolButton::toggled, this, &FilterCardRow::editTextToggled);
 	actionLayout->addWidget(editButton);
 	// A clear break between the control column and the identity (badge
@@ -806,8 +810,7 @@ bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
 		// A press already moved the list's focus marker (above). Keyboard focus
 		// that arrives by Tab has to move it too: controls inside a card show
 		// focus only through the card's own frame, so without this a tabbed-in
-		// control (the subwoofer summary, for one) showed nothing and another
-		// card could stay lit.
+		// control showed nothing and another card could stay lit.
 		const Qt::FocusReason reason = static_cast<QFocusEvent*>(event)->reason();
 		if ((reason == Qt::TabFocusReason || reason == Qt::BacktabFocusReason)
 			&& table != nullptr && item != nullptr)
@@ -1335,11 +1338,14 @@ void FilterCardRow::setExpanded(bool open)
 void FilterCardRow::syncHeaderToolTips()
 {
 	// Each control says what a click does from here, so the power switch
-	// and the fold arrow follow their state.
+	// and the fold arrow follow their state. Both show a sign or an icon
+	// alone, so the same sentence is their name for a screen reader.
 	expandButton->setToolTip(expanded ? tr("Collapse filter card") : tr("Expand filter card"));
+	nameButtonByToolTip(expandButton);
 	enabledButton->setToolTip(enabledButton->isChecked()
 		? tr("Switch this line off. It stays in the file as a comment.")
 		: tr("Switch this line back on."));
+	nameButtonByToolTip(enabledButton);
 }
 
 void FilterCardRow::syncSummaryVisibility()

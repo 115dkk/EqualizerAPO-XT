@@ -86,7 +86,7 @@ public:
 	// be (ConfigPathPolicy, the check it makes when it loads the line), then
 	// LOCAL SERVICE's rights on the file.
 	static QString audioServiceProblem(const QString& absolutePath, const QString& configPath);
-	bool importIntoConfig(QWidget* parent, const QString& configPath);
+	bool importIntoConfig(QWidget* parent, const QString& configPath, bool pluginLibrary = false);
 
 	// The two answers audioServiceProblem can give besides "it will", before
 	// they are put into words. audioServiceVerdict touches the file system and

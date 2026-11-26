@@ -36,6 +36,8 @@
 // would otherwise break the enum of the same name in the VST2 aeffectx.h.
 #include "pluginterfaces/vst/vstspeaker.h"
 #include "../TestHarness.h"
+#include "../PluginUiThreadRunner.h"
+#include <stdexcept>
 #include "Tests/Vst3Bundle.h"
 #include "platform/windows/WindowsPath.h"
 #include "Tests/TestVst3Plugin/TestVst3Protocol.h"
@@ -198,6 +200,152 @@ SurroundScenario loadSurroundScenario()
 		"Surround41 accepted-arrangement probe is exported");
 
 	return {surround41Library, surround41AcceptedArrangement};
+}
+
+void exerciseUiThreadBinding(bool routed, int cycles, bool beforeAttach)
+{
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_UI_THREAD_BOUND", L"1");
+	const wstring bundle = prepareBundle(exeDirectory(), L"UiThreadBundle.vst3", L"UiThread.vst3");
+	auto loaded = VSTPluginLibrary::load(bundle);
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_UI_THREAD_BOUND", nullptr);
+	harness.require(loaded.succeeded(), "thread-bound fixture loads");
+	const auto counters = reinterpret_cast<testvst3::ReadUiThreadCounters>(
+		GetProcAddress(GetModuleHandleW(L"UiThread.vst3"), testvst3::uiThreadCountersExport));
+	harness.require(counters != nullptr, "thread counters are exported");
+	test::TestDirectory directory(L"PluginUiThread");
+	const wstring configPath = directory.trackFile(L"config.txt");
+	{
+		std::ofstream config(configPath);
+		config << "VSTPlugin: Library \"" << wintext::toNarrowString(bundle, CP_UTF8) << "\"\n";
+	}
+	test::PluginUiThreadRunner runner;
+	PluginUiThread::setRunner(routed ? &runner : nullptr);
+	winutil::UniqueHandle ready(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+	winutil::UniqueHandle release(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+	winutil::UniqueHandle finished(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+	bool workerInitialized = true;
+	std::thread worker([&] {
+		// The analysis path: real FilterEngine construction and destruction on
+		// the worker, including the filter's temporary first-effect owner.
+		for (int cycle = 0; cycle < cycles; ++cycle)
+		{
+			FilterEngine engine;
+			engine.setAnalysisMode(true);
+			EngineSetup setup;
+			setup.host = EngineHost::Editor;
+			setup.sampleRate = 48000;
+			setup.inputChannelCount = setup.realChannelCount = setup.outputChannelCount = 2;
+			setup.maxFrameCount = 64;
+			setup.customPath = configPath;
+			engine.initialize(setup);
+			testvst3::UiThreadCounters observed;
+			counters(&observed);
+			workerInitialized = workerInitialized && observed.liveComponents == 1;
+			if (cycle == cycles - 1 && !beforeAttach)
+			{
+				SetEvent(ready.get());
+				WaitForSingleObject(release.get(), INFINITE);
+			}
+		}
+		if (beforeAttach)
+			SetEvent(ready.get());
+		SetEvent(finished.get());
+	});
+	runner.wait(ready.get());
+	auto card = VSTPluginInstance::create(loaded.library, VSTPluginInstance::ProcessLevel::User);
+	const bool cardInitialized = card->initialize();
+	HWND parent = CreateWindowExW(0, L"STATIC", L"UI thread test", WS_OVERLAPPED,
+		0, 0, 640, 480, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+	short width = 0, height = 0;
+	const bool attached = parent != nullptr && card->startEditing(parent, &width, &height);
+	card->stopEditing();
+	DestroyWindow(parent);
+	SetEvent(release.get());
+	runner.wait(finished.get());
+	worker.join();
+	card.reset();
+	runner.drain();
+	PluginUiThread::setRunner(nullptr);
+	testvst3::UiThreadCounters measured;
+	counters(&measured);
+	directory.removeAll();
+	const uint32_t violations = measured.initializeViolations + measured.terminateViolations
+		+ measured.releaseViolations + measured.attachViolations;
+	std::printf("UI thread worker-first: runner=%d cycles=%d beforeAttach=%d panel=%d violations=%u live=%u\n",
+		routed, cycles, beforeAttach, attached, violations, measured.liveComponents);
+	harness.expectTrue(workerInitialized && cardInitialized, "both thread-bound instances initialize");
+	harness.expectEqual(measured.liveComponents, uint32_t(0), "all components are retired");
+	if (routed)
+	{
+		harness.expectTrue(attached, "a worker-first instance must not prevent the main-thread panel from opening");
+		harness.expectEqual(violations, uint32_t(0), "all instance lifecycle operations use the UI thread");
+	}
+	else
+	{
+		harness.expectFalse(attached, "without a runner the worker-bound panel refuses attachment");
+		harness.expectTrue(violations > 0, "the no-runner control exposes the wrong-thread lifecycle");
+	}
+}
+
+TEST_CASE(Vst3HostTests, testUiThreadRunnerKeepsWorkerFirstPanelOnMain)
+{
+	for (const int cycles : {1, 3})
+		for (const bool beforeAttach : {false, true})
+			exerciseUiThreadBinding(true, cycles, beforeAttach);
+}
+
+TEST_CASE(Vst3HostTests, testNoUiThreadRunnerReproducesWorkerBoundPanel)
+{
+	exerciseUiThreadBinding(false, 1, false);
+}
+
+TEST_CASE(Vst3HostTests, testUiThreadRunnerExceptionsRefusalAndFifo)
+{
+	test::PluginUiThreadRunner runner;
+	PluginUiThread::setRunner(&runner);
+	winutil::UniqueHandle finished(CreateEventW(nullptr, TRUE, FALSE, nullptr));
+	std::vector<int> order;
+	bool rethrown = false;
+	std::thread worker([&] {
+		runner.post([&] { order.push_back(1); });
+		PluginUiThread::run([&] { order.push_back(2); });
+		try { PluginUiThread::run([] { throw std::runtime_error("UI work failed"); }); }
+		catch (const std::runtime_error&) { rethrown = true; }
+		SetEvent(finished.get());
+	});
+	runner.wait(finished.get());
+	worker.join();
+	PluginUiThread::setRunner(nullptr);
+	harness.expectTrue(rethrown, "UI work exception is rethrown on the calling worker");
+	harness.expectTrue(order == std::vector<int>({1, 2}), "post and call share FIFO order");
+
+	class RefusingRunner final : public PluginUiThread::Runner
+	{
+	public:
+		bool isUiThread() const override { return false; }
+		bool call(const std::function<void()>&) override { return false; }
+		bool post(std::function<void()>) override { ++retireAttempts; return false; }
+		int retireAttempts = 0;
+	} refusing;
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_UI_THREAD_BOUND", L"1");
+	auto library = loadScenarioLibrary(L"UiRefusalBundle.vst3", L"UiRefusal.vst3");
+	SetEnvironmentVariableW(L"EAPO_TEST_VST3_UI_THREAD_BOUND", nullptr);
+	const auto counters = reinterpret_cast<testvst3::ReadUiThreadCounters>(
+		GetProcAddress(GetModuleHandleW(L"UiRefusal.vst3"), testvst3::uiThreadCountersExport));
+	harness.require(counters != nullptr, "refusal fixture exports counters");
+	std::shared_ptr<VSTPluginInstance> retiring = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
+	harness.require(retiring->initialize(), "retirement fixture initializes before installing refusal");
+	auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
+	PluginUiThread::setRunner(&refusing);
+	const bool initialized = instance->initialize();
+	instance.reset();
+	retiring.reset();
+	PluginUiThread::setRunner(nullptr);
+	testvst3::UiThreadCounters measured;
+	counters(&measured);
+	harness.expectFalse(initialized, "refused UI call makes initialize return false");
+	harness.expectEqual(refusing.retireAttempts, 2, "unique and shared ownership both retain the UI deleter");
+	harness.expectEqual(measured.liveComponents, uint32_t(0), "refused post deletes the live component inline");
 }
 
 TEST_CASE(Vst3HostTests, testAutomaticUpmixerVerdictMatchesEngine)

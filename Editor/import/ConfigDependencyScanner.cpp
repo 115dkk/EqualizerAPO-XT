@@ -5,6 +5,7 @@
 */
 
 #include "ConfigDependencyScanner.h"
+#include "ImportFileSystem.h"
 #include "../ConfigFileCodec.h"
 #include "../widgets/FilterCardModel.h"
 #include "filters/ConfigFileReference.h"
@@ -211,6 +212,78 @@ void scanConfigFile(ImportManifest& manifest,
     }
 }
 
+}
+
+ImportManifest ConfigDependencyScanner::scanPluginLibrary(const QString& library, const QString& configPath)
+{
+    const QString source = QDir::cleanPath(QFileInfo(library).absoluteFilePath());
+    const auto target = ConfigFileReference::library(L"",
+        QDir::toNativeSeparators(source).toStdWString(), configPath.toStdWString());
+    QString bundle;
+    if (target && QFileInfo(QString::fromStdWString(target.path.path())).isFile())
+    {
+        if (QFileInfo(source).isDir())
+            bundle = source;
+        else
+        {
+            QDir candidate = QFileInfo(source).absoluteDir();
+            if (candidate.cdUp() && candidate.cdUp())
+            {
+                const auto bundleTarget = ConfigFileReference::library(L"",
+                    QDir::toNativeSeparators(candidate.absolutePath()).toStdWString(), configPath.toStdWString());
+                BY_HANDLE_FILE_INFORMATION namedInfo = {};
+                BY_HANDLE_FILE_INFORMATION bundleInfo = {};
+                if (bundleTarget
+                    && GetFileInformationByHandle(target.path.leaf(), &namedInfo)
+                    && GetFileInformationByHandle(bundleTarget.path.leaf(), &bundleInfo)
+                    && namedInfo.dwVolumeSerialNumber == bundleInfo.dwVolumeSerialNumber
+                    && namedInfo.nFileIndexHigh == bundleInfo.nFileIndexHigh
+                    && namedInfo.nFileIndexLow == bundleInfo.nFileIndexLow)
+                    bundle = candidate.absolutePath();
+            }
+        }
+    }
+    if (bundle.isEmpty())
+        return scan(library, QFileInfo(configPath).absolutePath());
+
+    ImportManifest manifest;
+    manifest.rootSource = source;
+    manifest.rootSourceDir = QFileInfo(bundle).absolutePath();
+    manifest.rootDest = destForRelative(relativeToRoot(source, manifest.rootSourceDir),
+        manifest.rootSourceDir, DestLayout::NestUnderSourceFolder);
+
+    // Enumerate one directory at a time so no link is followed, including
+    // junctions and hidden or broken file links. Resources and root metadata
+    // belong to the bundle just as much as the module does.
+    QStringList pending{bundle};
+    while (!pending.isEmpty())
+    {
+        const QString path = pending.takeLast();
+        if (isReparsePoint(path))
+        {
+            manifest.warnings.append(tr("Link not copied: %1").arg(path));
+            continue;
+        }
+        const QFileInfo info(path);
+        if (info.isDir())
+        {
+            if (!canListDirectory(path))
+            {
+                manifest.hasErrors = true;
+                manifest.warnings.append(tr("Cannot open %1 for scanning.").arg(path));
+                continue;
+            }
+            const QFileInfoList children = QDir(path).entryInfoList(
+                QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot, QDir::Name);
+            // The stack visits entries in the same stable order as the listing.
+            for (auto it = children.crbegin(); it != children.crend(); ++it)
+                pending.append(it->absoluteFilePath());
+        }
+        else if (info.isFile())
+            appendItem(manifest, path, destForRelative(relativeToRoot(path, manifest.rootSourceDir),
+                manifest.rootSourceDir, DestLayout::NestUnderSourceFolder), QStringLiteral("VSTPlugin"));
+    }
+    return manifest;
 }
 
 ImportManifest ConfigDependencyScanner::scan(const QString& rootSource, const QString& configDir, DestLayout layout)

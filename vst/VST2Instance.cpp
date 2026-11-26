@@ -166,7 +166,9 @@ public:
 #endif
 	}
 
-	bool initialize() override;
+protected:
+	bool initializeImpl() override;
+public:
 	InitializationFailure initializationFailure() const override {return lastInitializationFailure;}
 
 	int numInputs() const override
@@ -532,7 +534,7 @@ VST2Instance::LoadResult VST2Instance::load()
 	return result;
 }
 
-bool VST2Instance::initialize()
+bool VST2Instance::initializeImpl()
 {
 	lastInitializationFailure = InitializationFailure::Refused;
 	// load() must stay free of objects requiring stack unwinding because it
@@ -693,8 +695,8 @@ void VST2Instance::readFromEffect(wstring& chunkData, unordered_map<wstring, flo
 }
 }
 
-std::unique_ptr<VSTPluginInstance> createVST2Instance(
+VSTPluginInstancePtr createVST2Instance(
 	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 {
-	return std::make_unique<VST2Instance>(library, processLevel);
+	return VSTPluginInstancePtr(new VST2Instance(library, processLevel));
 }

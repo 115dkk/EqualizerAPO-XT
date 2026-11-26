@@ -7,6 +7,8 @@
     collects files referenced by Include, Convolution, MultiConvolution
     and SubwooferRouting Profile commands, and records VSTPlugin Library
     values as external references. Include files are scanned recursively.
+    The VST card's explicit library import instead collects a single binary
+    or every plain file in a bundle identified by the engine.
 
     The scanner only reads the source tree. ImportExecutor copies the
     manifest's items.
@@ -49,6 +51,15 @@ public:
     // but is not read or written.
     static ImportManifest scan(const QString& rootSource, const QString& configDir,
         DestLayout layout = DestLayout::NestUnderSourceFolder);
+
+    // The manifest for importing the library a VSTPlugin line names (the VST
+    // card's Import button). A single-file plug-in gives the manifest scan()
+    // gives for it. A VST3 bundle, named either by its folder or by the module
+    // inside it, is imported as a unit: one item per plain file below the bundle
+    // folder, so the copy keeps Contents, the platform folder and Resources.
+    // rootDest is the destination of what the line names (the folder or the
+    // module), so the rewritten Library value points at the same thing.
+    static ImportManifest scanPluginLibrary(const QString& library, const QString& configPath);
 };
 
 }

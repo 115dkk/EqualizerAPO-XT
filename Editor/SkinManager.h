@@ -8,7 +8,9 @@
 
 #include <QIcon>
 #include <QObject>
+#include <QSize>
 #include <QString>
+#include <QStringList>
 
 #include "SkinTokens.h"
 
@@ -16,12 +18,12 @@ class FilterPickerView;
 class IRoutingRenderer;
 class ISkin;
 class QFileDialog;
+class QFont;
 class QPainter;
 class QRect;
 class QToolBar;
 class QWidget;
 class ReferenceCardView;
-class SubwooferRoutingCardView;
 struct AnalysisGraphState;
 struct BadgeTreatment;
 struct CommandRowInfo;
@@ -106,6 +108,11 @@ public:
 	// the analysis graph, heritage mode answers with the neutral base rendering
 	// so no skin instrument leaks into legacy rows.
 	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state) const;
+	// The active skin's layout for that control (ISkin::segmentedControlAxis,
+	// ISkin::segmentedControlSizeHint), asked by the widget before it
+	// hit-tests and when it reports its size.
+	Qt::Orientation segmentedControlAxis(int optionCount) const;
+	QSize segmentedControlSizeHint(const QStringList& labels, const QFont& font) const;
 
 	// The VST bus strip's format selectors and surrounding frame
 	// (ISkin::paintVstBusSelector / ISkin::paintVstBusFrame). Every skin
@@ -133,9 +140,6 @@ public:
 	// The reference-card body view for the active skin
 	// (ISkin::createReferenceCardView). kind is ReferenceCardState::kind.
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
-
-	// The compact SubwooferRouting card body for the active skin.
-	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent) const;
 
 	// Main toolbar icons/chrome for the active skin (ISkin::styleMainToolbar).
 	void styleMainToolbar(QToolBar* toolBar) const;

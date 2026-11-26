@@ -18,6 +18,8 @@ public:
 		const SkinTokens& tokens) const override;
 	void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state,
 		const SkinTokens& tokens) const override;
+	Qt::Orientation segmentedControlAxis(int optionCount) const override;
+	QSize segmentedControlSizeHint(const QStringList& labels, const QFont& font) const override;
 	void paintVstBusSelector(QPainter& painter, const VstBusSelectorState& state,
 		const SkinTokens& tokens) const override;
 	void paintVstBusFrame(QPainter& painter, const VstBusFrameState& state,
@@ -60,7 +62,5 @@ public:
 
 	FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const override;
 	ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent,
-		const SkinTokens& tokens) const override;
-	SubwooferRoutingCardView* createSubwooferRoutingCardView(QWidget* parent,
 		const SkinTokens& tokens) const override;
 };

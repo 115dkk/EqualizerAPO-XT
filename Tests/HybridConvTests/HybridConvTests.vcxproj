@@ -80,6 +80,7 @@
     <ClCompile Include="SubwooferRoutingJsonTests.cpp" />
     <ClCompile Include="SubwooferRoutingProcessorTests.cpp" />
     <ClCompile Include="BiQuadKernelTests.cpp" />
+    <ClCompile Include="BiQuadCommandTests.cpp" />
     <ClCompile Include="ChannelCommandTests.cpp" />
     <ClCompile Include="CommonLogicTests.cpp" />
     <ClCompile Include="ConfigPathPolicyTests.cpp" />
@@ -115,6 +116,7 @@
     <ClInclude Include="..\..\filters\ConfigPathPolicy.h" />
     <ClInclude Include="..\..\libHybridConv-0.1.1\libHybridConv_eapo.h" />
     <ClInclude Include="..\TestVst3Plugin\TestVst3Protocol.h" />
+    <ClInclude Include="..\PluginUiThreadRunner.h" />
     <ClInclude Include="..\TestDirectory.h" />
     <ClInclude Include="..\FakeRegistry.h" />
     <ClInclude Include="..\Vst3Bundle.h" />

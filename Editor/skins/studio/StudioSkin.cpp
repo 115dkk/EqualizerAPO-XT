@@ -10,7 +10,6 @@
 
 #include "Editor/skins/shared/SkinSupport.h"
 #include "Editor/skins/studio/cards/StudioReferenceCardView.h"
-#include "Editor/skins/studio/cards/StudioSubwooferRoutingCardView.h"
 #include "Editor/skins/studio/picker/StudioFilterPicker.h"
 #include "Editor/skins/studio/routing/LightTraceRoutingRenderer.h"
 
@@ -32,12 +31,6 @@ ReferenceCardView* StudioSkin::createReferenceCardView(const QString& kind, QWid
 {
 	Q_UNUSED(tokens);
 	return new StudioReferenceCardView(kind, parent);
-}
-
-SubwooferRoutingCardView* StudioSkin::createSubwooferRoutingCardView(QWidget* parent,
-	const SkinTokens& tokens) const
-{
-	return new StudioSubwooferRoutingCardView(tokens, parent);
 }
 
 ISkin* studioSkin()

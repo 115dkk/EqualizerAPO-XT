@@ -304,6 +304,9 @@
     <ClInclude Include="parser\NumericText.h">
       <Filter>parser</Filter>
     </ClInclude>
+    <ClInclude Include="vst\PluginUiThread.h">
+      <Filter>vst</Filter>
+    </ClInclude>
     <ClInclude Include="vst\VSTPluginInstance.h">
       <Filter>text</Filter>
     </ClInclude>
@@ -672,6 +675,9 @@
       <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VST3SpeakerMapping.cpp">
+      <Filter>vst</Filter>
+    </ClCompile>
+    <ClCompile Include="vst\PluginUiThread.cpp">
       <Filter>vst</Filter>
     </ClCompile>
     <ClCompile Include="vst\VSTPluginInstance.cpp">

@@ -7,6 +7,7 @@
 #include "ReferenceCardView.h"
 
 #include <array>
+#include <utility>
 
 #include <QAbstractButton>
 #include <QBoxLayout>
@@ -18,6 +19,7 @@
 #include <QStyle>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/ButtonName.h"
 #include "Editor/widgets/StyleRefresh.h"
 
 namespace
@@ -32,6 +34,7 @@ QString actionRoleName(ReferenceCardView::ActionRole role)
 	case ReferenceCardView::ActionRole::OpenPanel: return QStringLiteral("openPanel");
 	case ReferenceCardView::ActionRole::Options: return QStringLiteral("options");
 	case ReferenceCardView::ActionRole::EditPath: return QStringLiteral("editPath");
+	case ReferenceCardView::ActionRole::Preset: return QStringLiteral("preset");
 	}
 	return QString();
 }
@@ -98,6 +101,14 @@ void ReferenceCardView::setState(const ReferenceCardState& state)
 	updateSharedProperties();
 	applyState(currentState);
 	repolish(this);
+
+	// A skin decides in applyState whether an action shows a word (LOCATE,
+	// BROWSE) or an icon alone, and that can change with the state. The hosts
+	// set the translated tooltips before they hand the state over, so both
+	// are final here: an action without a word takes its tooltip as its name
+	// for a screen reader.
+	for (QAbstractButton* button : std::as_const(actionRegistry))
+		nameButtonByToolTip(button);
 
 	if (nameActivationWidget != nullptr)
 		nameActivationWidget->setCursor(state.nameClickable && !state.missing && !state.checking

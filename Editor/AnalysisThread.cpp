@@ -29,6 +29,7 @@
 #include "engine/FilterEngine.h"
 #include "Editor/analysis/ImpulseMeasurement.h"
 #include "helpers/AnalysisWorkerRecovery.h"
+#include "helpers/PluginUiThreadBridge.h"
 #include "services/logging/Logging.h"
 #include "AnalysisThread.h"
 
@@ -52,7 +53,7 @@ AnalysisThread::~AnalysisThread()
 		quit = true;
 		condition.wakeAll();
 		mutex.unlock();
-		return wait(deadline);
+		return PluginUiThreadBridge::waitServicing(*this, deadline);
 	} }});
 }
 

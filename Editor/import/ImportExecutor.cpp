@@ -5,6 +5,7 @@
 */
 
 #include "ImportExecutor.h"
+#include "ImportFileSystem.h"
 
 #include "platform/windows/Win32Resource.h"
 
@@ -87,11 +88,7 @@ bool sameFileIdentity(const QString& left, const QString& right)
 
 bool isReparseDirectory(const QString& path)
 {
-    const std::wstring native = QDir::toNativeSeparators(path).toStdWString();
-    const DWORD attributes = GetFileAttributesW(native.c_str());
-    return attributes != INVALID_FILE_ATTRIBUTES
-        && (attributes & FILE_ATTRIBUTE_DIRECTORY) != 0
-        && (attributes & FILE_ATTRIBUTE_REPARSE_POINT) != 0;
+    return isReparsePoint(path, FILE_ATTRIBUTE_DIRECTORY);
 }
 
 void rememberSourceDirectories(const QString& source, const QString& sourceRoot,
@@ -182,6 +179,7 @@ ExecutionResult ImportExecutor::execute(const ImportManifest& manifest, const QS
         if (sameFileIdentity(item.sourceAbsolute, destAbs))
         {
             ++result.filesAlreadyInPlace;
+            result.alreadyInPlace.append(destAbs);
             continue;
         }
 

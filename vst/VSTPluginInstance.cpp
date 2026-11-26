@@ -20,6 +20,8 @@
 #include "stdafx.h"
 #include "VSTPluginLibrary.h"
 #include "VSTPluginInstance.h"
+#include "PluginUiThread.h"
+#include "services/logging/Logging.h"
 #include "VST3SpeakerMapping.h"
 #include "dsp/SampleConversion.h"
 #include <cctype>
@@ -27,15 +29,31 @@
 
 // These factories live in separate translation units: the VST2 and VST3
 // SDKs have conflicting VST_VERSION definitions.
-std::unique_ptr<VSTPluginInstance> createVST2Instance(
+VSTPluginInstancePtr createVST2Instance(
 	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
-std::unique_ptr<VSTPluginInstance> createVST3Instance(
+VSTPluginInstancePtr createVST3Instance(
 	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 
-std::unique_ptr<VSTPluginInstance> VSTPluginInstance::create(
+VSTPluginInstancePtr VSTPluginInstance::create(
 	const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel)
 {
 	return library->isVST3() ? createVST3Instance(library, processLevel) : createVST2Instance(library, processLevel);
+}
+
+void VSTPluginInstanceDeleter::operator()(VSTPluginInstance* instance) const noexcept
+{
+	PluginUiThread::retire(instance);
+}
+
+bool VSTPluginInstance::initialize()
+{
+	bool initialized = false;
+	if (!PluginUiThread::run([&] { initialized = initializeImpl(); }))
+	{
+		LogF(L"The UI thread did not accept plug-in initialization for %s.", library->getLibPath().c_str());
+		return false;
+	}
+	return initialized;
 }
 
 bool VSTPluginInstance::isVST3() const

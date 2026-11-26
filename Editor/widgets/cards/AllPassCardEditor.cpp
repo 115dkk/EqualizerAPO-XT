@@ -16,7 +16,6 @@
 #include <QSignalBlocker>
 #include <QVBoxLayout>
 
-#include "Editor/analysis/AnalysisViewController.h"
 #include "Editor/guis/BiQuadWidthConversion.h"
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
@@ -91,19 +90,20 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	mainLayout->setContentsMargins(0, 0, 0, 0);
 	mainLayout->setSpacing(10);
 
-	// What the filter does is said by the card's tooltip and, visibly, by the
-	// fixed-magnitude readout at the row's tail. A standing sentence of prose
-	// in the body was the first thing this card was told reads as legacy
-	// chrome, and it is: no other card explains itself in a paragraph.
+	// What the filter does is said by the card's tooltip. A standing sentence
+	// of prose in the body was the first thing this card was told reads as
+	// legacy chrome, and it is: no other card explains itself in a paragraph.
+	// A fixed "0.0 dB" magnitude readout stood at the row's tail after that;
+	// it said only that the level does not change, which the tooltip says,
+	// and was removed (maintainer's verdict, 2026-11-26).
 	setToolTip(tr("An all-pass changes phase and group delay around Fc. "
 		"The magnitude response stays at 0 dB, so this filter is invisible in the magnitude graph."));
 
-	// One row: the two knobs, then the order/graph switches and the magnitude
-	// readout in the horizontal space right of them. Cards are wide, and a
-	// second body row spent that width on nothing; the body sits in the card's
-	// horizontal scroll wrapper, so a narrowed dock scrolls instead of
-	// breaking.
-	parameterRow = new QHBoxLayout();
+	// One row: the two knobs, then the order switch in the horizontal space
+	// right of them. Cards are wide, and a second body row spent that width
+	// on nothing; the body sits in the card's horizontal scroll wrapper, so a
+	// narrowed dock scrolls instead of breaking.
+	QHBoxLayout* parameterRow = new QHBoxLayout();
 	parameterRow->setContentsMargins(0, 0, 0, 0);
 	parameterRow->setSpacing(24);
 
@@ -182,46 +182,9 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	connect(orderSegment, &SegmentedControl::currentIndexChanged, this, &AllPassCardEditor::orderChanged);
 	parameterRow->addWidget(orderBlock, 0, Qt::AlignVCenter);
 
-	// One segment rather than two buttons: two buttons side by side would fill
-	// the row with nothing but buttons, and these are two views of one thing,
-	// not two independent actions.
-	graphBlock = captionedSegment(QStringLiteral("AllPassCardGraphBlock"),
-		QStringLiteral("AllPassCardGraphSegment"), tr("Graph"), {tr("Phase"), tr("Group delay")}, graphSegment);
-	graphSegment->setToolTip(tr("Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again."));
-	connect(graphSegment, &SegmentedControl::currentIndexChanged, this, [](int index) {
-		AnalysisViewController::instance()->requestMetric(
-			index == 1 ? AnalysisMetric::GroupDelayMs : AnalysisMetric::PhaseDegrees);
-	});
-	parameterRow->addWidget(graphBlock, 0, Qt::AlignVCenter);
-
-	// The one reading this filter has that never moves, stated rather than left
-	// to be inferred from a gain knob that is not there - the whole difficulty
-	// with an all-pass is that its most obvious reading says nothing.
-	//
-	// It is a captioned readout in the same row as the two switches, not a
-	// sentence pinned to the right margin. What marks it as a readout rather
-	// than a value you can set is that it carries no field chrome: the two
-	// values above sit in bordered boxes, this one is bare type. The mono font
-	// comes from the active skin's tokens the way the dynamic value token in
-	// ScalarKnobCardEditor takes it, because a static value has no sheet rule
-	// of its own.
-	magnitudeBlock = new QWidget(this);
-	magnitudeBlock->setObjectName(QStringLiteral("AllPassCardMagnitudeBlock"));
-	QVBoxLayout* magnitudeLayout = new QVBoxLayout(magnitudeBlock);
-	magnitudeLayout->setContentsMargins(0, 0, 0, 0);
-	magnitudeLayout->setSpacing(6);
-	QLabel* magnitudeCaption = new QLabel(tr("Magnitude"), magnitudeBlock);
-	magnitudeCaption->setObjectName(QStringLiteral("AllPassCardCaption"));
-	magnitudeCaption->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-	magnitudeLayout->addWidget(magnitudeCaption);
-	magnitudeNote = new QLabel(tr("0.0 dB"), magnitudeBlock);
-	magnitudeNote->setObjectName(QStringLiteral("AllPassCardMagnitudeValue"));
-	magnitudeNote->setAlignment(Qt::AlignHCenter | Qt::AlignVCenter);
-	magnitudeNote->setToolTip(tr("An all-pass does not change level at any frequency, so there is nothing to set here."));
-	magnitudeLayout->addWidget(magnitudeNote);
-	magnitudeBlock->setSizePolicy(QSizePolicy::Maximum, QSizePolicy::Preferred);
-	parameterRow->addWidget(magnitudeBlock, 0, Qt::AlignVCenter);
-
+	// The card had a Graph switch here (Phase / Group delay) that asked the
+	// analysis panel for that reading. The panel has its own metric switch,
+	// so the card's copy was removed (maintainer's verdict, 2026-11-26).
 	parameterRow->addStretch(1);
 	mainLayout->addLayout(parameterRow);
 
@@ -232,40 +195,6 @@ AllPassCardEditor::AllPassCardEditor(const BiQuadCommand& command, const QString
 	setWidth(command.bandwidthOrQOrS != 0.0 ? command.bandwidthOrQOrS
 		: BiQuadWidth::defaultQ(BiQuad::ALL_PASS), false);
 	applyOrderVisibility();
-}
-
-void AllPassCardEditor::resizeEvent(QResizeEvent* event)
-{
-	IFilterGUI::resizeEvent(event);
-	fitToRow();
-}
-
-void AllPassCardEditor::fitToRow()
-{
-	// A row marks its frame with the "inlineRow" property; a card list never
-	// does, so nothing below runs there.
-	bool inRow = false;
-	for (const QWidget* ancestor = parentWidget(); ancestor != nullptr && !inRow; ancestor = ancestor->parentWidget())
-		inRow = ancestor->property("inlineRow").toBool();
-	if (!inRow || parameterRow == nullptr || magnitudeBlock == nullptr)
-		return;
-
-	// A row leaves the card less width than a card list does, and the
-	// graph switch is the part it gives up for good: which reading the
-	// analysis graph shows is chosen in the analysis panel below the list,
-	// so in a row the switch only repeated it (maintainer, row round 4).
-	if (graphBlock != nullptr && !graphBlock->isHidden())
-		graphBlock->setVisible(false);
-
-	// The magnitude readout always says 0.0 dB and carries no setting, so it
-	// is the group that gives way. It stays while the whole card fits at its
-	// natural width, measured with the readout shown so that hiding it does
-	// not bring it straight back.
-	const int readout = magnitudeBlock->sizeHint().width() + parameterRow->spacing();
-	const int whole = sizeHint().width() + (magnitudeBlock->isHidden() ? readout : 0);
-	const bool show = width() >= whole;
-	if (magnitudeBlock->isHidden() == show)
-		magnitudeBlock->setVisible(show);
 }
 
 bool AllPassCardEditor::firstOrder() const

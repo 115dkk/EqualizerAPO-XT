@@ -28,6 +28,9 @@ QString feedDesignation(const QString& kind)
 		return QStringLiteral("> IR");
 	if (kind == QStringLiteral("multiconvolution"))
 		return QStringLiteral("> IR+");
+	// A Subwoofer Routing feed carries a routing profile.
+	if (kind == QStringLiteral("subwoofer"))
+		return QStringLiteral("> PROFILE");
 	return QStringLiteral("> DEV");
 }
 }

@@ -22,7 +22,21 @@ QRectF SegmentedControlState::segmentRect(double index) const
 {
 	if (labels.isEmpty())
 		return QRectF(rect);
-	const double width = rect.width() / static_cast<double>(labels.size());
+	return cellRect(QRectF(rect), int(labels.size()), axis, index, risingScale);
+}
+
+QRectF SegmentedControlState::cellRect(const QRectF& rect, int count, Qt::Orientation axis, double index,
+	bool risingScale)
+{
+	if (count <= 0)
+		return rect;
+	if (axis == Qt::Vertical)
+	{
+		const double height = rect.height() / static_cast<double>(count);
+		const double row = risingScale ? (count - 1) - index : index;
+		return QRectF(rect.left(), rect.top() + row * height, rect.width(), height);
+	}
+	const double width = rect.width() / static_cast<double>(count);
 	return QRectF(rect.left() + index * width, rect.top(), width, rect.height());
 }
 
@@ -34,7 +48,10 @@ SegmentedControl::SegmentedControl(QWidget* parent)
 	setMouseTracking(true);
 	setAttribute(Qt::WA_Hover, true);
 	setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+	// A skin may lay the options out differently (ISkin::segmentedControlAxis)
+	// and ask for a different size, so a skin switch asks for geometry again.
 	connect(SkinManager::instance(), &SkinManager::skinChanged, this, [this](const SkinTokens&) {
+		updateGeometry();
 		update();
 	});
 }
@@ -74,8 +91,24 @@ int SegmentedControl::currentIndex() const
 	return selected;
 }
 
+void SegmentedControl::setRisingScale(bool risingScaleValue)
+{
+	rising = risingScaleValue;
+	update();
+}
+
+bool SegmentedControl::risingScale() const
+{
+	return rising;
+}
+
 QSize SegmentedControl::sizeHint() const
 {
+	// The skin's part first (ISkin::segmentedControlSizeHint); an invalid
+	// answer keeps the equal padded cells below.
+	const QSize skinHint = SkinManager::instance()->segmentedControlSizeHint(segmentLabels, font());
+	if (skinHint.isValid())
+		return skinHint;
 	const QFontMetricsF metrics(font());
 	double widest = 0.0;
 	for (const QString& label : segmentLabels)
@@ -90,7 +123,13 @@ QSize SegmentedControl::sizeHint() const
 QSize SegmentedControl::minimumSizeHint() const
 {
 	const QFontMetricsF metrics(font());
-	return QSize(24 * qMax(1, segmentLabels.size()), qCeil(metrics.height()) + 10);
+	QSize minimum(24 * qMax(1, segmentLabels.size()), qCeil(metrics.height()) + 10);
+	// A skin's part may be narrower than 24 per option, and it is never
+	// squeezed below its own height.
+	const QSize skinHint = SkinManager::instance()->segmentedControlSizeHint(segmentLabels, font());
+	if (skinHint.isValid())
+		minimum = QSize(qMin(minimum.width(), skinHint.width()), skinHint.height());
+	return minimum;
 }
 
 void SegmentedControl::setPreviewState(int selectedIndex, int hoveredIndex)
@@ -116,9 +155,16 @@ int SegmentedControl::indexAt(const QPointF& position) const
 		return -1;
 	if (!rect().contains(position.toPoint()))
 		return -1;
-	const double cell = width() / static_cast<double>(segmentLabels.size());
-	const int index = static_cast<int>(position.x() / cell);
-	return qBound(0, index, segmentLabels.size() - 1);
+	// The cells as the skin lays them out: the same tiling and the same axis
+	// the paint state carries, so a click answers the option drawn under it.
+	const int count = int(segmentLabels.size());
+	const Qt::Orientation axis = SkinManager::instance()->segmentedControlAxis(count);
+	for (int i = 0; i < count; i++)
+	{
+		if (SegmentedControlState::cellRect(QRectF(rect()), count, axis, i, rising).contains(position))
+			return i;
+	}
+	return count - 1;
 }
 
 void SegmentedControl::animateSelectionTo(int index)
@@ -163,6 +209,8 @@ void SegmentedControl::paintEvent(QPaintEvent*)
 	SegmentedControlState state;
 	state.rect = rect();
 	state.labels = segmentLabels;
+	state.axis = SkinManager::instance()->segmentedControlAxis(int(segmentLabels.size()));
+	state.risingScale = rising;
 	state.selectedIndex = selected;
 	state.selectionPosition = selectionPosition;
 	state.hoveredIndex = hovered;
@@ -224,15 +272,24 @@ void SegmentedControl::leaveEvent(QEvent* event)
 
 void SegmentedControl::keyPressEvent(QKeyEvent* event)
 {
+	// Up and Down move the selection the way the key points. On a rising scale
+	// that the skin stacks, the higher index is on top, so Up raises the index;
+	// everywhere else Up is the previous option, as Left is.
+	const bool upRaises = rising
+		&& SkinManager::instance()->segmentedControlAxis(int(segmentLabels.size())) == Qt::Vertical;
 	switch (event->key())
 	{
 	case Qt::Key_Left:
-	case Qt::Key_Up:
 		setCurrentIndex(selected - 1);
 		return;
+	case Qt::Key_Up:
+		setCurrentIndex(upRaises ? selected + 1 : selected - 1);
+		return;
 	case Qt::Key_Right:
-	case Qt::Key_Down:
 		setCurrentIndex(selected + 1);
+		return;
+	case Qt::Key_Down:
+		setCurrentIndex(upRaises ? selected - 1 : selected + 1);
 		return;
 	case Qt::Key_Home:
 		setCurrentIndex(0);

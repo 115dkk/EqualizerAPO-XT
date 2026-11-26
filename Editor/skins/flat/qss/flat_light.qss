@@ -404,9 +404,9 @@ QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
 QWidget#AllPassCardEditor, QWidget#AllPassCardParamBlock, QWidget#AllPassCardValueBlock,
-QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock, QWidget#AllPassCardMagnitudeBlock,
+QWidget#AllPassCardOrderBlock,
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
-QLabel#AllPassCardCaption, QLabel#AllPassCardMagnitudeValue,
+QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#AllPassCardCaption,
@@ -415,16 +415,6 @@ QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @EDGE@; border-radius: 6px;
     padding: 5px 10px;
-}
-/* The all-pass card states its fixed magnitude as a reading. It takes the
-   value's weight but none of the field's box: there is nothing to type into
-   it, and a box would say there is. */
-QLabel#AllPassCardMagnitudeValue {
-    color: @TEXT@;
-    font-weight: 600;
-    background: transparent;
-    border: 0;
-    padding: 6px 0;
 }
 
 QLineEdit#EditableValueEditor {
@@ -441,6 +431,25 @@ QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
 QWidget#VSTCardEditor { background: transparent; border: 0; }
 QLineEdit#RefPathEdit { background: @CARD@; border: 1px solid @EDGE@; border-radius: 6px; padding: 5px 10px; }
 QLineEdit#RefPathEdit:focus { border: 2px solid @FOCUS@; padding: 4px 9px; }
+/* A reference card's worded actions that come as tool buttons (Subwoofer
+   Routing's "Open editor" and "Preset") are ordinary buttons, like the VST
+   card's "Open panel" (the generic QPushButton rule), at the same size. */
+QToolButton#FilterCardIconButton[refActionRole="openPanel"],
+QToolButton#FilterCardIconButton[refActionRole="preset"] {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER_STRONG@; border-radius: 6px;
+    padding: 6px 14px; min-height: 20px; font-weight: 400;
+}
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:hover,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:pressed,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:pressed { background: @CARD_SELECTED@; border-color: @EDGE@; }
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:focus,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:focus { border: 2px solid @FOCUS@; padding: 5px 13px; }
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:disabled,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:disabled {
+    color: rgba(@MUTED_RGB@, 0.55); background: transparent; border: 1px solid @BORDER_STRONG@;
+}
 
 /* VST row extras owned by the host. "Open panel" is an ordinary button (the
    generic QPushButton rule); the embedded editor rests in a bordered frame,
@@ -763,58 +772,6 @@ QToolButton#VelvetAdvancedToggle {
 }
 QToolButton#VelvetAdvancedToggle:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
 QToolButton#VelvetAdvancedToggle:checked { background: @CARD_SELECTED@; border-color: @EDGE@; }
-
-/* Subwoofer routing summary: one headline sentence, one caption under it,
-   the facts as tags, and ordinary buttons. */
-QLabel#FlatBassHeadline {
-    color: @TEXT@;
-    background: transparent;
-    border: 0;
-    font-size: 11.5pt;
-    font-weight: 600;
-}
-QLabel#FlatBassHeadline:disabled { color: @MUTED@; }
-
-QLabel#FlatBassCaption {
-    color: @MUTED@;
-    background: transparent;
-    border: 0;
-    font-size: 10pt;
-}
-QLabel#FlatBassCaption[severity="warning"] { color: @WARNING@; }
-QLabel#FlatBassCaption[severity="danger"] { color: @DANGER@; }
-QLabel#FlatBassCaption:disabled { color: @MUTED@; }
-
-QLabel#FlatBassFactPill {
-    color: @TEXT@;
-    background: transparent;
-    border: 1px solid @BORDER_STRONG@;
-    border-radius: 10px;
-    padding: 1px 9px;
-    min-height: 18px;
-    font-size: 10pt;
-}
-QLabel#FlatBassFactPill:disabled { color: @MUTED@; }
-
-QToolButton#FlatBassActionButton {
-    background: @CARD@;
-    color: @TEXT@;
-    border: 1px solid @BORDER_STRONG@;
-    border-radius: 6px;
-    padding: 0 12px;
-    min-width: 28px;
-    min-height: 30px;
-}
-QToolButton#FlatBassActionButton:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
-QToolButton#FlatBassActionButton:pressed,
-QToolButton#FlatBassActionButton:checked { background: @CARD_SELECTED@; border-color: @EDGE@; }
-QToolButton#FlatBassActionButton:focus { border-color: @FOCUS@; }
-QToolButton#FlatBassActionButton:disabled { color: rgba(@MUTED_RGB@, 0.55); border-color: @BORDER@; }
-QToolButton#FlatBassActionButton::menu-indicator {
-    image: none;
-    width: 0;
-    height: 0;
-}
 
 /* A checked box carries a real check glyph. The stylesheet engine replaces
    the native indicator drawing wholesale, so without an image the checked

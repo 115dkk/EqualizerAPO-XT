@@ -214,8 +214,15 @@ jobs:
     # maintainer set a version by hand, so build it. On every other event the
     # bump job is skipped by its own `if` and we always build. Full-matrix
     # coverage for a no-bump push stays available via workflow_dispatch.
+    #
+    # The status function is !cancelled(), not always(): a job whose condition
+    # holds always() is not cancelled when its run is. A push to a pull request
+    # cancels the run of the previous commit (the concurrency group above), and
+    # with always() that run went on through the build and every gate while the
+    # new commit's run waited behind it. !cancelled() overrides a skipped
+    # `needs` in the same way and lets a cancelled run stop.
     if: |
-      always() && needs.prepare-matrix.result == 'success' && (
+      !cancelled() && needs.prepare-matrix.result == 'success' && (
         github.event_name != 'push' ||
         github.ref != 'refs/heads/main' ||
         needs.version-bump.result == 'skipped' ||
@@ -888,12 +895,13 @@ jobs:
     needs: [build, prepare-matrix]
     runs-on: ubuntu-24.04
     # The PR pipeline only builds AVX2, so there is nothing to compare
-    # across variants. The always() guard matters on workflow_dispatch runs:
+    # across variants. The !cancelled() guard matters on workflow_dispatch runs:
     # version-bump is skipped there, and GitHub propagates a skip through the
     # needs chain unless the dependent job's condition overrides it - without
-    # always() the dispatch validation path silently lost this comparison
-    # (first seen on the run validating the arm64 msbuild fix).
-    if: always() && needs.build.result == 'success' && github.event_name != 'pull_request'
+    # a status function the dispatch validation path silently lost this
+    # comparison (first seen on the run validating the arm64 msbuild fix).
+    # It is not always(), for the reason given at the build job.
+    if: ${{ !cancelled() && needs.build.result == 'success' && github.event_name != 'pull_request' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
@@ -937,7 +945,7 @@ jobs:
     # instrumented rounds go missing in silence.
     needs: [build, prepare-matrix, memcheck]
     runs-on: windows-2022
-    if: always() && needs.build.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     timeout-minutes: 30
     steps:
     - name: Checkout repository
@@ -1003,7 +1011,7 @@ jobs:
   panel-input-gate:
     needs: [build, prepare-matrix]
     runs-on: windows-2025-vs2026
-    if: always() && needs.build.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     timeout-minutes: 75
     strategy:
       fail-fast: false
@@ -1107,7 +1115,7 @@ jobs:
   installer-gate:
     needs: [build, prepare-matrix]
     runs-on: windows-2025-vs2026
-    if: always() && needs.build.result == 'success'
+    if: ${{ !cancelled() && needs.build.result == 'success' }}
     timeout-minutes: 40
     steps:
     - name: Checkout repository

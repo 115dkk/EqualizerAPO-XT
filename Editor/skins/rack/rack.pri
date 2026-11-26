@@ -13,9 +13,6 @@ SOURCES += \
 	$$PWD/RackFileIcons.cpp \
 	$$PWD/picker/RackFilterPicker.cpp \
 	$$PWD/cards/RackReferenceCardView.cpp \
-	$$PWD/cards/RackSubwooferRoutingCardView.cpp \
-	$$PWD/cards/RackSubwooferRoutingInstruments.cpp \
-	$$PWD/cards/RackSubwooferRoutingDetail.cpp \
 	$$PWD/routing/HardwarePatchbayRoutingRenderer.cpp
 
 HEADERS += \
@@ -25,6 +22,4 @@ HEADERS += \
 	$$PWD/RackPalette.h \
 	$$PWD/picker/RackFilterPicker.h \
 	$$PWD/cards/RackReferenceCardView.h \
-	$$PWD/cards/RackSubwooferRoutingCardView.h \
-	$$PWD/cards/RackSubwooferRoutingDetail.h \
 	$$PWD/routing/HardwarePatchbayRoutingRenderer.h

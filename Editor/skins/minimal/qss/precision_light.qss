@@ -462,9 +462,9 @@ QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
 QWidget#VSTCardEditor, QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
 QWidget#AllPassCardEditor, QWidget#AllPassCardParamBlock, QWidget#AllPassCardValueBlock,
-QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock, QWidget#AllPassCardMagnitudeBlock,
+QWidget#AllPassCardOrderBlock,
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
-QLabel#AllPassCardCaption, QLabel#AllPassCardMagnitudeValue,
+QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 
 /* ===== Graphic EQ card =====
@@ -530,17 +530,6 @@ QLabel#EditableValue {
     border: 1px solid @BORDER@; border-radius: 0;
     padding: 4px 8px;
     font-family: @MONO_STACK@; font-weight: 700;
-}
-/* The all-pass card states its fixed magnitude as a reading. It takes this
-   skin's value typography but none of the field chrome: there is nothing to
-   type into it, and a box would say there is. */
-QLabel#AllPassCardMagnitudeValue {
-    color: @TEXT@;
-    font-family: @MONO_STACK@;
-    font-weight: 700;
-    background: transparent;
-    border: 0;
-    padding: 6px 0;
 }
 
 QLineEdit#EditableValueEditor {
@@ -970,92 +959,6 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid @BORDER@;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
-
-/* ===== Bass-management card: compact terminal readout ===== */
-QWidget#MinimalSubwooferRoutingCardView,
-QWidget#MinimalBassActionRow {
-    background: transparent;
-    border: 0;
-}
-
-QLabel#MinimalBassValidity,
-QLabel#MinimalBassProfile,
-QLabel#MinimalBassCaption,
-QLabel#MinimalBassValue,
-QLabel#MinimalBassDiagnostic {
-    background: transparent;
-    border: 0;
-    font-family: @MONO_STACK@;
-    font-size: 11pt;
-}
-
-QLabel#MinimalBassValidity {
-    color: @TEXT@;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-QLabel#MinimalBassValidity[severity="valid"] { color: @TEXT@; }
-QLabel#MinimalBassValidity[severity="warning"] { color: @WARNING@; }
-QLabel#MinimalBassValidity[severity="error"] { color: @DANGER@; }
-
-QLabel#MinimalBassProfile {
-    color: @MUTED@;
-}
-QLabel#MinimalBassProfile[profileState="missing"] {
-    color: @DANGER@;
-    font-weight: 700;
-}
-
-QLabel#MinimalBassCaption {
-    color: @MUTED@;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-QLabel#MinimalBassValue {
-    color: @TEXT@;
-}
-QLabel#MinimalBassDiagnostic {
-    color: @MUTED@;
-    font-weight: 700;
-}
-QLabel#MinimalBassDiagnostic[severity="warning"] { color: @WARNING@; }
-QLabel#MinimalBassDiagnostic[severity="error"] { color: @DANGER@; }
-
-QToolButton#MinimalBassActionButton {
-    background: transparent;
-    color: @MUTED@;
-    border: 1px solid transparent;
-    border-bottom: 1px solid @BORDER@;
-    border-radius: 0;
-    min-width: 40px;
-    min-height: 40px;
-    padding: 0 8px;
-    font-family: @MONO_STACK@;
-    font-size: 11pt;
-    font-weight: 700;
-    letter-spacing: 1px;
-}
-QToolButton#MinimalBassActionButton:hover {
-    background: @CARD@;
-    color: @TEXT@;
-    border: 1px solid transparent;
-    border-bottom: 1px solid @BORDER@;
-}
-QToolButton#MinimalBassActionButton:pressed {
-    background: @TEXT@;
-    color: @SURFACE@;
-    border: 1px solid transparent;
-    border-bottom: 1px solid @TEXT@;
-}
-QToolButton#MinimalBassActionButton:focus {
-    border: 1px solid @ACCENT@;
-}
-QToolButton#MinimalBassActionButton:disabled {
-    background: transparent;
-    color: @MUTED@;
-    border: 1px solid transparent;
-    border-bottom: 1px solid @BORDER@;
-}
 
 
 /* Bass-management dialog sections: the terminal separates sections with a

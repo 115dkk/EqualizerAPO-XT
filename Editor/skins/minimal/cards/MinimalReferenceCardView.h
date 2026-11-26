@@ -38,8 +38,14 @@ public:
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
+	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+	void restateCommandFloors();
+
+	// The reference kind, kept for the command words: placeActionButton runs
+	// before the first setState, so the state's kind is not there yet.
+	QString cardKind;
 	QHBoxLayout* lineLayout = nullptr;
 	ElidedLabel* nameLabel = nullptr;
 	QLabel* missingToken = nullptr;

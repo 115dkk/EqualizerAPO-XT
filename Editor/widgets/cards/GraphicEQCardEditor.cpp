@@ -21,6 +21,7 @@
 #include "Editor/FilterTable.h"
 #include "Editor/SkinManager.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/ButtonName.h"
 #include "Editor/widgets/FrequencyPlotScene.h"
 #include "Editor/widgets/GraphicEQPlotWidget.h"
 #include "Editor/widgets/ValueScrubBox.h"
@@ -95,6 +96,8 @@ GraphicEQCardEditor::GraphicEQCardEditor(const vector<FilterNode>& nodes, const 
 		button->setObjectName(QStringLiteral("GraphicEQActionButton"));
 		button->setAutoRaise(true);
 		button->setToolTip(action.toolTip);
+		// Icon only: the tooltip is the button's name for a screen reader.
+		nameButtonByToolTip(button);
 		button->setIconSize(QSize(16, 16));
 		button->setProperty("modernIcon", QString::fromLatin1(action.icon));
 		connect(button, SIGNAL(clicked()), this, action.slot);

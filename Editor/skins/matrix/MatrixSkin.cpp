@@ -8,7 +8,6 @@
 
 #include "Editor/skins/Skins.h"
 #include "Editor/skins/matrix/cards/MatrixReferenceCardView.h"
-#include "Editor/skins/matrix/cards/MatrixSubwooferRoutingCardView.h"
 #include "Editor/skins/matrix/picker/MatrixFilterPicker.h"
 #include "Editor/skins/matrix/routing/CrosspointMatrixRoutingRenderer.h"
 
@@ -32,12 +31,6 @@ ReferenceCardView* MatrixSkin::createReferenceCardView(const QString& kind, QWid
 {
 	Q_UNUSED(tokens);
 	return new MatrixReferenceCardView(kind, parent);
-}
-
-SubwooferRoutingCardView* MatrixSkin::createSubwooferRoutingCardView(QWidget* parent,
-	const SkinTokens& tokens) const
-{
-	return new MatrixSubwooferRoutingCardView(tokens, parent);
 }
 
 ISkin* matrixSkin()

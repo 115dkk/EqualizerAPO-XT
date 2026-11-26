@@ -264,9 +264,12 @@ SemiBold 글자이고, 줄은 픽토그램, 굵은 이름, 흐린 설명의 두 
 
 ### 서브우퍼 라우팅 카드
 
-`FlatSubwooferRoutingCardView`. 상태를 문장으로 되읽는다. 굵은 한 문장('80 Hz
-아래의 저음은 서브우퍼에서 재생됩니다.'), 그 아래의 흐린 설명, 사실을 적은
-이름표 몇 개다. 다른 스킨에 있는 HP/LP 계산식은 두지 않는다(규칙 1).
+참조 카드(`FlatReferenceCardView`)를 쓴다. 프로필 이름 한 줄과 그 아래의 사실
+이름표(`4.1`, `80 Hz`, `LFE +10.0 dB`, `Trim -14.5 dB`), 낱말이 적힌 테두리
+단추 둘(Open editor, Preset)이다. 연결 프로필을 찾지 못하면 적색 점과 검은
+'Locate...' 알약으로 알린다(Include 카드와 같다). 상태를 문장으로 되읽던 예전
+뷰는 지웠다. 공유 계약은 README의 '서브우퍼 라우팅 카드의 공유 계약'에 있다.
+(판례: 2026-11-26 사용자 지시)
 
 ### 창 chrome, 도구 모음, 메뉴
 
@@ -300,9 +303,8 @@ SemiBold 글자이고, 줄은 픽토그램, 굵은 이름, 흐린 설명의 두 
   있는 상자, 꺾쇠, 상태 점, 글꼴).
 - QSS: `Editor/skins/flat/qss/flat_dark.qss`, `flat_light.qss`
 - 픽커: `Editor/skins/flat/picker/FlatFilterPicker.{h,cpp}`
-- 파일 참조 행: `Editor/skins/flat/cards/FlatReferenceCardView.{h,cpp}`
+- 파일 참조 행과 서브우퍼 라우팅: `Editor/skins/flat/cards/FlatReferenceCardView.{h,cpp}`
 - Copy: `Editor/skins/flat/routing/BlockChipRoutingRenderer.{h,cpp}`
-- 서브우퍼 라우팅: `Editor/skins/flat/cards/FlatSubwooferRoutingCardView.{h,cpp}`
 - Device Selector와 설치 확인 화면: `DeviceSelector/skins/FlatDeviceSkin.cpp`
 
 ## 새 요소를 이 스킨답게 만드는 법

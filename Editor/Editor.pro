@@ -141,6 +141,7 @@ SOURCES += main.cpp\
 	helpers/FileDialogShellMenu.cpp \
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
+	helpers/PluginUiThreadBridge.cpp \
 	helpers/PluginLoadQueue.cpp \
 	helpers/BackgroundProbe.cpp \
 	helpers/SpinBoxEditFieldFix.cpp \
@@ -282,6 +283,7 @@ SOURCES += main.cpp\
 	../filters/VSTChannelPlan.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
+	../vst/PluginUiThread.cpp \
 	../vst/VSTPluginInstance.cpp \
 	../vst/VST2Instance.cpp \
 	../vst/VST3Instance.cpp \
@@ -330,7 +332,7 @@ SOURCES += main.cpp\
 	widgets/subwooferrouting/SubwooferRoutingUiState.cpp \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.cpp \
 	widgets/routing/SubwooferRoutingRoutingAdapter.cpp \
-	widgets/cards/SubwooferRoutingCardView.cpp \
+	widgets/cards/SubwooferRoutingCardState.cpp \
 	widgets/cards/MultiConvolutionCardEditor.cpp \
 	widgets/cards/CommentCardEditor.cpp \
 	widgets/cards/DeviceCardEditor.cpp \
@@ -461,6 +463,7 @@ HEADERS  += \
 	helpers/PanelFeedEngine.h \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
+	helpers/PluginUiThreadBridge.h \
 	helpers/PluginLoadQueue.h \
 	helpers/BackgroundProbe.h \
 	helpers/TroubleshootingNotices.h \
@@ -661,6 +664,7 @@ HEADERS  += \
 	../filters/VSTChannelPlan.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
+	../vst/PluginUiThread.h \
 	../vst/VSTPluginInstance.h \
 	../vst/VST3Instance.h \
 	../vst/VST3HostContext.h \
@@ -703,6 +707,7 @@ HEADERS  += \
 	widgets/GraphicEQPlotWidget.h \
 	widgets/FlowLayout.h \
 	widgets/CommandRowFrame.h \
+	widgets/ButtonName.h \
 	widgets/StyleRefresh.h \
 	widgets/SkinComboBox.h \
 	widgets/cards/ChannelCardEditor.h \
@@ -716,7 +721,7 @@ HEADERS  += \
 	widgets/subwooferrouting/SubwooferRoutingUiState.h \
 	widgets/subwooferrouting/SubwooferRoutingUiModel.h \
 	widgets/routing/SubwooferRoutingRoutingAdapter.h \
-	widgets/cards/SubwooferRoutingCardView.h \
+	widgets/cards/SubwooferRoutingCardState.h \
 	widgets/cards/MultiConvolutionCardEditor.h \
 	widgets/cards/CommentCardEditor.h \
 	widgets/cards/DeviceCardEditor.h \
@@ -797,6 +802,7 @@ HEADERS  += \
 	import/ConfigDependencyScanner.h \
 	import/ImportDialog.h \
 	import/ImportExecutor.h \
+	import/ImportFileSystem.h \
 	import/ImportManifest.h \
 	import/CallerProfileCheck.h \
 	../services/security/ConfigDirectoryHandles.h \

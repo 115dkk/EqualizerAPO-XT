@@ -14,6 +14,109 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.85.2 — 2026-11-26
+
+- **Editor: opening a plug-in's panel could freeze the Editor for good.**
+  It happened with plug-ins built on the JUCE framework. Such a plug-in can
+  only show its panel from the thread that first set it up, and the Editor's
+  response analysis could get there before the plug-in's card did; the panel
+  then waited for a thread that never answers. The Editor now sets up and
+  tears down every plug-in instance on the thread its windows live on.
+  ([#544](https://github.com/115dkk/EqualizerAPO-XT/pull/544))
+
+## v2.85.1 — 2026-11-26
+
+- **Editor: importing a VST3 plug-in folder (bundle) reported a missing file
+  and left the Import button disabled.** Import now copies the whole bundle,
+  including its resources. The Korean and Chinese import summaries also no
+  longer display the total size as a file count.
+  ([#542](https://github.com/115dkk/EqualizerAPO-XT/pull/542))
+
+## v2.85.0 — 2026-11-26
+
+- **Hardware Rack: a choice between two is a toggle switch.** The ORDER switch
+  of the all-pass card, the Direction switch of the Hilbert card and the Mode
+  switch of the Velvet card were a recessed bank of two machined keys, each
+  with its own lamp, over a groove with a slide: a lot of metal for a choice
+  between two. They are now one upright toggle switch with the two names
+  printed beside it, one above the other. The lever's tip stands level with
+  the chosen name, so it is plain which one is set, and clicking a name
+  selects it. On the Hilbert card +90° is on top. The switch that picks among
+  three readings in the analysis panel keeps its bank of keys.
+  ([#538](https://github.com/115dkk/EqualizerAPO-XT/pull/538))
+
+## v2.84.3 — 2026-11-26
+
+- **Editor: the Hilbert card no longer has a GRAPH switch.** Like the
+  all-pass card's, it did not change the filter: it asked the analysis panel
+  to show phase or group delay, and the panel has that switch itself. In every
+  skin the card keeps its Direction switch, its readouts and its channel lists.
+  ([#540](https://github.com/115dkk/EqualizerAPO-XT/pull/540))
+
+## v2.84.2 — 2026-11-26
+
+- **Editor: rebuilding the filter list is about a quarter faster, and the
+  Editor's log no longer gets a line for every filter.** Each time the list
+  was rebuilt (a skin switch, an undo, opening a file) every filter line was
+  parsed again on the window's own thread to decide which card it gets, and
+  each parse appended a trace line to `Editor.log`, opening and closing the
+  file for it. On a 240-line configuration one rebuild took 2.5 s and now
+  takes 1.9 s (medians on one development machine). The engine still writes
+  the same trace lines when it builds its filters.
+  ([#541](https://github.com/115dkk/EqualizerAPO-XT/pull/541))
+
+## v2.84.1 — 2026-11-26
+
+- **Editor: the all-pass card no longer shows a MAGNITUDE figure or a GRAPH
+  switch.** Under MAGNITUDE the card printed `0.0 dB`, which said only that an
+  all-pass does not change the level, and the card's tooltip says that. The
+  Phase / Group delay switch turned the analysis graph to that reading, and
+  the analysis panel has the same switch. Both are gone in every skin, so the
+  card is the two knobs and the ORDER switch. In the Hardware Rack skin the
+  figure had also been lit green on the bare panel, which was a glaring green
+  on the cream finish.
+  ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
+
+
+## v2.84.0 — 2026-11-26
+
+- **Editor: the Subwoofer Routing card is one line, like the Include,
+  Convolution and VST cards.** The card had a layout of its own in every skin:
+  two very large buttons with icons nobody could read (in Stock Flat and Signal
+  Matrix the buttons were the icons alone), a row of instruments, and
+  placeholder values when the profile could not be loaded. It now uses the
+  reference card the other three use. It shows the profile's name, four facts
+  about what the line does to the sound (speaker layout, crossover frequency,
+  the LFE channel's gain, the headroom trim) and two worded buttons, **Open
+  editor** and **Preset**. The card is 15 to 151 px lower, depending on the
+  skin. A line that links a profile file also has a folder button to pick the
+  file, and when that file is missing the button becomes **Locate...**; until
+  now a broken link could not be repaired on the card, only replaced by a
+  preset. While there is no profile to edit, **Open editor** is switched off
+  and its tooltip says why (it used to do nothing when clicked). The card's
+  words are translated into Korean, German, French and Chinese for the first
+  time.
+  ([#539](https://github.com/115dkk/EqualizerAPO-XT/pull/539))
+
+## v2.83.1 — 2026-11-26
+
+- **Editor: buttons that show only an icon or a sign have a name for screen
+  readers.** Qt gives a screen reader a button's text as its name. A card's
+  fold arrow was therefore named `v` or `>` and its add button `+`, and the
+  power switch, the raw command button, the file buttons of the Include,
+  Convolution and VST cards, the five tool buttons of the GraphicEQ card, the
+  title bar's maximize button and the close button of a notice had no name
+  at all. The fold arrow of the channel mapping section added in v2.83.0 had
+  the same gap. Each of these buttons now has the sentence of its tooltip as
+  its name (for example **Collapse channel mapping**), in the language the
+  Editor runs in. Nothing on screen changes. This was checked through Qt's
+  accessibility interface, not by listening to a screen reader. Buttons that
+  have no tooltip (the title bar's minimize and close buttons, the `...` menu
+  of the VST card) and the buttons of the Legacy rows view are as they were.
+  ([#535](https://github.com/115dkk/EqualizerAPO-XT/pull/535))
+
+## v2.83.0 — 2026-11-26
+
 - **Editor: the channel mapping of a Send or MultiConvolution card folds down
   to one line.** These two cards carry a routing board under their own
   controls, which made them the tallest cards of most configurations. A fold
@@ -36,6 +139,24 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   device was also a scroll bar's height taller than its content. Both came
   from the same missed size update and are fixed together.
   ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533))
+
+## v2.82.1 — 2026-11-26
+
+- **Hardware Rack: every button, chip and field is outlined on all four
+  sides.** On the light finish the top edge of most controls (toolbar buttons,
+  selectors, device and channel chips, check boxes) had the colour of the
+  panel, so they looked cut off at the top, and text fields looked cut off at
+  the bottom. A control under the pointer, or latched, was lit on three sides
+  only. This had been fixed for the LOCATE cap alone. The whole sheet has now
+  been checked, and 84 rules (54 on the light finish, 30 on the dark one) were
+  changed so that an edge has one colour all the way round. A raised cap and a
+  latched one still differ by the direction of the face's gradient and by the
+  label's 1 px shift. On the light finish a capture well that is not latched
+  has a darker outline than a playback cap, and lights up like the others
+  when it is latched. The lamp line under a latched channel key and the bar on
+  a latched stage key are lamps, not outlines, and stay on one side. The
+  Device Selector uses the same sheet and changes with it.
+  ([#534](https://github.com/115dkk/EqualizerAPO-XT/pull/534))
 
 ## v2.82.0 — 2026-11-25
 

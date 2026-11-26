@@ -23,7 +23,6 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/widgets/FilterPickerView.h"
 #include "Editor/widgets/cards/DefaultReferenceCardView.h"
-#include "Editor/widgets/cards/SubwooferRoutingCardView.h"
 #include "Editor/widgets/cards/VSTSlotFillRail.h"
 #include "shared/SkinPaint.h"
 #include "SkinThemeData.h"
@@ -263,6 +262,19 @@ void ISkin::paintAnalysisGraph(QPainter& painter, const AnalysisGraphState& stat
 	}
 }
 
+Qt::Orientation ISkin::segmentedControlAxis(int optionCount) const
+{
+	Q_UNUSED(optionCount);
+	return Qt::Horizontal;
+}
+
+QSize ISkin::segmentedControlSizeHint(const QStringList& labels, const QFont& font) const
+{
+	Q_UNUSED(labels);
+	Q_UNUSED(font);
+	return QSize();
+}
+
 void ISkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const
 {
 	// Neutral default: a token-coloured pill, the chosen cell filled in accent,
@@ -467,12 +479,6 @@ ReferenceCardView* ISkin::createReferenceCardView(const QString& kind, QWidget* 
 	// skins that split their answer per kind branch on it.
 	Q_UNUSED(kind);
 	return new DefaultReferenceCardView(tokens, parent);
-}
-
-SubwooferRoutingCardView* ISkin::createSubwooferRoutingCardView(QWidget* parent,
-	const SkinTokens& tokens) const
-{
-	return new DefaultSubwooferRoutingCardView(tokens, parent);
 }
 
 void ISkin::paintTitleBarChrome(QPainter&, const QRect&, const SkinTokens&) const

@@ -202,7 +202,7 @@ private:
 
 	Row row;
 	std::shared_ptr<VSTPluginLibrary> pluginLibrary;
-	std::unique_ptr<VSTPluginInstance> effect;
+	VSTPluginInstancePtr effect;
 	std::wstring currentChunkData;
 	std::unordered_map<std::wstring, float> currentParamMap;
 	VSTPluginInstance::WritableParameterValues committedWritableParameters;

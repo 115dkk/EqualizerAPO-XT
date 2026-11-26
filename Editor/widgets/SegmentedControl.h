@@ -34,6 +34,11 @@ public:
 	const QStringList& labels() const;
 	void setCurrentIndex(int index);
 	int currentIndex() const;
+	// The options are a scale that rises with the index (-90 then +90). Where a
+	// skin stacks the options, the higher one goes on top, as up means more on a
+	// panel; side by side they stay in index order, low on the left.
+	void setRisingScale(bool rising);
+	bool risingScale() const;
 
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
@@ -73,5 +78,6 @@ private:
 	int pressed = -1;
 	double selectionPosition = 0.0;
 	bool previewFocused = false;
+	bool rising = false;
 	QVariantAnimation* selectionAnimation = nullptr;
 };
