@@ -441,6 +441,25 @@ QWidget#ConvolutionCardEditor, QWidget#MultiConvolutionCardEditor,
 QWidget#VSTCardEditor { background: transparent; border: 0; }
 QLineEdit#RefPathEdit { background: @CARD@; border: 1px solid @EDGE@; border-radius: 6px; padding: 5px 10px; }
 QLineEdit#RefPathEdit:focus { border: 2px solid @FOCUS@; padding: 4px 9px; }
+/* A reference card's worded actions that come as tool buttons (Subwoofer
+   Routing's "Open editor" and "Preset") are ordinary buttons, like the VST
+   card's "Open panel" (the generic QPushButton rule), at the same size. */
+QToolButton#FilterCardIconButton[refActionRole="openPanel"],
+QToolButton#FilterCardIconButton[refActionRole="preset"] {
+    background: @CARD@; color: @TEXT@;
+    border: 1px solid @BORDER_STRONG@; border-radius: 6px;
+    padding: 6px 14px; min-height: 20px; font-weight: 400;
+}
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:hover,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:pressed,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:pressed { background: @CARD_SELECTED@; border-color: @EDGE@; }
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:focus,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:focus { border: 2px solid @FOCUS@; padding: 5px 13px; }
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:disabled,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:disabled {
+    color: rgba(@MUTED_RGB@, 0.55); background: transparent; border: 1px solid @BORDER_STRONG@;
+}
 
 /* VST row extras owned by the host. "Open panel" is an ordinary button (the
    generic QPushButton rule); the embedded editor rests in a bordered frame,

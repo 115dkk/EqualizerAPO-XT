@@ -8,6 +8,8 @@
 	A reference card is the body of a command row whose subject is an external
 	file the configuration points at: Include (a config file), Convolution /
 	MultiConvolution (an impulse response) and VSTPlugin (a plugin library).
+	SubwooferRouting joins them: its profile, linked as a file or embedded in
+	the line, is edited in a window of its own the way a plugin's panel is.
 	The reference is presented as a *named entity* - a primary name, the
 	location as secondary metadata, the broken state as a visual transition of
 	the item itself, and a recovery affordance (Locate) right at the error -
@@ -38,10 +40,10 @@ class QStackedLayout;
 // changes; views render it and never mutate it.
 struct ReferenceCardState
 {
-	// "include", "convolution", "multiconvolution" or "vst".
+	// "include", "convolution", "multiconvolution", "vst" or "subwoofer".
 	QString kind;
 	// Primary label: the plugin display name (VST, once the library loaded) or
-	// the target file name.
+	// the target file name (for "subwoofer", the profile's name).
 	QString name;
 	// Secondary metadata: where the reference points, in native separators.
 	// For relative references this is the as-written parent (empty when the
@@ -118,7 +120,12 @@ public:
 		// Auxiliary menu (VST embed toggle).
 		Options,
 		// Switch the card into inline path editing.
-		EditPath
+		EditPath,
+		// A menu of ready-made targets (Subwoofer Routing's built-in presets).
+		// It stays available while the reference is broken, because choosing
+		// one is the repair; views place it right after OpenPanel and dress it
+		// like their other worded actions.
+		Preset
 	};
 
 	explicit ReferenceCardView(QWidget* parent = nullptr);
