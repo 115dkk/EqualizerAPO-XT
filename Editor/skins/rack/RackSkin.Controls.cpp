@@ -435,7 +435,7 @@ namespace
 // asks for: the part in a column of its own, 6px of plate, then the two
 // legends stacked left-aligned, one line pitch apart, the pair centred in
 // the control's height and the whole assembly centred in its width.
-constexpr qreal rackTogglePartWidth = 14.0;
+constexpr qreal rackTogglePartWidth = 16.0;
 constexpr qreal rackToggleGap = 6.0;
 constexpr qreal rackToggleMargin = 2.0;
 
@@ -633,12 +633,22 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	// judged at 100 %: its 13px nut with a foreshortened bat read as a blob,
 	// and with the lower word chosen the ball and the nut merged, while the
 	// cutout's tip stands plainly at the height of the chosen word.
-	const qreal slotWidth = 9.0;
+	// Proportions from the photo: the cutout about twice the lettering's cap
+	// height (about 7px here), the ball tip about 1.3 times it. The cutout is
+	// 13px wide and 23px tall, its bezel 16x26, and the 9px tip rests on the
+	// two line centres 13px apart, so the two rests never overlap. The odd
+	// widths are centred on a whole pixel column (partCenterX), which puts
+	// every outline on a half pixel.
+	const qreal slotWidth = 13.0;
 	const QRectF slot(partCenterX - slotWidth / 2.0, layout.columnTop + 1.5, slotWidth,
 		layout.lineHeight * 2.0 - 3.0);
 	const QRectF bezel = slot.adjusted(-1.5, -1.5, 1.5, 1.5);
+	// The bezel ring is a plate tone lifted toward the ink, so on the dark
+	// finish the resting part still shows its track: it is what says there are
+	// two places. A neutral light, never bronze or amber, which stay for the
+	// pointer and the focus.
 	painter.setPen(Qt::NoPen);
-	painter.setBrush(dark ? mixColor(panel, bodyInk, 0.22) : panel.darker(108));
+	painter.setBrush(dark ? mixColor(panel, bodyInk, 0.34) : panel.darker(108));
 	painter.drawRoundedRect(bezel, bezel.width() / 2.0, bezel.width() / 2.0);
 	QPainterPath slotPath;
 	slotPath.addRoundedRect(slot, slot.width() / 2.0, slot.width() / 2.0);
@@ -650,6 +660,13 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 		overhang.setColorAt(0.0, withAlpha(shadowInk, dark ? 170 : 110));
 		overhang.setColorAt(1.0, withAlpha(shadowInk, 0));
 		painter.fillRect(QRectF(slot.left(), slot.top(), slot.width(), 4.0), overhang);
+		// The work light caught on the lower lip: the cutout's own edge,
+		// shifted a pixel up, lit along its lower part.
+		painter.setClipRect(QRectF(slot.left(), slot.center().y() + 3.0, slot.width(), slot.height()),
+			Qt::IntersectClip);
+		painter.setBrush(Qt::NoBrush);
+		painter.setPen(QPen(withAlpha(lightInk, dark ? 70 : 170), 1.0));
+		painter.drawPath(slotPath.translated(0.0, -1.0));
 	}
 	painter.setBrush(Qt::NoBrush);
 	painter.setPen(QPen(withAlpha(shadowInk, dark ? 200 : 120), 1.0));
@@ -660,13 +677,18 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	painter.drawRoundedRect(bezel.adjusted(0.5, 0.5, -0.5, -0.5), bezel.width() / 2.0 - 0.5, bezel.width() / 2.0 - 0.5);
 
 	const QPointF pivot(partCenterX, pivotY);
-	QLinearGradient stickFace(QPointF(pivot.x() - 1.5, 0.0), QPointF(pivot.x() + 1.5, 0.0));
-	stickFace.setColorAt(0.0, leverTop);
-	stickFace.setColorAt(1.0, leverBottom);
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(stickFace);
-	painter.drawRect(QRectF(pivot.x() - 1.5, qMin(pivot.y(), tip.y()), 3.0, qAbs(tip.y() - pivot.y())));
-	const qreal tipRadius = 3.4;
+	// The lever's bar from the pivot to the tip, outlined so it holds against
+	// the dark floor. The 9px tip covers most of it; what shows is the short
+	// neck that makes the part read as a thrown lever rather than a slider.
+	{
+		QLinearGradient stickFace(QPointF(pivot.x() - 2.0, 0.0), QPointF(pivot.x() + 2.0, 0.0));
+		stickFace.setColorAt(0.0, leverTop);
+		stickFace.setColorAt(1.0, leverBottom);
+		painter.setPen(QPen(withAlpha(shadowInk, dark ? 220 : 150), 1.0));
+		painter.setBrush(stickFace);
+		painter.drawRect(QRectF(pivot.x() - 2.0, qMin(pivot.y(), tip.y()), 4.0, qAbs(tip.y() - pivot.y())));
+	}
+	const qreal tipRadius = 4.5;
 	QRadialGradient tipFace(tip - QPointF(0.8, 1.0), tipRadius * 1.6);
 	tipFace.setColorAt(0.0, leverTop);
 	tipFace.setColorAt(1.0, leverBottom);
@@ -677,7 +699,7 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	{
 		painter.setPen(Qt::NoPen);
 		painter.setBrush(withAlpha(lightInk, dark ? 120 : 220));
-		painter.drawEllipse(tip - QPointF(0.9, 1.0), 0.8, 0.8);
+		painter.drawEllipse(tip - QPointF(1.3, 1.5), 1.2, 1.2);
 	}
 }
 
