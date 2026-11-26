@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.85.0 — 2026-11-26
+
 - **Hardware Rack: a choice between two is a toggle switch.** The ORDER switch
   of the all-pass card, the Direction switch of the Hilbert card and the Mode
   switch of the Velvet card were a recessed bank of two machined keys, each

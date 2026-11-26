@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.85.0 — 2026-11-26
+
 - **Hardware Rack: 둘 중 하나를 고르는 스위치를 토글 스위치로 바꿨습니다.**
   All-pass 카드의 ORDER, Hilbert 카드의 Direction, Velvet 카드의 Mode 스위치는
   함몰된 뱅크에 가공한 키 둘이 있고, 키마다 램프가 달렸으며, 그 아래에 홈과
