@@ -14,6 +14,7 @@
 #include "Editor/IFilterGUI.h"
 #include "filters/subwooferRouting/SubwooferRoutingCommand.h"
 
+class FileReferenceController;
 class ReferenceCardView;
 struct SubwooferRoutingCardState;
 class FilterTable;
@@ -42,6 +43,7 @@ private:
 	void loadCommand(const SubwooferRoutingCommand& command,
 		const QString& parseError);
 	void applyPreset(const std::string& presetId);
+	void chooseProfileFile();
 	void refreshCard();
 	void showCard(const SubwooferRoutingCardState& card);
 	QString resolvedProfilePath(const QString& writtenPath) const;
@@ -58,6 +60,8 @@ private:
 	bool profileMissing = false;
 	QString loadError;
 	ReferenceCardView* view = nullptr;
+	FileReferenceController* profileReference = nullptr;
+	QToolButton* browseButton = nullptr;
 	QToolButton* openButton = nullptr;
 	QToolButton* presetButton = nullptr;
 };

@@ -13,6 +13,7 @@
 #include <utility>
 
 #include <QAction>
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -27,8 +28,10 @@
 #include "SubwooferRouting/StateCodec.h"
 #include "devices/AbstractAPOInfo.h"
 #include "Editor/FilterTable.h"
+#include "Editor/helpers/GUIHelper.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
+#include "Editor/widgets/cards/FileReferenceController.h"
 #include "Editor/widgets/cards/ReferenceCardView.h"
 #include "Editor/widgets/cards/SubwooferRoutingCardView.h"
 #include "Editor/widgets/subwooferrouting/SubwooferRoutingDefaults.h"
@@ -155,8 +158,24 @@ SubwooferRoutingCardEditor::SubwooferRoutingCardEditor(
 	connect(view, &ReferenceCardView::nameActivated,
 		this, &SubwooferRoutingCardEditor::openFullEditor);
 
-	// Both actions are words, with no icon, in every skin. The editor
-	// button's enabled state and tooltip follow the loaded state (showCard).
+	// Browse comes first, as on the sibling reference cards: the folder
+	// button that picks the linked profile file, which the views turn into
+	// their LOCATE form while the file is missing. It exists only for a line
+	// that links a file; showCard hides it for an embedded profile.
+	profileReference = new FileReferenceController(
+		QStringLiteral("subwoofer"), QString(), this);
+	browseButton = new QToolButton(view);
+	browseButton->setObjectName(QStringLiteral("FilterCardIconButton"));
+	browseButton->setIcon(GUIHelper::tintedIcon(
+		QStringLiteral(":/icons/modern/folder-open.svg"),
+		QColor(SkinManager::instance()->tokens().text), 18));
+	connect(browseButton, &QToolButton::clicked,
+		this, &SubwooferRoutingCardEditor::chooseProfileFile);
+	view->addActionButton(ReferenceCardView::ActionRole::Browse, browseButton);
+
+	// The other two actions are words, with no icon, in every skin. The
+	// editor button's enabled state and tooltip follow the loaded state
+	// (showCard).
 	openButton = new QToolButton(view);
 	openButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	openButton->setToolButtonStyle(Qt::ToolButtonTextOnly);
@@ -365,6 +384,47 @@ void SubwooferRoutingCardEditor::applyPreset(
 	emit updateModel();
 }
 
+// Picks a profile file and links the line to it: the file dialog the sibling
+// reference cards use, opened at the current file (or the configuration's
+// folder), with the chosen path written relative to the configuration's
+// folder when it lies under it. The file is then read the way loadCommand
+// reads any linked profile, so a missing, unreadable or invalid file is
+// reported as it is when the line is loaded. Cancel changes nothing.
+void SubwooferRoutingCardEditor::chooseProfileFile()
+{
+	const QFileInfo configInfo(configPath);
+	const QString configDirectory = configPath.isEmpty()
+		? QString()
+		: (configInfo.isDir() ? configInfo.absoluteFilePath()
+			: configInfo.absolutePath());
+
+	QString startDirectory = configDirectory;
+	QString selectedName;
+	if (!profilePath.isEmpty())
+	{
+		const QFileInfo current(resolvedProfilePath(profilePath));
+		startDirectory = current.absolutePath();
+		selectedName = current.fileName();
+	}
+
+	profileReference->setWrittenPath(profilePath);
+	const QString selected = profileReference->chooseExistingFile(this,
+		tr("Subwoofer routing profile"), startDirectory,
+		tr("Subwoofer routing profiles (*.swxt.json)"), configDirectory,
+		selectedName);
+	if (selected.isEmpty())
+		return;
+
+	SubwooferRoutingCommand linked;
+	linked.form = SubwooferRoutingCommand::Form::Profile;
+	linked.payload = profileReference->writtenPath().toStdWString();
+	originalStatePayload.clear();
+	originalProfileParameters.clear();
+	loadCommand(linked, QString());
+	refreshCard();
+	emit updateModel();
+}
+
 QString SubwooferRoutingCardEditor::resolvedProfilePath(
 	const QString& writtenPath) const
 {
@@ -564,19 +624,35 @@ void SubwooferRoutingCardEditor::showCard(
 	}
 
 	// One status sentence at most, error first (the status contract in
-	// SubwooferRoutingCardView.h).
-	if (!card.errorText.isEmpty())
+	// SubwooferRoutingCardView.h). A linked profile that is not found gets
+	// none: the views' broken state already says so beside the file's name
+	// (NOT FOUND, MISSING, the red lamp), as it does for a missing include or
+	// impulse file, and the sentence only repeated it - and pushed the name
+	// out of the one-line skins.
+	if (!state.missing && !card.errorText.isEmpty())
 	{
 		state.statusText = card.errorText;
 		state.statusSeverity = ReferenceCardState::Severity::Critical;
 	}
-	else if (!card.warningText.isEmpty())
+	else if (!state.missing && !card.warningText.isEmpty())
 	{
 		state.statusText = card.warningText;
 		state.statusSeverity = ReferenceCardState::Severity::Warning;
 	}
 
 	state.nameClickable = loaded;
+
+	// The folder button belongs to a line that links a profile file, healthy
+	// or missing; an embedded profile has no file to pick. While the file is
+	// missing it is the Locate entry (the Include card's words).
+	const bool locate = state.missing && !profilePath.isEmpty();
+	browseButton->setVisible(card.linkedProfile);
+	browseButton->setText(locate
+		? QCoreApplication::translate("IncludeCardEditor", "Locate...")
+		: QString());
+	browseButton->setToolTip(locate
+		? QCoreApplication::translate("IncludeCardEditor", "Locate the missing file")
+		: tr("Choose profile file"));
 
 	// Without a loaded state the editor has nothing to open; the button says
 	// why instead of doing nothing on a click.

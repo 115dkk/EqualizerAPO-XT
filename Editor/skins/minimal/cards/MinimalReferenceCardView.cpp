@@ -7,6 +7,7 @@
 #include "MinimalReferenceCardView.h"
 
 #include <QAbstractButton>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
@@ -156,6 +157,27 @@ void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButto
 	// to the terminal's right edge.
 	lineLayout->insertWidget(lineLayout->count() - 1, button, 0, Qt::AlignVCenter);
 	repolish(button);
+	// The floor below is measured in the button's font, which can still
+	// change after the first state: a host that builds its card before the
+	// row joins the window (Subwoofer Routing) gets the final font only then.
+	button->installEventFilter(this);
+}
+
+bool MinimalReferenceCardView::eventFilter(QObject* watched, QEvent* event)
+{
+	if (event->type() == QEvent::FontChange)
+	{
+		for (ActionRole role : {ActionRole::Browse, ActionRole::OpenTarget, ActionRole::Import,
+			ActionRole::OpenPanel, ActionRole::Preset, ActionRole::Options, ActionRole::EditPath})
+		{
+			if (watched == actionButton(role))
+			{
+				restateCommandFloors();
+				break;
+			}
+		}
+	}
+	return ReferenceCardView::eventFilter(watched, event);
 }
 
 void MinimalReferenceCardView::placeBusStrip(QWidget* strip)
@@ -236,6 +258,11 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	// clipped command carries nothing, while the data columns elide into
 	// tooltips - so the floor is restated from each engraved word, after
 	// the state pass that may have swapped BROWSE for LOCATE.
+	restateCommandFloors();
+}
+
+void MinimalReferenceCardView::restateCommandFloors()
+{
 	for (ActionRole role : {ActionRole::Browse, ActionRole::OpenTarget, ActionRole::Import,
 		ActionRole::OpenPanel, ActionRole::Preset, ActionRole::Options, ActionRole::EditPath})
 	{
