@@ -849,7 +849,12 @@ int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, c
 				QString::number(change, 'f', 1), change < kReviewLevel ? QStringLiteral("fail") : QStringLiteral("ok"),
 				hexColour(reading.edge), hexColour(medianColour(resting, line)));
 		}
-		const bool failed = unlit || verdict.colourFailure || verdict.sideFailure;
+		// A latched key's outline is lit already and stays as it is while
+		// focused; it must still be one colour on four sides. The LOCATE
+		// cap rests lit in the service signal (rack.md, reference card),
+		// which in the light finish is the focus signal itself.
+		const bool latched = (button != nullptr && button->isChecked()) || hasProp(listed, "rackLocate=true");
+		const bool failed = (unlit && !latched) || verdict.colourFailure || verdict.sideFailure;
 		qWarning("SkinGallery: focus %s %s %s#%s: change %s, colour spread %.1f%s", qPrintable(skinId), qPrintable(mode),
 			qPrintable(part.cls), qPrintable(part.name), qPrintable(changes.join(QLatin1Char(' '))), verdict.colourSpread,
 			failed ? " FAIL" : "");

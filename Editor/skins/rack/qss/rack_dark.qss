@@ -1362,3 +1362,41 @@ QLineEdit#SendLatencyEdit { border: 1px solid #4E565E; }
 QLineEdit#SendLatencyEdit:focus { border-color: @ACCENT@; }
 QLineEdit#SendLatencyEdit:disabled { border-color: #4E483B; }
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
+
+/* Keyboard focus lights a key's own outline on four sides in the focus
+   signal the fields use (rule 12, focused grammar). One selector per resting
+   rule, each one step more specific than it, and this block comes last, so
+   a focus edge is never outranked by a key's resting colour. A latched key
+   keeps its latched outline while focused (:!checked): its edge is already
+   lit, and keeping it leaves one colour on four sides with the lamp row or
+   top bar. A key whose resting rule is more specific (a latched variant)
+   keeps that rule's single colour too. */
+QToolButton:focus:!checked,
+QPushButton:focus,
+QToolBar#MainToolBar QToolButton:focus:!checked,
+QToolButton[rackTransport="true"]:focus:!checked,
+QTabBar QToolButton:focus:!checked,
+QToolButton#FilterCardIconButton:focus:!checked,
+QToolButton#FilterCardIconButton[headerAction="true"]:focus:!checked,
+QToolButton#FilterCardIconButton[rackLocate="true"]:focus:!checked,
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:focus:!checked,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:focus:!checked,
+QToolButton#GraphicEQActionButton:focus:!checked,
+QToolButton#UpdateToastClose:focus,
+QToolButton#TitleBarMin:focus, QToolButton#TitleBarMax:focus, QToolButton#TitleBarClose:focus,
+QToolButton#DeviceChip:focus:!checked,
+QToolButton#DeviceChip[deviceInput="true"]:focus:!checked,
+QToolButton#DeviceChip[deviceInstalled="false"]:focus:!checked,
+QToolButton#DeviceChipMore:focus:!checked,
+QToolButton#ChannelChip:focus:!checked,
+QToolButton#NewChannelChip:focus,
+QToolButton#ChannelChip[customChannel="true"]:focus:!checked,
+QToolButton#StageChip:focus:!checked,
+QToolButton#StageChip[stage="capture"]:focus:!checked,
+QToolButton#StageChipUnknown:focus,
+QToolButton#VelvetAdvancedToggle:focus:!checked,
+QToolButton#VelvetRegenerate:focus {
+    border-color: @ACCENT@;
+}
+/* A name the engine refuses keeps the danger edge while focused. */
+QToolButton#NewChannelChip[invalid="true"]:focus { border-color: @DANGER@; }
