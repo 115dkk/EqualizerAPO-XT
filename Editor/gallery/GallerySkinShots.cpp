@@ -386,6 +386,26 @@ int assertNoHorizontalScrollBar(QWidget* row, const QString& skinId, const QStri
 	return 0;
 }
 
+// A card is as tall as its body needs. The row pins the body's scroll wrapper
+// to the content's height (FilterCardRow::fitEditorScrollHeight); when the
+// row itself keeps an older height, the content is cut off at the card's
+// lower edge, which is how an opened channel fold lost its last rows and the
+// control that folds it again.
+int assertBodyInsideCard(QWidget* row, const QString& skinId, const QString& mode,
+	const QString& rowName, const QString& state)
+{
+	const QScrollArea* body = row->findChild<QScrollArea*>(QStringLiteral("FilterCardEditorScroll"));
+	if (body == nullptr)
+		return 0;
+	const int bottom = body->mapTo(row, QPoint(0, body->height())).y();
+	if (bottom <= row->height())
+		return 0;
+	qWarning("SkinGallery: the body of row %s_%s_%s_%s ends %d px below its card (%d px tall)",
+		qPrintable(skinId), qPrintable(mode), qPrintable(rowName), qPrintable(state),
+		bottom - row->height(), row->height());
+	return 1;
+}
+
 // Value gate: every spin box must show its text. Qt 6.12.0 collapsed the edit
 // field of a button-less spin box to 1px and started a buttoned one at x = 0
 // under the frame (QTBUG-151308, worked around in SpinBoxEditFieldFix); every
@@ -1267,6 +1287,7 @@ void renderCopyFoldScene(SkinRenderContext& ctx)
 			view->galleryShowcase(QStringLiteral("expanded"));
 			settle();
 			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded"));
+			failures += assertBodyInsideCard(rows[0], skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded"));
 			failures += saveGrab(rows[0], outDir, skinId, mode, QStringLiteral("copyfold"), QStringLiteral("expanded")) ? 0 : 1;
 			view->galleryShowcase(QStringLiteral("addChannel"));
 			settle();
@@ -1339,6 +1360,8 @@ void renderMultiConvFoldScene(SkinRenderContext& ctx)
 			view->galleryShowcase(QStringLiteral("expanded"));
 			settle();
 			failures += assertNoHorizontalScrollBar(rows[0], skinId, mode,
+				QStringLiteral("multiconvfold"), QStringLiteral("expanded"));
+			failures += assertBodyInsideCard(rows[0], skinId, mode,
 				QStringLiteral("multiconvfold"), QStringLiteral("expanded"));
 			failures += saveGrab(rows[0], outDir, skinId, mode,
 				QStringLiteral("multiconvfold"), QStringLiteral("expanded")) ? 0 : 1;

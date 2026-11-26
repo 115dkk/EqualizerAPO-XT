@@ -1239,6 +1239,14 @@ int SkinGallery::runRoutingEditTest()
 				check(body->widget()->height() <= body->widget()->sizeHint().height() + 1,
 					QStringLiteral("%1 body (%2) is %3 px tall for %4 px of content")
 					.arg(who, QLatin1String(state)).arg(body->widget()->height()).arg(body->widget()->sizeHint().height()));
+				// The card follows its body. The body had the right height
+				// while the row above it kept the old one, and the opened
+				// board was cut off at the card's lower edge, with the control
+				// that folds it again (Matrix and Minimal Copy cards).
+				const int bodyBottom = body->mapTo(rows[0], QPoint(0, body->height())).y();
+				check(bodyBottom <= rows[0]->height(),
+					QStringLiteral("%1 body (%2) ends %3 px below its card, which is %4 px tall")
+					.arg(who, QLatin1String(state)).arg(bodyBottom - rows[0]->height()).arg(rows[0]->height()));
 			}
 		}
 	}
