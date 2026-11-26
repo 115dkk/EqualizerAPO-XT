@@ -20,6 +20,7 @@
 #pragma once
 
 #include <string>
+#include <vector>
 
 #include "BiQuad.h"
 
@@ -47,6 +48,8 @@ struct BiQuadCommand
 	// not parse. The flag is carried so callers do not have to re-derive it.
 	bool enabled = true;
 
+	static bool parse(const std::wstring& command, std::wstring& parameters,
+		BiQuadCommand& out, std::wstring& error, std::vector<std::wstring>* traceNotes);
 	static bool parse(const std::wstring& command, std::wstring& parameters,
 		BiQuadCommand& out, std::wstring& error);
 	static bool parse(const std::wstring& command, std::wstring& parameters,
