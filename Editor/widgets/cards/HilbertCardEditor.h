@@ -38,7 +38,6 @@ private:
 	ChannelRoleSelector* shiftedSelector = nullptr;
 	ChannelRoleSelector* alignedSelector = nullptr;
 	SegmentedControl* direction = nullptr;
-	SegmentedControl* graph = nullptr;
 	QLabel* latencyValue = nullptr;
 	QLabel* phaseValue = nullptr;
 	QLabel* validation = nullptr;
