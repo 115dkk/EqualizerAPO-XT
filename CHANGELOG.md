@@ -24,6 +24,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   selects it. On the Hilbert card +90° is on top. The switch that picks among
   three readings in the analysis panel keeps its bank of keys.
   ([#538](https://github.com/115dkk/EqualizerAPO-XT/pull/538))
+
+## v2.84.2 — 2026-11-26
+
 - **Editor: rebuilding the filter list is about a quarter faster, and the
   Editor's log no longer gets a line for every filter.** Each time the list
   was rebuilt (a skin switch, an undo, opening a file) every filter line was
