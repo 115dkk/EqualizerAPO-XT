@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.85.2 — 2026-11-26
+
 - **Editor: opening a plug-in's panel could freeze the Editor for good.**
   It happened with plug-ins built on the JUCE framework. Such a plug-in can
   only show its panel from the thread that first set it up, and the Editor's
