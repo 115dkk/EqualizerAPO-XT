@@ -247,6 +247,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			// the danger lamp.
 			const bool negative = cell.factor < 0;
 			cap.translate(0, 1);
+			paintedParts.append({ cap, QStringLiteral("cell checked") });
 			QLinearGradient face(cap.topLeft(), cap.bottomLeft());
 			QColor edge, bevelTop, bevelBottom, ink;
 			if (negative)
@@ -274,7 +275,6 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
 			p.setPen(QPen(bevelBottom, 1));
 			p.drawLine(cap.left() + 2, cap.bottom() - 1, cap.right() - 2, cap.bottom() - 1);
-			paintedParts.append({ cap, QStringLiteral("cell checked") });
 
 			// A unity routing carries no legend: the lit latch already says
 			// "passed through as-is", and any printed value on it (x1, 0dB)
