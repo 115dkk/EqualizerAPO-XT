@@ -903,6 +903,9 @@ public:
 	{
 	}
 
+	PersistentLoader(const PersistentLoader&) = delete;
+	PersistentLoader& operator=(const PersistentLoader&) = delete;
+
 	~PersistentLoader()
 	{
 		stop();
@@ -991,6 +994,9 @@ public:
 	{
 	}
 
+	WorkerInstance(const WorkerInstance&) = delete;
+	WorkerInstance& operator=(const WorkerInstance&) = delete;
+
 	~WorkerInstance()
 	{
 		stop();
@@ -1029,7 +1035,7 @@ public:
 	}
 
 private:
-	void destroyInstance(VSTPluginInstancePtr& instance)
+	static void destroyInstance(VSTPluginInstancePtr& instance)
 	{
 		if (instance)
 			timedPanelPhase(L"worker-destroy", [&]() {
@@ -1201,7 +1207,7 @@ public:
 	}
 
 private:
-	bool stopForVisibleWindow()
+	static bool stopForVisibleWindow()
 	{
 		VisibleWindow visible;
 		EnumWindows(findVisibleProcessWindow, reinterpret_cast<LPARAM>(&visible));
@@ -1497,7 +1503,6 @@ int wmain(int argc, wchar_t* argv[])
 	bool expectAudio = true;
 	bool panel = false;
 	bool listVst = false;
-	PanelOptions panelOptions;
 
 	const wchar_t* usage =
 		L"Usage: VstPreviewProbe [--plugin <path.vst3|path.dll>] [--seconds N] [--rate N]\n"
@@ -1585,6 +1590,7 @@ int wmain(int argc, wchar_t* argv[])
 	}
 	if (panel)
 	{
+		PanelOptions panelOptions;
 		if (!configArg.isSet() || !lineArg.isSet() || !pluginPath.empty() || !monitorPluginPath.empty()
 			|| loopback || captureOnly)
 		{
