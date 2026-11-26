@@ -37,19 +37,21 @@ struct ImportItem
 
 struct ImportManifest
 {
-    // Absolute path of the root config file the user picked.
+    // Absolute path of the config file or plug-in library the user picked.
     QString rootSource;
     // Absolute path of the directory that becomes the import root - every
     // dependency relative path is resolved against this. Usually
     // QFileInfo(rootSource).absoluteDir().
     QString rootSourceDir;
-    // dest path of the root config file relative to the config directory.
+    // Destination of the root config file or library reference, relative to
+    // the config directory (a library reference can name a bundle folder).
     QString rootDest;
     // Every file we plan to copy (root + dependencies). Items keep a
     // stable order so the dialog can display them in scan order.
     QVector<ImportItem> items;
-    // VST binaries stay at their configured locations. Their Library values
-    // are recorded here for diagnostics but are deliberately not copy items.
+    // In scan(), VST binaries stay at their configured locations. Their Library
+    // values are recorded here for diagnostics but are deliberately not copy
+    // items. scanPluginLibrary() explicitly imports a library instead.
     QStringList externalReferences;
     // Non-fatal messages (file not found, dependency outside root, etc).
     QStringList warnings;

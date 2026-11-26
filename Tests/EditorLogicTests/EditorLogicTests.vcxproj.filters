@@ -271,6 +271,9 @@
     <ClInclude Include="..\..\Editor\import\ImportExecutor.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\Editor\import\ImportFileSystem.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="..\..\Editor\import\ImportManifest.h">
       <Filter>Header Files</Filter>
     </ClInclude>

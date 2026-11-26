@@ -39,7 +39,7 @@
         <translation type="unfinished">중심 주파수</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="98"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="99"/>
         <source>An all-pass changes phase and group delay around Fc. The magnitude response stays at 0 dB, so this filter is invisible in the magnitude graph.</source>
         <translation>올패스는 Fc 부근의 위상과 그룹 지연을 바꿉니다. 크기 응답은 0 dB에 머무르므로 크기 그래프에서는 이 필터가 보이지 않습니다.</translation>
     </message>
@@ -54,42 +54,23 @@
         <translation type="unfinished">대역폭</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="189"/>
         <source>Phase</source>
-        <translation type="unfinished">위상</translation>
+        <translation type="obsolete">위상</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="189"/>
         <source>Group delay</source>
-        <translation>그룹 지연</translation>
+        <translation type="vanished">그룹 지연</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="189"/>
         <source>Graph</source>
-        <translation type="unfinished">그래프</translation>
+        <translation type="obsolete">그래프</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="190"/>
         <source>Show this reading in the analysis graph. The existing analysis is reused; nothing is measured again.</source>
-        <translation>이 값을 분석 그래프에 표시합니다. 기존 분석 결과를 다시 쓰며, 다시 측정하지 않습니다.</translation>
+        <translation type="vanished">이 값을 분석 그래프에 표시합니다. 기존 분석 결과를 다시 쓰며, 다시 측정하지 않습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="213"/>
-        <source>Magnitude</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="217"/>
-        <source>0.0 dB</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="220"/>
-        <source>An all-pass does not change level at any frequency, so there is nothing to set here.</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="371"/>
+        <location filename="../widgets/cards/AllPassCardEditor.cpp" line="334"/>
         <source>Oct</source>
         <translation>옥타브</translation>
     </message>
@@ -433,32 +414,37 @@
 <context>
     <name>ConfigDependencyScanner</name>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="129"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="130"/>
         <source>Missing file: %1</source>
         <translation>누락된 파일: %1</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="144"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="145"/>
         <source>Recursion limit reached at %1; nested references were not followed.</source>
         <translation>%1에서 재귀 한도에 도달했습니다. 중첩된 참조는 따라가지 않았습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="156"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="157"/>
         <source>Cannot open %1 for scanning.</source>
         <translation>스캔할 %1을(를) 열 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="179"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="180"/>
         <source>VSTPlugin line has no Library reference: %1 (in %2)</source>
         <translation>플러그인 파일 지정 누락: %1 (%2)</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="199"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="200"/>
         <source>Reference outside the source folder will be skipped: %1 (in %2)</source>
         <translation>원본 폴더 밖의 참조는 건너뜁니다: %1 (%2 내)</translation>
     </message>
     <message>
-        <location filename="../import/ConfigDependencyScanner.cpp" line="226"/>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="264"/>
+        <source>Link not copied: %1</source>
+        <translation>복사하지 않은 링크: %1</translation>
+    </message>
+    <message>
+        <location filename="../import/ConfigDependencyScanner.cpp" line="293"/>
         <source>Root file does not exist: %1</source>
         <translation>루트 파일이 존재하지 않습니다: %1</translation>
     </message>
@@ -1153,7 +1139,7 @@ Select a different file or change the device configuration.</source>
     <message>
         <location filename="../import/ImportDialog.cpp" line="50"/>
         <source>%1 file(s), %2 will be copied into %3.</source>
-        <translation>%1개 파일 중 %2개를 %3(으)로 복사합니다.</translation>
+        <translation>파일 %1개(%2)를 %3(으)로 복사합니다.</translation>
     </message>
     <message>
         <location filename="../import/ImportDialog.cpp" line="58"/>
@@ -1233,23 +1219,23 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FileReferenceController</name>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="124"/>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="148"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="125"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="151"/>
         <source>Import</source>
         <translation type="unfinished">가져오기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="125"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="126"/>
         <source>Nothing to import: %1</source>
         <translation type="unfinished">가져올 항목 없음: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="141"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="143"/>
         <source>Could not grant audio service access to %1.</source>
         <translation>오디오 서비스에 %1 접근 권한을 부여하지 못했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="149"/>
+        <location filename="../widgets/cards/FileReferenceController.Dialogs.cpp" line="152"/>
         <source>Some files could not be copied:
 %1</source>
         <translation type="unfinished">일부 파일을 복사하지 못했습니다:
@@ -2253,49 +2239,49 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>ImportExecutor</name>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="145"/>
+        <location filename="../import/ImportExecutor.cpp" line="142"/>
         <source>Import target directory is empty.</source>
         <translation>가져오기 대상 디렉터리가 비어 있습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="153"/>
+        <location filename="../import/ImportExecutor.cpp" line="150"/>
         <source>Could not create config directory %1.</source>
         <translation>구성 디렉터리 %1을(를) 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="163"/>
+        <location filename="../import/ImportExecutor.cpp" line="160"/>
         <source>Destination outside the config directory, skipped: %1</source>
         <translation>대상이 구성 디렉터리 밖에 있어 건너뛰었습니다. 대상: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="170"/>
+        <location filename="../import/ImportExecutor.cpp" line="167"/>
         <source>Source missing, skipped: %1</source>
         <translation>원본 없음, 건너뜀: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="178"/>
+        <location filename="../import/ImportExecutor.cpp" line="175"/>
         <source>Could not create %1.</source>
         <translation>%1을(를) 만들 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="200"/>
+        <location filename="../import/ImportExecutor.cpp" line="198"/>
         <source>Could not overwrite %1.</source>
         <translation>%1을(를) 덮어쓸 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="233"/>
+        <location filename="../import/ImportExecutor.cpp" line="231"/>
         <source>Source kept because the copied file size could not be verified: %1</source>
         <translation>복사한 파일의 크기를 확인하지 못해 원본을 유지했습니다. 원본: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="239"/>
+        <location filename="../import/ImportExecutor.cpp" line="237"/>
         <source>Could not remove source after copying: %1</source>
         <translation>복사 후 원본을 삭제하지 못했습니다. 원본: %1</translation>
     </message>
     <message>
-        <location filename="../import/ImportExecutor.cpp" line="194"/>
-        <location filename="../import/ImportExecutor.cpp" line="207"/>
-        <location filename="../import/ImportExecutor.cpp" line="218"/>
+        <location filename="../import/ImportExecutor.cpp" line="192"/>
+        <location filename="../import/ImportExecutor.cpp" line="205"/>
+        <location filename="../import/ImportExecutor.cpp" line="216"/>
         <source>Failed to copy %1 to %2.</source>
         <translation>%1을(를) %2(으)로 복사하지 못했습니다.</translation>
     </message>
@@ -5139,44 +5125,44 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="647"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="108"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="703"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="102"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="103"/>
         <source>Copy the library into the config directory so the audio service can read it</source>
         <translation>오디오 서비스가 읽을 수 있도록 라이브러리를 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="118"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="119"/>
         <source>Embed panel in card</source>
         <translation>카드에 패널 삽입</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="124"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="125"/>
         <source>Remove Input/Output layouts</source>
         <translation>Input/Output 레이아웃 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="125"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="126"/>
         <source>Deletes the saved VST3 bus layouts from this line.</source>
         <translation>이 줄에 저장된 VST3 버스 레이아웃을 삭제합니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="131"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
         <source>Remove channel fill</source>
         <translation>채널 채우기 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="132"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="133"/>
         <source>Deletes the saved per-slot channel lists from this line.</source>
         <translation>이 라인에 저장된 슬롯별 채널 목록을 지웁니다.</translation>
     </message>
@@ -5197,7 +5183,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="437"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="438"/>
         <source>No plugin selected</source>
         <translation>선택된 플러그인 없음</translation>
     </message>
@@ -5206,12 +5192,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="545"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="547"/>
         <source>Locate the missing plugin library</source>
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
@@ -5252,7 +5238,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>구형 &apos;스테레오 입력&apos; 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="647"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
@@ -5261,7 +5247,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="703"/>
         <source>Close panel</source>
         <translation type="unfinished">패널 닫기</translation>
     </message>
@@ -5274,7 +5260,7 @@ Change the file permissions or copy the files to the config directory.</source>
 파일 권한을 바꾸거나 구성 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="541"/>
         <source>Loading plugin...</source>
         <translation>플러그인을 불러오는 중...</translation>
     </message>
