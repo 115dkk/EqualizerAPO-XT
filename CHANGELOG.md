@@ -14,6 +14,17 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Hardware Rack: a choice between two is a toggle switch.** The ORDER switch
+  of the all-pass card, the Direction switch of the Hilbert card and the Mode
+  switch of the Velvet card were a recessed bank of two machined keys, each
+  with its own lamp, over a groove with a slide: a lot of metal for a choice
+  between two. They are now one upright toggle switch with the two names
+  printed beside it, one above the other. The lever's tip stands level with
+  the chosen name, so it is plain which one is set, and clicking a name
+  selects it. On the Hilbert card +90° is on top. The switch that picks among
+  three readings in the analysis panel keeps its bank of keys.
+  ([#538](https://github.com/115dkk/EqualizerAPO-XT/pull/538))
+
 ## v2.84.3 — 2026-11-26
 
 - **Editor: the Hilbert card no longer has a GRAPH switch.** Like the
@@ -45,6 +56,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   figure had also been lit green on the bare panel, which was a glaring green
   on the cream finish.
   ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
+
 
 ## v2.84.0 — 2026-11-26
 
