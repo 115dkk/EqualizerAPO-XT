@@ -36,6 +36,7 @@
 #include <QFileDialog>
 #include <QFileSystemModel>
 #include <QFrame>
+#include <QImage>
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QKeyEvent>
@@ -44,6 +45,7 @@
 #include <QMenu>
 #include <QMessageBox>
 #include <QMenuBar>
+#include <QMouseEvent>
 #include <QPixmap>
 #include <QPointer>
 #include <QRadioButton>
@@ -128,6 +130,10 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("graph"), { QStringLiteral("normal"), QStringLiteral("cursor"),
 			QStringLiteral("phase"), QStringLiteral("groupdelay") } },
 		{ QStringLiteral("segment"), { QStringLiteral("normal"), QStringLiteral("selected"),
+			QStringLiteral("hover"), QStringLiteral("focused"), QStringLiteral("focushover") } },
+		// The same control with two options, the count every card editor uses
+		// (renderGraphScenes). A skin may draw the two kinds differently.
+		{ QStringLiteral("segment2"), { QStringLiteral("normal"), QStringLiteral("selected"),
 			QStringLiteral("hover"), QStringLiteral("focused"), QStringLiteral("focushover") } },
 		{ QStringLiteral("copyfold"), { QStringLiteral("normal"), QStringLiteral("empty"),
 			QStringLiteral("expanded"), QStringLiteral("editor"), QStringLiteral("sourceeditor") } },
@@ -382,6 +388,122 @@ int assertNoHorizontalScrollBar(QWidget* row, const QString& skinId, const QStri
 		}
 	}
 	return 0;
+}
+
+// A click answers the option drawn under it. The skin lays the options out
+// (ISkin::segmentedControlAxis) and the widget hit-tests with the same answer;
+// this presses and releases at the centre of each option's cell as the skin
+// lays it out, starting from the other option, and fails unless the control
+// then holds the option pressed. Points that the skin paints a legend at
+// (legendPoints, indexed by option) are pressed the same way. Up and Down
+// must move the way the key points: where the skin stacks a rising scale the
+// higher option is on top and Up raises the index, everywhere else Up is the
+// previous option. For a two-option control.
+int assertSegmentClicksAnswer(SegmentedControl& segment, const QList<QPointF>& legendPoints,
+	const QString& skinId, const QString& mode, const char* name)
+{
+	int failures = 0;
+	const int count = int(segment.labels().size());
+	const Qt::Orientation axis = SkinManager::instance()->segmentedControlAxis(count);
+	const auto press = [&](const QPointF& at, int expected, const char* what) {
+		segment.setPreviewState(expected == 0 ? 1 : 0, -1);
+		QMouseEvent down(QEvent::MouseButtonPress, at, segment.mapToGlobal(at), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+		QApplication::sendEvent(&segment, &down);
+		QMouseEvent up(QEvent::MouseButtonRelease, at, segment.mapToGlobal(at), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+		QApplication::sendEvent(&segment, &up);
+		if (segment.currentIndex() != expected)
+		{
+			qWarning("SkinGallery: %s %s_%s: a click on the %s of option %d at (%.1f, %.1f) chose option %d",
+				name, qPrintable(skinId), qPrintable(mode), what, expected, at.x(), at.y(), segment.currentIndex());
+			failures++;
+		}
+	};
+	for (int i = 0; i < count; i++)
+		press(SegmentedControlState::cellRect(QRectF(segment.rect()), count, axis, i, segment.risingScale()).center(),
+			i, "cell centre");
+	for (int i = 0; i < int(legendPoints.size()); i++)
+		press(legendPoints.at(i), i, "legend");
+	const int clicks = count + int(legendPoints.size());
+
+	const bool upRaises = segment.risingScale() && axis == Qt::Vertical;
+	const auto key = [&](int from, int keyCode, int expected, const char* what) {
+		segment.setPreviewState(from, -1);
+		QKeyEvent down(QEvent::KeyPress, keyCode, Qt::NoModifier);
+		QApplication::sendEvent(&segment, &down);
+		if (segment.currentIndex() != expected)
+		{
+			qWarning("SkinGallery: %s %s_%s: %s from option %d chose option %d, expected %d",
+				name, qPrintable(skinId), qPrintable(mode), what, from, segment.currentIndex(), expected);
+			failures++;
+		}
+	};
+	key(0, Qt::Key_Up, upRaises ? 1 : 0, "Up");
+	key(1, Qt::Key_Up, upRaises ? 1 : 0, "Up");
+	key(0, Qt::Key_Down, upRaises ? 0 : 1, "Down");
+	key(1, Qt::Key_Down, upRaises ? 0 : 1, "Down");
+	key(0, Qt::Key_Right, 1, "Right");
+	key(1, Qt::Key_Left, 0, "Left");
+	segment.setPreviewState(0, -1);
+	qInfo("SkinGallery: %s %s_%s: %d click(s) on cells and legends and 6 keys, %d answered another option",
+		name, qPrintable(skinId), qPrintable(mode), clicks, failures);
+	return failures;
+}
+
+// The centre of each painted legend line of a two-option control whose
+// options are stacked, the upper line first: the control is grabbed with its
+// labels and again with the two labels swapped. A part laid out from the
+// labels' widths stays where it is when they swap, so the pixels that differ
+// are the legends; in each half of the control the ink right of the first
+// differing column is that line's word. Empty when nothing differs (a skin
+// that prints no legends).
+QList<QPointF> stackedLegendCentres(SegmentedControl& segment)
+{
+	const QStringList labels = segment.labels();
+	segment.setPreviewState(0, -1);
+	QApplication::processEvents();
+	const QImage normal = segment.grab().toImage().convertToFormat(QImage::Format_RGB32);
+	segment.setLabels({ labels.at(1), labels.at(0) });
+	segment.setPreviewState(0, -1);
+	QApplication::processEvents();
+	const QImage swapped = segment.grab().toImage().convertToFormat(QImage::Format_RGB32);
+	segment.setLabels(labels);
+	segment.setPreviewState(0, -1);
+	QApplication::processEvents();
+	if (normal.size() != swapped.size() || normal.isNull())
+		return {};
+	int firstColumn = normal.width();
+	for (int y = 0; y < normal.height(); y++)
+	{
+		for (int x = 0; x < normal.width(); x++)
+		{
+			if (normal.pixel(x, y) != swapped.pixel(x, y))
+				firstColumn = qMin(firstColumn, x);
+		}
+	}
+	if (firstColumn >= normal.width())
+		return {};
+	QList<QPointF> centres;
+	const int half = normal.height() / 2;
+	for (int line = 0; line < 2; line++)
+	{
+		QRect ink;
+		for (int y = line * half; y < (line == 0 ? half : normal.height()); y++)
+		{
+			const QRgb background = normal.pixel(normal.width() - 1, y);
+			for (int x = firstColumn; x < normal.width(); x++)
+			{
+				const QRgb pixel = normal.pixel(x, y);
+				const int distance = qAbs(qRed(pixel) - qRed(background)) + qAbs(qGreen(pixel) - qGreen(background))
+					+ qAbs(qBlue(pixel) - qBlue(background));
+				if (distance > 60)
+					ink = ink.united(QRect(x, y, 1, 1));
+			}
+		}
+		if (ink.isNull())
+			return {};
+		centres.append(QRectF(ink).center());
+	}
+	return centres;
 }
 
 // A card is as tall as its body needs. The row pins the body's scroll wrapper
@@ -1232,6 +1354,100 @@ void renderGraphScenes(SkinRenderContext& ctx)
 		segment.setPreviewState(1, 2);
 		QApplication::processEvents();
 		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment"), QStringLiteral("focushover")) ? 0 : 1;
+	}
+
+	// The two-option form every card editor uses (the all-pass ORDER, the
+	// Hilbert Direction, the Velvet Mode), in the same five states.
+	// The pointer and the focused states rest on the first option with the
+	// pointer on the second, the one a click would move to.
+	{
+		SegmentedControl segment;
+		segment.setLabels({ QStringLiteral("Static"), QStringLiteral("Dynamic") });
+		segment.resize(160, segment.sizeHint().height());
+		segment.setFocusPolicy(Qt::NoFocus);
+		segment.show();
+		segment.setPreviewState(0, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("normal")) ? 0 : 1;
+		segment.setPreviewState(1, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("selected")) ? 0 : 1;
+		segment.setPreviewState(0, 1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("hover")) ? 0 : 1;
+		segment.setPreviewFocused(true);
+		segment.setPreviewState(0, -1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("focused")) ? 0 : 1;
+		segment.setPreviewState(0, 1);
+		QApplication::processEvents();
+		failures += saveGrab(&segment, outDir, skinId, mode, QStringLiteral("segment2"), QStringLiteral("focushover")) ? 0 : 1;
+		segment.setPreviewFocused(false);
+		// After the shots, so they stay the bytes they were: every skin's cells
+		// answer a click on them, and Rack, which stacks the two options as an
+		// upright toggle with the names beside it, also answers a click on each
+		// printed name.
+		QList<QPointF> legendPoints;
+		if (skinId.trimmed() == QStringLiteral("rack"))
+		{
+			legendPoints = stackedLegendCentres(segment);
+			if (legendPoints.size() != 2)
+			{
+				qWarning("SkinGallery: segment2 %s_%s: the toggle's two legends were not found",
+					qPrintable(skinId), qPrintable(mode));
+				failures++;
+			}
+		}
+		failures += assertSegmentClicksAnswer(segment, legendPoints, skinId, mode, "segment2");
+
+		// The same control on a rising scale (the Hilbert card's Direction,
+		// -90 then +90): stacked, the higher option is on top, so Rack's upper
+		// line and upper cell answer for option 1; side by side nothing moves.
+		segment.setLabels({ QStringLiteral("-90"), QStringLiteral("+90") });
+		segment.setRisingScale(true);
+		segment.setPreviewState(0, -1);
+		QApplication::processEvents();
+		QList<QPointF> risingLegends;
+		if (skinId.trimmed() == QStringLiteral("rack"))
+		{
+			const QList<QPointF> lines = stackedLegendCentres(segment);
+			if (lines.size() != 2)
+			{
+				qWarning("SkinGallery: segment2 rising %s_%s: the toggle's two legends were not found",
+					qPrintable(skinId), qPrintable(mode));
+				failures++;
+			}
+			else
+			{
+				// Upper line = option 1, lower line = option 0.
+				risingLegends = { lines.at(1), lines.at(0) };
+			}
+		}
+		failures += assertSegmentClicksAnswer(segment, risingLegends, skinId, mode, "segment2-rising");
+		// And in plain geometry, independent of the shared tiling: stacked, the
+		// upper quarter answers 1 and the lower 0; side by side, left 0, right 1.
+		{
+			const bool stacked = SkinManager::instance()->segmentedControlAxis(2) == Qt::Vertical;
+			const QSizeF size(segment.size());
+			const QPointF first = stacked ? QPointF(size.width() / 2.0, size.height() * 0.75) : QPointF(size.width() * 0.25, size.height() / 2.0);
+			const QPointF second = stacked ? QPointF(size.width() / 2.0, size.height() * 0.25) : QPointF(size.width() * 0.75, size.height() / 2.0);
+			const QPointF points[2] = { first, second };
+			for (int i = 0; i < 2; i++)
+			{
+				segment.setPreviewState(1 - i, -1);
+				QMouseEvent down(QEvent::MouseButtonPress, points[i], segment.mapToGlobal(points[i]), Qt::LeftButton, Qt::LeftButton, Qt::NoModifier);
+				QApplication::sendEvent(&segment, &down);
+				QMouseEvent up(QEvent::MouseButtonRelease, points[i], segment.mapToGlobal(points[i]), Qt::LeftButton, Qt::NoButton, Qt::NoModifier);
+				QApplication::sendEvent(&segment, &up);
+				if (segment.currentIndex() != i)
+				{
+					qWarning("SkinGallery: segment2-rising %s_%s: a click at (%.1f, %.1f) chose option %d, expected %d",
+						qPrintable(skinId), qPrintable(mode), points[i].x(), points[i].y(), segment.currentIndex(), i);
+					failures++;
+				}
+			}
+			segment.setPreviewState(0, -1);
+		}
 	}
 }
 
