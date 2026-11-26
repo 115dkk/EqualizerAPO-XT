@@ -575,9 +575,9 @@ QWidget#PreampCardEditor, QWidget#DelayCardEditor, QWidget#IncludeCardEditor,
 QWidget#PreampCardValueBlock, QWidget#DelayCardValueBlock,
 QWidget#IIRCardEditor, QWidget#IIRCardOrderBlock, QWidget#IIRCardCoefficientBlock,
 QWidget#AllPassCardEditor, QWidget#AllPassCardParamBlock, QWidget#AllPassCardValueBlock,
-QWidget#AllPassCardOrderBlock, QWidget#AllPassCardGraphBlock, QWidget#AllPassCardMagnitudeBlock,
+QWidget#AllPassCardOrderBlock,
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
-QLabel#AllPassCardCaption, QLabel#AllPassCardMagnitudeValue,
+QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption {
@@ -591,20 +591,6 @@ QLabel#EditableValue {
     border: 1px solid #4A4438; border-radius: 2px;
     padding: 4px 8px;
     font-family: @MONO_STACK@; font-weight: 700;
-}
-/* The all-pass card states its fixed magnitude. It is printed on the plate,
-   in the plate's ink and this skin's value face. The lit green of the value
-   readouts belongs behind display glass, and this figure gets no glass:
-   there is nothing to set, and a window would say there is. Lit digits
-   printed straight on the faceplate were hard to look at on the cream
-   finish (maintainer's report, 2026-11-26). */
-QLabel#AllPassCardMagnitudeValue {
-    color: @TEXT@;
-    font-family: @MONO_STACK@;
-    font-weight: 700;
-    background: transparent;
-    border: 0;
-    padding: 6px 0;
 }
 
 QLineEdit#EditableValueEditor {

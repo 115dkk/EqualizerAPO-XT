@@ -14,12 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
-- **Hardware Rack: the all-pass card's MAGNITUDE figure is no longer lit green
-  on the bare panel.** The `0.0 dB` beside the card's switches was printed in
-  the bright green of the display digits but without the dark display window
-  those digits sit in, so on the light finish it was a glaring green on cream
-  and hard to look at. It is now printed in the panel's own ink, on both
-  finishes, as it already was in the other four skins.
+- **Editor: the all-pass card no longer shows a MAGNITUDE figure or a GRAPH
+  switch.** Under MAGNITUDE the card printed `0.0 dB`, which said only that an
+  all-pass does not change the level, and the card's tooltip says that. The
+  Phase / Group delay switch turned the analysis graph to that reading, and
+  the analysis panel has the same switch. Both are gone in every skin, so the
+  card is the two knobs and the ORDER switch. In the Hardware Rack skin the
+  figure had also been lit green on the bare panel, which was a glaring green
+  on the cream finish.
   ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
 
 ## v2.83.1 — 2026-11-26
