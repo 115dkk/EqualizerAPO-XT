@@ -39,6 +39,7 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/ButtonName.h"
 #include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
@@ -114,6 +115,7 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	addChannelButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	addChannelButton->setText(QStringLiteral("+"));
 	addChannelButton->setToolTip(tr("Add an output channel (a new name creates a virtual channel)"));
+	nameButtonByToolTip(addChannelButton);
 	connect(addChannelButton, SIGNAL(clicked()), this, SLOT(addOutputChannel()));
 	routingHead->addOpenControl(addChannelButton);
 	mappingLayout->addWidget(routingHead);

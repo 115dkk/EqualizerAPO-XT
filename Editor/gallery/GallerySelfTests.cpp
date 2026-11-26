@@ -27,6 +27,7 @@
 #include "filters/VSTPluginFilter.h"
 #include "filters/VSTPluginFilterFactory.h"
 
+#include <QAccessible>
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
@@ -43,6 +44,7 @@
 #include <QScrollArea>
 #include <QScrollBar>
 #include <QStringList>
+#include <QSet>
 #include <QToolButton>
 #include <QToolTip>
 #include <QTransform>
@@ -54,6 +56,7 @@
 #include "Editor/skins/ISkin.h"
 #include "Editor/skins/Skins.h"
 #include "Editor/skins/rack/cards/RackReferenceCardView.h"
+#include "Editor/widgets/ButtonName.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
 #include "Editor/widgets/cards/VSTSlotFillBlock.h"
@@ -591,6 +594,36 @@ int checkFillCellFit()
 // the recorder once at the hint (whole) and once 8 px narrower (elided, so
 // the check stays live). Covers both elidable faces the card uses: the
 // reference name and the location prefix under it.
+int SkinGalleryDetail::checkButtonNames(QWidget* scene, const QString& capture)
+{
+	static QSet<QString> reported;
+	int failures = 0;
+	for (QAbstractButton* button : scene->findChildren<QAbstractButton*>())
+	{
+		if (!button->isVisibleTo(scene) || button->toolTip().isEmpty())
+			continue;
+		// A channel chip is named by its channel, however short ("L", "C").
+		const QString objectName = button->objectName();
+		if (objectName == QLatin1String("ChannelChip") || objectName == QLatin1String("NewChannelChip"))
+			continue;
+		// Asked the way the platform's accessibility bridge asks.
+		QAccessibleInterface* accessible = QAccessible::queryAccessibleInterface(button);
+		const QString spoken = accessible != nullptr ? accessible->text(QAccessible::Name) : QString();
+		if (buttonLabelHasWords(spoken))
+			continue;
+		const QString kind = QStringLiteral("%1#%2|%3").arg(
+			QString::fromLatin1(button->metaObject()->className()), objectName, button->toolTip());
+		if (reported.contains(kind))
+			continue;
+		reported.insert(kind);
+		qWarning("SkinGallery: %s: a button with the tooltip '%s' is named '%s' for a screen reader (%s#%s)",
+			qPrintable(capture), qPrintable(button->toolTip()), qPrintable(spoken),
+			button->metaObject()->className(), qPrintable(objectName));
+		failures++;
+	}
+	return failures;
+}
+
 int SkinGalleryDetail::checkEngravedLabelFit()
 {
 	ISkin* rack = nullptr;
@@ -1459,6 +1492,12 @@ int SkinGallery::runRoutingEditTest()
 				heights = now;
 			}
 		};
+		// What assistive technology is given as a control's name, asked the
+		// way the platform bridge asks.
+		const auto spokenName = [](QWidget* widget) -> QString {
+			QAccessibleInterface* accessible = QAccessible::queryAccessibleInterface(widget);
+			return accessible != nullptr ? accessible->text(QAccessible::Name) : QString();
+		};
 		int edits = 0;
 		QObject::connect(table, &FilterTable::linesChanged, table, [&edits]() { edits++; });
 		scrollArea.activateWindow();
@@ -1474,6 +1513,22 @@ int SkinGallery::runRoutingEditTest()
 				QStringLiteral("%1: no section head or no routing view").arg(label)))
 				continue;
 			check(!head->isFolded(), QStringLiteral("%1: the section starts folded").arg(label));
+
+			// The row's bare-glyph buttons (the header's actions, the section's
+			// fold arrow, MultiConvolution's "+") have a name in words. Qt hands
+			// a button's accessible name to a screen reader, and without one its
+			// text: "v", ">" and "+" say nothing when they are read out, and an
+			// icon-only button has no name at all.
+			for (QToolButton* button : row->findChildren<QToolButton*>(QStringLiteral("FilterCardIconButton")))
+			{
+				if (!button->isVisibleTo(row))
+					continue;
+				const QString spoken = spokenName(button);
+				check(buttonLabelHasWords(spoken),
+					QStringLiteral("%1: a button is named '%2' for a screen reader (text '%3', tooltip '%4')")
+					.arg(label, spoken, button->text(), button->toolTip()));
+			}
+			const QString openFoldName = spokenName(head->foldButton());
 			const int openHeight = row->height();
 			const QString lineBefore = lineText(scrollArea, i);
 
@@ -1495,6 +1550,9 @@ int SkinGallery::runRoutingEditTest()
 				QStringLiteral("%1: the folded summary is '%2' (expected '%3')").arg(label, head->summaryText(), summaries.at(i)));
 			check(!focusInside || QApplication::focusWidget() == head->foldButton(),
 				QStringLiteral("%1: folding moved the focus away from the section head").arg(label));
+			check(buttonLabelHasWords(spokenName(head->foldButton())) && spokenName(head->foldButton()) != openFoldName,
+				QStringLiteral("%1: the fold button is named '%2' folded and '%3' open for a screen reader")
+				.arg(label, spokenName(head->foldButton()), openFoldName));
 			check(lineText(scrollArea, i) == lineBefore && edits == 0,
 				QStringLiteral("%1: folding changed the document ('%2', %3 edit(s))").arg(label, lineText(scrollArea, i)).arg(edits));
 

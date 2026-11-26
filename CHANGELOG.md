@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: buttons that show only an icon or a sign have a name for screen
+  readers.** Qt gives a screen reader a button's text as its name. A card's
+  fold arrow was therefore named `v` or `>` and its add button `+`, and the
+  power switch, the raw command button, the file buttons of the Include,
+  Convolution and VST cards, the five tool buttons of the GraphicEQ card, the
+  title bar's maximize button and the close button of a notice had no name
+  at all. The fold arrow of the channel mapping section added in v2.83.0 had
+  the same gap. Each of these buttons now has the sentence of its tooltip as
+  its name (for example **Collapse channel mapping**), in the language the
+  Editor runs in. Nothing on screen changes. This was checked through Qt's
+  accessibility interface, not by listening to a screen reader. Buttons that
+  have no tooltip (the title bar's minimize and close buttons, the `...` menu
+  of the VST card) and the buttons of the Legacy rows view are as they were.
+  ([#535](https://github.com/115dkk/EqualizerAPO-XT/pull/535))
+
 ## v2.83.0 — 2026-11-26
 
 - **Editor: the channel mapping of a Send or MultiConvolution card folds down

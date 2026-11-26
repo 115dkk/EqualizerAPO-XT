@@ -75,6 +75,7 @@ HEADERS += \
 	../Editor/helpers/WindowFrameHitTest.h \
 	../Editor/widgets/DialogChrome.h \
 	../Editor/widgets/TitleBar.h \
+	../Editor/widgets/ButtonName.h \
 	../Editor/widgets/TitleBarSkin.h \
 	DeviceListDelegate.h \
 	DeviceCaption.h \

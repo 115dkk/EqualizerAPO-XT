@@ -451,7 +451,8 @@ bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QSt
 		qWarning("SkinGallery: could not write %s", qPrintable(fileName));
 		return false;
 	}
-	return true;
+	// The capture is kept either way; a button without a name fails the run.
+	return checkButtonNames(row, fileName) == 0;
 }
 
 int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
