@@ -14,6 +14,19 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   파일 개수로 표시하던 문구도 고쳤습니다.
   ([#542](https://github.com/115dkk/EqualizerAPO-XT/pull/542))
 
+## v2.85.0 — 2026-11-26
+
+- **Hardware Rack: 둘 중 하나를 고르는 스위치를 토글 스위치로 바꿨습니다.**
+  All-pass 카드의 ORDER, Hilbert 카드의 Direction, Velvet 카드의 Mode 스위치는
+  함몰된 뱅크에 가공한 키 둘이 있고, 키마다 램프가 달렸으며, 그 아래에 홈과
+  슬라이드까지 있었습니다. 둘 중 하나를 고르는 일에 비해 부품이 너무
+  많았습니다. 이제 세운 토글 스위치 하나이고, 두 이름은 그 옆에 위아래로
+  인쇄돼 있습니다. 레버 끝이 고른 이름과 같은 높이에 있어 어느 쪽인지 바로
+  알 수 있고, 이름을 눌러도 그 선택지가 골라집니다. Hilbert 카드에서는 +90°가
+  위에 있습니다. 분석 패널에서 지표 셋 중 하나를 고르는 스위치는 키 뱅크
+  그대로입니다.
+  ([#538](https://github.com/115dkk/EqualizerAPO-XT/pull/538))
+
 ## v2.84.3 — 2026-11-26
 
 - **편집기: Hilbert 카드에서 Graph 스위치를 뺐습니다.** All-pass 카드의 것과
@@ -43,6 +56,7 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
   스위치가 남습니다. Hardware Rack 스킨에서는 이 값이 맨 판 위에 표시창의
   초록으로 나와 밝은 마감에서 보기 힘들기도 했습니다.
   ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
+
 
 ## v2.84.0 — 2026-11-26
 
