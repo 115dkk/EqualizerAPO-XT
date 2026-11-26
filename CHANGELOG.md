@@ -14,6 +14,16 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: rebuilding the filter list is about a quarter faster, and the
+  Editor's log no longer gets a line for every filter.** Each time the list
+  was rebuilt (a skin switch, an undo, opening a file) every filter line was
+  parsed again on the window's own thread to decide which card it gets, and
+  each parse appended a trace line to `Editor.log`, opening and closing the
+  file for it. On a 240-line configuration one rebuild took 2.5 s and now
+  takes 1.9 s (medians on one development machine). The engine still writes
+  the same trace lines when it builds its filters.
+  ([#541](https://github.com/115dkk/EqualizerAPO-XT/pull/541))
+
 ## v2.84.1 — 2026-11-26
 
 - **Editor: the all-pass card no longer shows a MAGNITUDE figure or a GRAPH
