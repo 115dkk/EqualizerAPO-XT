@@ -19,6 +19,9 @@
 
 #include <vector>
 #include <QLayout>
+#include <QList>
+#include <QPair>
+#include <QRect>
 #include <QStringList>
 #include <QWidget>
 
@@ -48,6 +51,12 @@ public:
 	// editor on that target's first summand. Default no-op for renderers
 	// without those affordances.
 	virtual void galleryShowcase(const QString& state) { Q_UNUSED(state); }
+
+	// EXPERIMENT TOOLING: the outlined parts the last paint drew inside this
+	// widget (crosspoint caps, strip buttons), each with a state word, in
+	// widget coordinates. The probe's outline audit needs their rectangles
+	// because they are not child widgets. Default: none.
+	virtual QList<QPair<QRect, QString>> galleryOutlinedParts() const { return {}; }
 
 	// The sources a view offers to add to target's sum, in the order its
 	// menu or hint lists them; empty for views that have no per-target menu

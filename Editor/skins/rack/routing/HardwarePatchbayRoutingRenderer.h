@@ -33,6 +33,7 @@ public:
 		QWidget* parent, const SkinTokens& tokens);
 
 	QSize sizeHint() const override;
+	QList<QPair<QRect, QString>> galleryOutlinedParts() const override { return paintedParts; }
 
 protected:
 	void paintEvent(QPaintEvent*) override;
@@ -46,6 +47,8 @@ private:
 	QRect stripRect() const;
 
 	int stripH = 34;
+	// EXPERIMENT TOOLING: the caps the last paint drew (galleryOutlinedParts).
+	QList<QPair<QRect, QString>> paintedParts;
 };
 
 class HardwarePatchbayRoutingRenderer : public IRoutingRenderer

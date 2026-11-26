@@ -71,6 +71,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	const bool dark = skinTokens.dark;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
+	paintedParts.clear();
 
 	// Brushed metal panel background.
 	QLinearGradient panel(0, 0, 0, height());
@@ -156,6 +157,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			p.setPen(capInk);
 			p.drawText(cap, Qt::AlignCenter, capText);
 		}
+		paintedParts.append({ cap, latched ? QStringLiteral("checked") : QString() });
 	};
 
 	removeRects.clear();
@@ -209,6 +211,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 				p.setBrush(RackPalette::CapDimple(dark));
 				p.setPen(Qt::NoPen);
 				p.drawEllipse(cap.center() + QPoint(1, 1), 2, 2);
+				paintedParts.append({ cap, QStringLiteral("cell") });
 				continue;
 			}
 
@@ -241,6 +244,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			p.setBrush(face);
 			p.setPen(QPen(edge, 1));
 			p.drawRoundedRect(cap, 2, 2);
+			paintedParts.append({ cap, QStringLiteral("cell checked") });
 			p.setPen(QPen(bevelTop, 1));
 			p.drawLine(cap.left() + 2, cap.top() + 1, cap.right() - 2, cap.top() + 1);
 			p.setPen(QPen(bevelBottom, 1));

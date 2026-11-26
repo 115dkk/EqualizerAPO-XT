@@ -51,6 +51,7 @@
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QScrollBar>
+#include <QSet>
 #include <QSpinBox>
 #include <QStringList>
 #include <QStyleOption>
@@ -1648,6 +1649,161 @@ void renderRoutingSectionScene(SkinRenderContext& ctx)
 	}
 }
 
+// EXPERIMENT TOOLING: one record per outlined part of a probe capture (caps,
+// chips, fields, combos and their drop-down button, check-box frames, row
+// frames, and the caps a routing view paints), so the outline audit script
+// can find every side of every part in the capture's pixels.
+struct ProbePart
+{
+	int row = -1;
+	QString cls;
+	QString name;
+	QString state;
+	QString props;
+	QRect rect;
+	bool clipped = false;
+};
+
+int probeRowIndex(const QWidget* w, const QList<FilterCardRow*>& rows)
+{
+	for (const QWidget* p = w; p != nullptr; p = p->parentWidget())
+	{
+		for (int i = 0; i < rows.size(); i++)
+			if (rows[i] == p)
+				return i;
+	}
+	return -1;
+}
+
+QString probeWidgetState(const QWidget* w)
+{
+	QStringList state;
+	state.append(w->isEnabled() ? QStringLiteral("enabled") : QStringLiteral("disabled"));
+	if (const QAbstractButton* button = qobject_cast<const QAbstractButton*>(w))
+	{
+		if (button->isChecked())
+			state.append(QStringLiteral("checked"));
+		if (button->isDown())
+			state.append(QStringLiteral("down"));
+	}
+	if (w->testAttribute(Qt::WA_UnderMouse))
+		state.append(QStringLiteral("hover"));
+	if (w->hasFocus())
+		state.append(QStringLiteral("focus"));
+	return state.join(QLatin1Char(' '));
+}
+
+QString probeWidgetProps(const QWidget* w)
+{
+	QStringList props;
+	for (const QByteArray& name : w->dynamicPropertyNames())
+	{
+		const QVariant value = w->property(name.constData());
+		if (value.typeId() == QMetaType::Bool || value.typeId() == QMetaType::QString)
+			props.append(QString::fromLatin1(name) + QLatin1Char('=') + value.toString());
+	}
+	QString text = props.join(QLatin1Char(','));
+	text.replace(QLatin1Char('\t'), QLatin1Char(' '));
+	text.replace(QLatin1Char('\n'), QLatin1Char(' '));
+	return text;
+}
+
+QList<ProbePart> collectProbeParts(QWidget* captureRoot, const QList<FilterCardRow*>& rows)
+{
+	QList<ProbePart> parts;
+	for (QWidget* w : captureRoot->findChildren<QWidget*>())
+	{
+		if (!w->isVisibleTo(captureRoot) || w->width() <= 0 || w->height() <= 0)
+			continue;
+		const QPoint origin = w->mapTo(captureRoot, QPoint(0, 0));
+		// What the ancestors' rectangles leave visible of a part (a routing
+		// view inside its scroll area can be cut at an edge).
+		QRect visible(QPoint(0, 0), captureRoot->size());
+		for (QWidget* p = w->parentWidget(); p != nullptr && p != captureRoot; p = p->parentWidget())
+			visible &= QRect(p->mapTo(captureRoot, QPoint(0, 0)), p->size());
+		const auto add = [&](const QString& cls, const QRect& local, const QString& extraState) {
+			ProbePart part;
+			part.row = probeRowIndex(w, rows);
+			part.cls = cls;
+			part.name = w->objectName();
+			part.state = probeWidgetState(w) + extraState;
+			part.props = probeWidgetProps(w);
+			part.rect = local.translated(origin);
+			part.clipped = (part.rect & visible) != part.rect;
+			parts.append(part);
+		};
+		if (QCheckBox* box = qobject_cast<QCheckBox*>(w))
+		{
+			QStyleOptionButton opt;
+			opt.initFrom(box);
+			opt.text = box->text();
+			opt.icon = box->icon();
+			opt.iconSize = box->iconSize();
+			add(QStringLiteral("QCheckBox::indicator"),
+				box->style()->subElementRect(QStyle::SE_CheckBoxIndicator, &opt, box), QString());
+		}
+		else if (QComboBox* combo = qobject_cast<QComboBox*>(w))
+		{
+			add(QStringLiteral("QComboBox"), w->rect(), QString());
+			QStyleOptionComboBox opt;
+			opt.initFrom(combo);
+			opt.editable = combo->isEditable();
+			opt.frame = combo->hasFrame();
+			opt.currentText = combo->currentText();
+			opt.subControls = QStyle::SC_All;
+			add(QStringLiteral("QComboBox::drop-down"),
+				combo->style()->subControlRect(QStyle::CC_ComboBox, &opt, QStyle::SC_ComboBoxArrow, combo), QString());
+		}
+		else if (qobject_cast<QAbstractButton*>(w) != nullptr || qobject_cast<QAbstractSpinBox*>(w) != nullptr)
+		{
+			add(QString::fromLatin1(w->metaObject()->className()), w->rect(), QString());
+		}
+		else if (qobject_cast<QLineEdit*>(w) != nullptr)
+		{
+			// The line edit inside a spin box or an editable combo is that
+			// control's field, recorded with its owner.
+			if (qobject_cast<QAbstractSpinBox*>(w->parentWidget()) == nullptr
+				&& qobject_cast<QComboBox*>(w->parentWidget()) == nullptr)
+				add(QStringLiteral("QLineEdit"), w->rect(), QString());
+		}
+		else if (qobject_cast<QFrame*>(w) != nullptr && w->objectName() == QLatin1String("FilterCardRow"))
+		{
+			add(QStringLiteral("QFrame"), w->rect(), QString());
+		}
+		else if (RoutingView* view = qobject_cast<RoutingView*>(w))
+		{
+			for (const QPair<QRect, QString>& painted : view->galleryOutlinedParts())
+				add(QStringLiteral("RoutingCap"), painted.first,
+					painted.second.isEmpty() ? QString() : QLatin1Char(' ') + painted.second);
+		}
+	}
+	return parts;
+}
+
+void writeProbeSidecar(const QString& path, const QList<ProbePart>& parts)
+{
+	QFile file(path);
+	if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate))
+	{
+		qWarning("PROBE cannot write %s", qPrintable(path));
+		return;
+	}
+	QByteArray out("row\tclass\tname\tstate\tprops\tx\ty\tw\th\tclipped\n");
+	for (const ProbePart& part : parts)
+	{
+		out += QStringLiteral("%1\t%2\t%3\t%4\t%5\t%6\t%7\t%8\t%9\t")
+				   .arg(part.row)
+				   .arg(part.cls, part.name, part.state, part.props)
+				   .arg(part.rect.x())
+				   .arg(part.rect.y())
+				   .arg(part.rect.width())
+				   .arg(part.rect.height())
+				   .toUtf8();
+		out += part.clipped ? "1\n" : "0\n";
+	}
+	file.write(out);
+}
+
 // EXPERIMENT TOOLING: documents named by a spec file, rendered as whole
 // tables (EAPO_GALLERY_PROBE). One spec per line:
 //   name|channel count|channel mask (hex)|viewport width|line 1;;line 2;;...
@@ -1696,8 +1852,113 @@ void renderProbeScenes(SkinRenderContext& ctx)
 		qWarning("PROBE %s %s %s: rows %s, table %dx%d, sideways bars %d", qPrintable(ctx.skinId), qPrintable(ctx.mode),
 			qPrintable(parts[0]), qPrintable(heights.join(QLatin1Char(','))),
 			table != nullptr ? table->width() : -1, table != nullptr ? table->height() : -1, bars);
-		if (table != nullptr)
-			saveGrab(table, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("probe"), parts[0]);
+		if (table == nullptr)
+			continue;
+		const QString base = QStringLiteral("%1_%2_probe_%3").arg(ctx.skinId, ctx.mode, parts[0]);
+		saveGrab(table, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("probe"), parts[0]);
+		writeProbeSidecar(ctx.outDir.filePath(base + QStringLiteral(".tsv")), collectProbeParts(table, rows));
+
+		// The lit states, one representative per class and row, all in one
+		// capture: hover through the attribute :hover reads, pressed through
+		// setDown. The second row is selected and the fourth row's frame
+		// takes the hover at the same time, for the row frame's own states.
+		QList<QWidget*> reps;
+		QSet<QString> seen;
+		for (QWidget* w : table->findChildren<QWidget*>())
+		{
+			if (!w->isVisibleTo(table) || !w->isEnabled() || w->width() <= 0)
+				continue;
+			const bool part = qobject_cast<QAbstractButton*>(w) != nullptr || qobject_cast<QComboBox*>(w) != nullptr
+				|| (qobject_cast<QLineEdit*>(w) != nullptr && qobject_cast<QComboBox*>(w->parentWidget()) == nullptr
+					&& qobject_cast<QAbstractSpinBox*>(w->parentWidget()) == nullptr)
+				|| qobject_cast<QAbstractSpinBox*>(w) != nullptr;
+			if (!part)
+				continue;
+			const QAbstractButton* button = qobject_cast<QAbstractButton*>(w);
+			const QString key = QStringLiteral("%1|%2|%3|%4").arg(QString::fromLatin1(w->metaObject()->className()),
+				w->objectName(), button != nullptr && button->isChecked() ? QStringLiteral("1") : QStringLiteral("0"))
+				.arg(probeRowIndex(w, rows));
+			if (seen.contains(key))
+				continue;
+			seen.insert(key);
+			reps.append(w);
+		}
+		if (rows.size() > 3)
+		{
+			table->selectOnlyFromCard(table->documentItems().at(1));
+			rows[3]->setAttribute(Qt::WA_UnderMouse, true);
+			if (QFrame* frame = rows[3]->findChild<QFrame*>(QStringLiteral("FilterCardRow")))
+				frame->setAttribute(Qt::WA_UnderMouse, true);
+			rows[3]->update();
+		}
+		for (QWidget* w : reps)
+		{
+			w->setAttribute(Qt::WA_UnderMouse, true);
+			w->update();
+		}
+		QApplication::processEvents();
+		saveGrab(table, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("probe"), parts[0] + QStringLiteral("-hover"));
+		QList<ProbePart> hoverParts = collectProbeParts(table, rows);
+		if (rows.size() > 3)
+		{
+			for (ProbePart& part : hoverParts)
+				if (part.name == QLatin1String("FilterCardRow") && part.row == 1)
+					part.state += QStringLiteral(" selected");
+		}
+		writeProbeSidecar(ctx.outDir.filePath(base + QStringLiteral("-hover.tsv")), hoverParts);
+		for (QWidget* w : reps)
+		{
+			w->setAttribute(Qt::WA_UnderMouse, false);
+			if (QAbstractButton* button = qobject_cast<QAbstractButton*>(w))
+				if (qobject_cast<QCheckBox*>(w) == nullptr)
+					button->setDown(true);
+			w->update();
+		}
+		if (rows.size() > 3)
+		{
+			rows[3]->setAttribute(Qt::WA_UnderMouse, false);
+			if (QFrame* frame = rows[3]->findChild<QFrame*>(QStringLiteral("FilterCardRow")))
+				frame->setAttribute(Qt::WA_UnderMouse, false);
+		}
+		QApplication::processEvents();
+		saveGrab(table, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("probe"), parts[0] + QStringLiteral("-pressed"));
+		writeProbeSidecar(ctx.outDir.filePath(base + QStringLiteral("-pressed.tsv")), collectProbeParts(table, rows));
+		for (QWidget* w : reps)
+			if (QAbstractButton* button = qobject_cast<QAbstractButton*>(w))
+				button->setDown(false);
+		QApplication::processEvents();
+
+		// Keyboard focus, one representative at a time; only the row that
+		// holds it is captured. A part the offscreen window cannot focus is
+		// named instead of guessed.
+		if (specLine != specs.first())
+			continue;
+		scrollArea.activateWindow();
+		QApplication::processEvents();
+		int shot = 0;
+		for (QWidget* w : reps)
+		{
+			if ((w->focusPolicy() & Qt::TabFocus) == 0)
+				continue;
+			const int rowIndex = probeRowIndex(w, rows);
+			if (rowIndex < 0)
+				continue;
+			w->setFocus(Qt::TabFocusReason);
+			QApplication::processEvents();
+			if (!w->hasFocus())
+			{
+				qWarning("PROBE-FOCUS unreachable %s %s row %d", w->metaObject()->className(),
+					qPrintable(w->objectName()), rowIndex);
+				continue;
+			}
+			const QString name = QStringLiteral("%1-focus-%2").arg(base).arg(shot++, 3, 10, QLatin1Char('0'));
+			rows[rowIndex]->grab().save(ctx.outDir.filePath(name + QStringLiteral(".png")), "PNG");
+			QList<ProbePart> focusParts;
+			for (const ProbePart& part : collectProbeParts(rows[rowIndex], rows))
+				if (part.state.contains(QLatin1String("focus")))
+					focusParts.append(part);
+			writeProbeSidecar(ctx.outDir.filePath(name + QStringLiteral(".tsv")), focusParts);
+		}
 	}
 }
 
