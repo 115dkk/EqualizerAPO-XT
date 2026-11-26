@@ -23,6 +23,12 @@
     <ClCompile Include="EditorLogicTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="PluginUiThreadBridgeTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="..\..\Editor\helpers\PluginUiThreadBridge.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="AnalysisResponseTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -287,6 +293,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\FilterPickerModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\helpers\PluginUiThreadBridge.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\helpers\VstChunkScan.h">

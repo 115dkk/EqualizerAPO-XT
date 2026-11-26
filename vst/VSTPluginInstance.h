@@ -36,13 +36,20 @@
 #include "platform/windows/StackGuarantee.h"
 
 class VSTPluginLibrary;
+class VSTPluginInstance;
+
+struct VSTPluginInstanceDeleter
+{
+	void operator()(VSTPluginInstance* instance) const noexcept;
+};
+using VSTPluginInstancePtr = std::unique_ptr<VSTPluginInstance, VSTPluginInstanceDeleter>;
 
 class VSTPluginInstance
 {
 public:
 	enum class ProcessLevel { User = 1, Realtime = 2 };
 	// Picks the format once. This header deliberately includes no VST SDK.
-	static std::unique_ptr<VSTPluginInstance> create(
+	static VSTPluginInstancePtr create(
 		const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 	bool isVST3() const;
 
@@ -55,7 +62,7 @@ public:
 		Refused,
 		StructuredException
 	};
-	virtual bool initialize() = 0;
+	bool initialize();
 	virtual InitializationFailure initializationFailure() const {return InitializationFailure::Refused;}
 
 	virtual int numInputs() const = 0;
@@ -226,6 +233,7 @@ public:
 	void setSizeWindowFunc(std::function<void(int, int)> func) { sizeWindowFunc = std::move(func); }
 
 protected:
+	virtual bool initializeImpl() = 0;
 	virtual bool prepareProcessingImpl(float sampleRate, int blockSize) = 0;
 	// Derived destructors call this before releasing any plug-in object; the
 	// base destructor would be too late to suppress teardown callbacks.

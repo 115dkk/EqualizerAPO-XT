@@ -84,6 +84,53 @@ When touching this area keep the two schemes distinct: the library mutexes
 protect *which modules exist*, the instance scheme protects *one component's
 state hand-off between the control and audio threads*.
 
+## UI-thread initialization and retirement
+
+In the Editor, `PluginUiThread` routes each instance's initialization and
+final destruction to the application's UI thread. A plug-in can bind its
+message thread when its first live component initializes; loading its library
+on the UI thread alone does not establish that binding. Analysis can create
+the first instance before a card exists, so the rule applies to analysis
+instances as well as card instances.
+
+`VSTPluginInstance::initialize()` is the non-virtual entry point. Its
+`initializeImpl()` runs through the runner, and a work exception is rethrown
+on the requesting thread. `VSTPluginInstancePtr` retains a custom deleter,
+including when converted to `shared_ptr`; destruction from a worker posts a
+retirement instead of waiting. A refused retirement falls back to inline
+deletion. Without an installed runner, both operations remain inline, as in
+the APO, Benchmark and other non-Editor hosts. Library loading, negotiation,
+state, preparation and processing stay on their existing threads.
+
+The Editor installs `PluginUiThreadBridge` after each QApplication is created,
+before the headless modes or normal window can load a plug-in. The bridge uses
+one FIFO for synchronous calls and asynchronous retirements. It executes work
+without its queue mutex and does not re-enter its drain loop. The analysis
+shutdown wait services that FIFO between short waits, retaining the existing
+five-second deadline and ProcessShutdown policy. Uninstallation stops new
+queue entries, drains accepted work, removes the runner, and waits for callers
+using the registration to return before deleting the bridge.
+
+The analysis request/result mutex is not held during engine construction or
+destruction. Its engine's load mutex is private to that engine. Library-cache,
+library-initialization and logging locks are released before an instance asks
+for UI initialization; FFTW planning sessions do not span VST initialization.
+The filter stops processing before retiring its instances. Instances retain
+their library and processing workspace, and their destructors clear callbacks
+before releasing plug-in objects; they do not require a surviving filter.
+
+The UI runner cannot preempt third-party code. If initialization or destruction
+itself hangs on the UI thread, a drain call cannot return to check the shutdown
+deadline. The routing prevents the known wrong-thread binding, not arbitrary
+plug-in hangs or loader-lock stalls.
+
+`Vst3HostTests` uses a thread-bound companion module and a real FilterEngine on
+a worker. It checks the no-runner failure, successful hidden-panel attachment,
+three create/destroy cycles, both worker lifetimes, exception propagation,
+refusal, retirement and FIFO ordering. `VstPreviewProbe --panel` installs a
+console UI runner by default; `--no-ui-runner` retains the negative control.
+The real Editor window with a real plug-in still needs manual verification.
+
 ## Manual repro / verification
 
 Automated testing is impractical: the crash is a nondeterministic data race that

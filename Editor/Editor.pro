@@ -141,6 +141,7 @@ SOURCES += main.cpp\
 	helpers/FileDialogShellMenu.cpp \
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
+	helpers/PluginUiThreadBridge.cpp \
 	helpers/PluginLoadQueue.cpp \
 	helpers/BackgroundProbe.cpp \
 	helpers/SpinBoxEditFieldFix.cpp \
@@ -282,6 +283,7 @@ SOURCES += main.cpp\
 	../filters/VSTChannelPlan.cpp \
 	../filters/VSTPluginFilter.cpp \
 	../filters/VSTPluginFilterFactory.cpp \
+	../vst/PluginUiThread.cpp \
 	../vst/VSTPluginInstance.cpp \
 	../vst/VST2Instance.cpp \
 	../vst/VST3Instance.cpp \
@@ -461,6 +463,7 @@ HEADERS  += \
 	helpers/PanelFeedEngine.h \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
+	helpers/PluginUiThreadBridge.h \
 	helpers/PluginLoadQueue.h \
 	helpers/BackgroundProbe.h \
 	helpers/TroubleshootingNotices.h \
@@ -661,6 +664,7 @@ HEADERS  += \
 	../filters/VSTChannelPlan.h \
 	../filters/VSTPluginFilter.h \
 	../filters/VSTPluginFilterFactory.h \
+	../vst/PluginUiThread.h \
 	../vst/VSTPluginInstance.h \
 	../vst/VST3Instance.h \
 	../vst/VST3HostContext.h \

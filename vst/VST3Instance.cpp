@@ -35,7 +35,7 @@ using namespace std;
 using namespace Steinberg;
 using namespace Steinberg::Vst;
 
-bool VST3Instance::initialize()
+bool VST3Instance::initializeImpl()
 {
 	vst3HostContext = IPtr<VST3HostContext>::adopt(new VST3HostContext(this));
 

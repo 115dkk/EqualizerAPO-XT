@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: opening a plug-in's panel could freeze the Editor for good.**
+  It happened with plug-ins built on the JUCE framework. Such a plug-in can
+  only show its panel from the thread that first set it up, and the Editor's
+  response analysis could get there before the plug-in's card did; the panel
+  then waited for a thread that never answers. The Editor now sets up and
+  tears down every plug-in instance on the thread its windows live on.
+  ([#544](https://github.com/115dkk/EqualizerAPO-XT/pull/544))
+
 ## v2.85.1 — 2026-11-26
 
 - **Editor: importing a VST3 plug-in folder (bundle) reported a missing file

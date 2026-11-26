@@ -47,7 +47,9 @@ public:
 	VST3Instance(const std::shared_ptr<VSTPluginLibrary>& library, VSTPluginInstance::ProcessLevel processLevel);
 	~VST3Instance() override;
 
-	bool initialize() override;
+protected:
+	bool initializeImpl() override;
+public:
 
 	int numInputs() const override;
 	int numOutputs() const override;
