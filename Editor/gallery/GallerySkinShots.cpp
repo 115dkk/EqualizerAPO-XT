@@ -1357,7 +1357,7 @@ void renderGraphScenes(SkinRenderContext& ctx)
 	}
 
 	// The two-option form every card editor uses (the all-pass ORDER, the
-	// Hilbert Direction and Graph, the Velvet Mode), in the same five states.
+	// Hilbert Direction, the Velvet Mode), in the same five states.
 	// The pointer and the focused states rest on the first option with the
 	// pointer on the second, the one a click would move to.
 	{
