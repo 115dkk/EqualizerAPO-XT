@@ -222,7 +222,7 @@ QPushButton:pressed {
     border-color: @ACCENT@;
 }
 QPushButton:default { border: 1px solid @ACCENT@; }
-QPushButton:disabled { color: #A99F8E; background: #E2DCCE; border-color: #C9C0AC; }
+QPushButton:disabled { color: #A99F8E; background: #E2DCCE; border-color: #B4A890; }
 
 /* Inputs are recessed wells milled into the plate. */
 QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
@@ -566,7 +566,7 @@ QToolButton#FilterCardIconButton:checked {
    dead cap cannot relight it (Qt still reports hover on disabled widgets). */
 QToolButton#FilterCardIconButton:disabled {
     background: #E2DCCE; color: #A99F8E;
-    border-color: #C9C0AC; border-top-color: #C9C0AC;
+    border-color: #B4A890; border-top-color: #B4A890;
 }
 QLineEdit#FilterCardRawEditor { background: #E5E1D7; border: 1px solid @ACCENT@; border-radius: 2px; padding: 4px 8px; font-family: @MONO_STACK@; }
 QCheckBox#FilterCardEnabled { background: transparent; }
@@ -630,7 +630,7 @@ QToolButton#FilterCardIconButton[rackLocate="true"] {
    its lettering go dark with the rest of the cap (the lit rule above ties
    this one on specificity; order decides, so it must follow). */
 QToolButton#FilterCardIconButton[rackLocate="true"]:disabled {
-    color: #A99F8E; border-color: #C9C0AC; border-top-color: #C9C0AC;
+    color: #A99F8E; border-color: #B4A890; border-top-color: #B4A890;
 }
 /* A reference card's worded actions that come as tool buttons (Subwoofer
    Routing's "Open editor" and "Preset") are the panel's machine keys, like
@@ -657,7 +657,7 @@ QToolButton#FilterCardIconButton[refActionRole="preset"]:pressed {
 }
 QToolButton#FilterCardIconButton[refActionRole="openPanel"]:disabled,
 QToolButton#FilterCardIconButton[refActionRole="preset"]:disabled {
-    color: #A99F8E; background: #E2DCCE; border-color: #C9C0AC;
+    color: #A99F8E; background: #E2DCCE; border-color: #B4A890;
 }
 /* MultiConvolution's channel-mapping strip: the caption is engraved plate
    printing (uppercase tracking like the other rack captions), the hint is
@@ -713,7 +713,7 @@ QToolButton#GraphicEQActionButton:pressed {
     border-color: @ACCENT@;
     padding: 3px 4px 1px 4px;
 }
-QToolButton#GraphicEQActionButton:disabled { background: #E2DCCE; border-color: #C9C0AC; }
+QToolButton#GraphicEQActionButton:disabled { background: #E2DCCE; border-color: #B4A890; }
 
 /* ── Update toast: the service notice shelf ──────────────────────────────
    The widget paints its own token card (raised surface, hairline border,
@@ -887,7 +887,7 @@ QToolButton#DeviceChip[deviceInput="true"] {
 /* Unwired endpoint (APO not installed) = flat blank position, recedes. */
 QToolButton#DeviceChip[deviceInstalled="false"] {
     background: #E4DFD2;
-    border: 1px solid #C4BBA6; border-top-color: #C4BBA6;
+    border: 1px solid #AFA288;
     color: #9A917F;
 }
 
@@ -960,14 +960,14 @@ QToolButton#DeviceChip[allDevices="true"]:checked:disabled {
 /* Powered down: dim film, lamp off. Type-blind. */
 QToolButton#DeviceChip:disabled {
     background: #E2DCCE;
-    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    border: 1px solid #B4A890; border-top-color: #B4A890;
     color: #A99F8E;
 }
 /* Routed but powered down (0x121): faint warm memory of the lamp, still
    sitting in the latched position. */
 QToolButton#DeviceChip:checked:disabled {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6D6B2, stop:1 #EEE2C5);
-    border: 1px solid #C49A4A; border-top-color: #AA853E;
+    border: 1px solid #C49A4A;
     color: #9A7A3A;
     padding: 4px 9px 2px 9px;
 }
@@ -975,7 +975,7 @@ QToolButton#DeviceChip:checked:disabled {
 QToolButton#DeviceChip[deviceInput="true"]:disabled,
 QToolButton#DeviceChip[deviceInstalled="false"]:disabled {
     background: #E2DCCE;
-    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    border: 1px solid #B4A890; border-top-color: #B4A890;
     color: #A99F8E;
 }
 /* Routed capture/blank powered down (0x131): warm memory, latched
@@ -983,7 +983,7 @@ QToolButton#DeviceChip[deviceInstalled="false"]:disabled {
 QToolButton#DeviceChip[deviceInput="true"]:checked:disabled,
 QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E6D6B2, stop:1 #EEE2C5);
-    border: 1px solid #C49A4A; border-top-color: #AA853E;
+    border: 1px solid #C49A4A;
     color: #9A7A3A;
     padding: 4px 9px 2px 9px;
 }
@@ -992,7 +992,7 @@ QToolButton#DeviceChip[deviceInstalled="false"]:checked:disabled {
 QToolButton#DeviceChipMore {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E5E0D5, stop:1 #E6DECC);
     color: @MUTED@;
-    border: 1px solid #C4BBA6;
+    border: 1px solid #AFA288;
     border-radius: 2px;
     padding: 3px 9px; min-height: 20px;
     font-weight: 700; font-size: 9pt;
@@ -1002,11 +1002,11 @@ QToolButton#DeviceChipMore:hover { border-color: @ACCENT@; color: #5C3A00; }
 QToolButton#DeviceChipMore:checked,
 QToolButton#DeviceChipMore:pressed {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #E6DFCF);
-    border: 1px solid #AFA288; border-top-color: #B8AC92;
+    border: 1px solid #AFA288;
     color: @TEXT@;
     padding: 4px 9px 2px 9px;
 }
-QToolButton#DeviceChipMore:disabled { background: #E2DCCE; border-color: #C9C0AC; color: #A99F8E; }
+QToolButton#DeviceChipMore:disabled { background: #E2DCCE; border-color: #B4A890; color: #A99F8E; }
 
 /* ── Channel card: the CHANNEL ASSIGN key row ────────────────────────────
    Compact machined assign keys for the signal's seats. A taken seat
@@ -1031,36 +1031,40 @@ QToolButton#NewChannelChip:hover {
     color: #7A4A05;
 }
 /* A taken seat: the key latches down and the under-cap lamp lights. */
+/* Rule 12: the engaged key keeps its 2 px lamp row at the bottom and the
+   other three sides take the same lamp colour (2026-11-27 pixel audit:
+   only the bottom edge lit before). Powered-down caps use #B4A890, which
+   stands off the filmed plate where #C9C0AC did not. */
 QToolButton#ChannelChip:checked {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #D8CFBB, stop:1 #E6DFCF);
-    border: 1px solid #AFA288; border-top-color: #B8AC92;
+    border: 1px solid @ACCENT@;
     border-bottom: 2px solid @ACCENT@;
     color: #4A2E00;
 }
 QToolButton#ChannelChip:disabled,
 QToolButton#NewChannelChip:disabled {
     background: #E2DCCE;
-    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    border: 1px solid #B4A890; border-top-color: #B4A890;
     color: #A99F8E;
 }
 /* A taken seat that loses power: latched cap, dim amber memory. */
 QToolButton#ChannelChip:checked:disabled {
     background: #DED6C6;
-    border: 1px solid #C9C0AC; border-top-color: #BFB5A0;
+    border: 1px solid #C49A4A;
     border-bottom: 2px solid #C49A4A;
     color: #9A7A3A;
 }
 /* Master ALL engaged (0x121): the green bus lamp under the cap. */
 QToolButton#ChannelChip[allChannels="true"]:checked {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #CEE3D7, stop:1 #D6E2DA);
-    border: 1px solid #AFA288; border-top-color: #B8AC92;
+    border: 1px solid @ACCENT2@;
     border-bottom: 2px solid @ACCENT2@;
     color: #0C3A28;
 }
 /* Powered-down master (0x131): dim green memory, never amber. */
 QToolButton#ChannelChip[allChannels="true"]:checked:disabled {
     background: #DED6C6;
-    border: 1px solid #C9C0AC; border-top-color: #BFB5A0;
+    border: 1px solid #7FA98E;
     border-bottom: 2px solid #7FA98E;
     color: #5F8A75;
 }
@@ -1069,7 +1073,7 @@ QToolButton#ChannelChip[allChannels="true"]:checked:disabled {
 QToolButton#ChannelChip[customChannel="true"],
 QToolButton#NewChannelChip {
     background: transparent;
-    border: 1px dashed #B4A890;
+    border: 1px dashed #AFA288;
     color: @MUTED@;
 }
 QToolButton#ChannelChip[customChannel="true"]:hover,
@@ -1082,19 +1086,19 @@ QToolButton#NewChannelChip:hover {
    under them is real. */
 QToolButton#ChannelChip[customChannel="true"]:checked {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 rgba(182, 106, 0, 0.05), stop:1 rgba(182, 106, 0, 0.14));
-    border: 1px dashed #C49A4A;
+    border: 1px dashed @ACCENT@;
     border-bottom: 2px solid @ACCENT@;
     color: #4A2E00;
 }
 QToolButton#ChannelChip[customChannel="true"]:disabled,
 QToolButton#NewChannelChip:disabled {
     background: transparent;
-    border: 1px dashed #D2C9B6;
+    border: 1px dashed #B4A890;
     color: #A99F8E;
 }
 QToolButton#ChannelChip[customChannel="true"]:checked:disabled {
     background: transparent;
-    border: 1px dashed #CBA96A;
+    border: 1px dashed #C49A4A;
     border-bottom: 2px solid #C49A4A;
     color: #9A7A3A;
 }
@@ -1171,13 +1175,13 @@ QToolButton#StageChip:checked {
 }
 QToolButton#StageChip:disabled {
     background: #E2DCCE;
-    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    border: 1px solid #B4A890; border-top-color: #B4A890;
     color: #A99F8E;
 }
 /* Engaged but powered down: the jewel dims to a warm memory. */
 QToolButton#StageChip:checked:disabled {
     background: #ECE1C7;
-    border: 1px solid #C9B896; border-top: 2px solid #C49A4A;
+    border: 1px solid #C49A4A; border-top: 2px solid #C49A4A;
     color: #9A7A3A;
 }
 /* Capture inserts on the input side: a recessed well at rest, with the
@@ -1200,12 +1204,12 @@ QToolButton#StageChip[stage="capture"]:checked {
 }
 QToolButton#StageChip[stage="capture"]:disabled {
     background: #E2DCCE;
-    border: 1px solid #C9C0AC; border-top-color: #C9C0AC;
+    border: 1px solid #B4A890; border-top-color: #B4A890;
     color: #A99F8E;
 }
 QToolButton#StageChip[stage="capture"]:checked:disabled {
     background: #ECE1C7;
-    border: 1px solid #C9B896; border-top: 2px solid #C49A4A;
+    border: 1px solid #C49A4A; border-top: 2px solid #C49A4A;
     color: #9A7A3A;
 }
 /* Unknown selectors: a printed service tag in warning ink - wireframe,
@@ -1245,7 +1249,7 @@ QLabel#HilbertReadout {
 QLabel#CardValidationMessage { color: @DANGER@; font-weight: 700; }
 QToolButton#VelvetAdvancedToggle {
     min-height: 28px; padding: 0 10px; color: @MUTED@;
-    background: transparent; border: 1px solid @BORDER@;
+    background: transparent; border: 1px solid #AFA288;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
 
