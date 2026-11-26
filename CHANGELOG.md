@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: the Hilbert card no longer has a GRAPH switch.** Like the
+  all-pass card's, it did not change the filter: it asked the analysis panel
+  to show phase or group delay, and the panel has that switch itself. In every
+  skin the card keeps its Direction switch, its readouts and its channel lists.
+  ([#540](https://github.com/115dkk/EqualizerAPO-XT/pull/540))
+
 ## v2.84.2 — 2026-11-26
 
 - **Editor: rebuilding the filter list is about a quarter faster, and the
