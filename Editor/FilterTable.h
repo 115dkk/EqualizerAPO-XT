@@ -79,7 +79,14 @@ public:
 	enum RenderMode
 	{
 		ModernCards,
-		LegacyRows
+		LegacyRows,
+		// Experiment (EAPO_MODERN_ROWS): the same card editors and decisions
+		// as ModernCards, but every line is built as one row with its header
+		// controls at its left, never mixed with cards in one list. Only a
+		// skin that supports it (ISkin::supportsRowMode) gets it; elsewhere
+		// the table runs as ModernCards. Listed last so the values the view
+		// menu stores for the other two stay the same.
+		ModernRows
 	};
 
 	// The document/selection state lives in the widget-free FilterListModel
@@ -207,6 +214,16 @@ public:
 	void updateAnalysis();
 	void setRenderMode(RenderMode mode);
 	RenderMode getRenderMode() const;
+	// The mode rows are built in: ModernCards becomes ModernRows while
+	// EAPO_MODERN_ROWS is set and the active skin supports rows, and
+	// ModernRows falls back to ModernCards under a skin that does not.
+	// Asked when rows are built; a skin switch rebuilds every row.
+	RenderMode effectiveRenderMode() const;
+	// True for both modes that build FilterCardRow widgets.
+	bool usesCardRows() const
+	{
+		return renderMode != LegacyRows;
+	}
 
 	// Facts from the analysis engine's most recent configuration load,
 	// filtered by the caller to this table's file.

@@ -79,7 +79,7 @@ public:
 	QString cardHeaderStyle(const CommandRowInfo& info) const;
 	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
-	bool presentsRowInline(const CommandRowInfo& info, const QWidget* editor) const;
+	bool supportsRowMode() const;
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info) const;
 	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,

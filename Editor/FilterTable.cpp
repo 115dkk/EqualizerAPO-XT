@@ -228,7 +228,7 @@ void FilterTable::updateGuis()
 	for (Item* item : model.items())
 	{
 		FilterCardDescriptor descriptor;
-		if (renderMode == ModernCards)
+		if (usesCardRows())
 			descriptor = row < rowPlans.size()
 				? rowPlans[row].descriptor
 				: FilterCardModel::describeLine(item->text);
@@ -243,7 +243,7 @@ void FilterTable::updateGuis()
 	applyChannelFlow(documentPlan.channelFlow);
 	channelsNs = phaseTimer.nsecsElapsed();
 
-	if (renderMode == ModernCards)
+	if (usesCardRows())
 	{
 		// The skinned "add card" row replaces the legacy green-icon toolbar in
 		// the card path (shared insertion contract, docs/skins/README.md). It
@@ -358,7 +358,7 @@ void FilterTable::insertSeamActivated()
 
 void FilterTable::syncListChrome()
 {
-	if (renderMode != ModernCards)
+	if (!usesCardRows())
 	{
 		if (insertSeam != nullptr)
 			insertSeam->setVisible(false);
@@ -391,7 +391,7 @@ QWidget* FilterTable::buildRow(int index, Item* item, FilterCardDescriptor descr
 	QElapsedTimer phaseTimer;
 	phaseTimer.start();
 	IFilterGUI* gui = createRowGui(item->text,
-		renderMode == ModernCards ? &descriptor : nullptr);
+		usesCardRows() ? &descriptor : nullptr);
 	if (timing != nullptr)
 		timing->guiNs += phaseTimer.nsecsElapsed();
 
@@ -402,7 +402,7 @@ QWidget* FilterTable::buildRow(int index, Item* item, FilterCardDescriptor descr
 	// style re-resolution of the whole subtree (measured ~3 ms per card).
 	// With the parent fixed up front, addWidget() only places the item.
 	phaseTimer.start();
-	QWidget* rowWidget = renderMode == ModernCards
+	QWidget* rowWidget = usesCardRows()
 		? static_cast<QWidget*>(new FilterCardRow(this, index + 1, item, gui, std::move(descriptor), this))
 		: static_cast<QWidget*>(new FilterTableRow(this, index + 1, item, gui));
 	if (timing != nullptr)
@@ -418,7 +418,7 @@ QWidget* FilterTable::buildRow(int index, Item* item, FilterCardDescriptor descr
 		gui->loadPreferences(item->prefs);
 		// A card row writes its line through the document itself
 		// (FilterCardRow), so only the legacy GUIs announce their edit here.
-		if (renderMode != ModernCards)
+		if (!usesCardRows())
 			connect(gui, SIGNAL(updateModel()), this, SLOT(notifyLineEdited()));
 		connect(gui, SIGNAL(updateChannels()), this, SLOT(updateChannels()));
 	}
@@ -428,7 +428,7 @@ QWidget* FilterTable::buildRow(int index, Item* item, FilterCardDescriptor descr
 IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescriptor* preparedDescriptor)
 {
 	FilterCardDescriptor derivedDescriptor;
-	if (renderMode == ModernCards && preparedDescriptor == nullptr)
+	if (usesCardRows() && preparedDescriptor == nullptr)
 	{
 		derivedDescriptor = FilterCardModel::describeLine(line);
 		preparedDescriptor = &derivedDescriptor;
@@ -439,8 +439,8 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 	// what was decided. In card mode the card lookup judges a commented
 	// command line by its uncommented form (rowGuiCardKey), so the decision
 	// is made once and no legacy GUI is built only to be replaced.
-	const RowGuiCardKey cardKey = rowGuiCardKey(renderMode == ModernCards, line);
-	const RowGuiDecision decision = decideRowGui(renderMode == ModernCards, line,
+	const RowGuiCardKey cardKey = rowGuiCardKey(usesCardRows(), line);
+	const RowGuiDecision decision = decideRowGui(usesCardRows(), line,
 		preparedDescriptor,
 		SkinManager::instance()->routingRenderer() != nullptr,
 		cardKey.hasColon && FilterCardEditorFactory::available(cardKey.command, cardKey.parameters));
@@ -492,7 +492,7 @@ IFilterGUI* FilterTable::createRowGui(const QString& line, const FilterCardDescr
 	// decorator is skipped on purpose: the card row already owns the
 	// enable/disable affordance and a second power toolbar inside the body
 	// editor only produces rules that disagree with the card header.
-	if (gui == nullptr || renderMode == ModernCards)
+	if (gui == nullptr || usesCardRows())
 		return gui;
 
 	// The legacy decorator Interface accepts and may adopt a raw child pointer.
@@ -539,7 +539,7 @@ void FilterTable::updateSingleRowGui(Item* item)
 	const FilterCardDocumentPlan documentPlan = FilterCardModel::prepareDocument(
 		getLines(), channelFlowContext());
 	FilterCardDescriptor descriptor;
-	if (renderMode == ModernCards)
+	if (usesCardRows())
 		descriptor = rowIndex < documentPlan.rows.size()
 			? documentPlan.rows[rowIndex].descriptor
 			: FilterCardModel::describeLine(item->text);
@@ -550,7 +550,7 @@ void FilterTable::updateSingleRowGui(Item* item)
 	// changes with it, which this in-place path used to leave stale until the
 	// next full rebuild. updateRowPosition is cheap (in-place, no widget
 	// rebuild) and only re-applies rows whose scope actually changed.
-	if (renderMode == ModernCards && !renumberRowsBelow(rowIndex + 1, documentPlan.rows))
+	if (usesCardRows() && !renumberRowsBelow(rowIndex + 1, documentPlan.rows))
 	{
 		updateGuis();
 		return;
@@ -629,7 +629,7 @@ void FilterTable::insertRowAt(int index)
 	// the rows/toolbar/spacer below one grid row down. Any inconsistency falls
 	// back to the full rebuild, which is always correct.
 	const int itemCount = int(model.items().count());
-	if (renderMode != ModernCards || gridLayout == nullptr || index < 0 || index >= itemCount)
+	if (!usesCardRows() || gridLayout == nullptr || index < 0 || index >= itemCount)
 	{
 		updateGuis();
 		return;
@@ -689,7 +689,7 @@ void FilterTable::removeRowAt(int index)
 	// contains the item; delete only its row widget and shift the cells below
 	// one grid row up. Any inconsistency falls back to the full rebuild.
 	const int itemCount = int(model.items().count());
-	if (renderMode != ModernCards || gridLayout == nullptr || index < 0 || index > itemCount)
+	if (!usesCardRows() || gridLayout == nullptr || index < 0 || index > itemCount)
 	{
 		updateGuis();
 		return;

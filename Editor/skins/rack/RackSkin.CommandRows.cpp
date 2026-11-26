@@ -75,27 +75,12 @@ QString RackSkin::cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) cons
 	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 }
 
-bool RackSkin::presentsRowInline(const CommandRowInfo& info, const QWidget* editor) const
+bool RackSkin::supportsRowMode() const
 {
-	// Experiment, off unless EAPO_MODERN_ROWS is set: units whose controls
-	// fit one line are bolted in as one 1U unit instead of a header strip
-	// over a body. The editor is checked as well as the kind because a
-	// "biquad" row can also hold the IIR coefficient table or the all-pass
-	// card, which are not one line.
-	static const bool enabled = qEnvironmentVariableIsSet("EAPO_MODERN_ROWS");
-	if (!enabled || editor == nullptr)
-		return false;
-	switch (info.kind())
-	{
-	case FilterCardKind::Biquad:
-		return editor->inherits("BiQuadFilterGUI");
-	case FilterCardKind::Preamp:
-		return editor->inherits("PreampCardEditor");
-	case FilterCardKind::Include:
-		return editor->inherits("IncludeCardEditor");
-	default:
-		return false;
-	}
+	// Experiment (the table asks only while EAPO_MODERN_ROWS is set): every
+	// unit can be bolted in as one unit with its controls at the left ear
+	// instead of a header strip over a body.
+	return true;
 }
 
 void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,

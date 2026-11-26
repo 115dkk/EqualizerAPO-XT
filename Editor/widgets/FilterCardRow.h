@@ -144,8 +144,27 @@ private:
 	// editor (#456).
 	bool editorClosedByFocusLoss = false;
 	bool expanded = false;
-	// Decided once, before the frame is built (ISkin::presentsRowInline):
+	// Decided once, before the frame is built (FilterTable::ModernRows):
 	// the row has no header strip, and the header's controls stand at the
-	// left of the editor on the same line.
+	// left of the editor or content on the same line.
 	bool inlineRow = false;
+	// The row mounts an editor (its GUI or the Copy routing view); otherwise
+	// it is a body-less line. Set before the frame is built.
+	bool hasEditor = false;
+	// The inner height of a one-line Filter row: the 66 px knob row plus the
+	// editor wrapper's 4 px margins. The left column of every row with an
+	// editor is this tall, at the row's top.
+	static constexpr int InlineBandHeight = 74;
+	// The fixed title cell after the left column of a row.
+	static constexpr int InlineTitleWidth = 132;
+	// Adds a cell after the left column of a row: in a row with an editor it
+	// sits in the top band, in a body-less row it is centred on the line.
+	void addRowCell(QBoxLayout* layout, QWidget* cell, int stretch);
+	// Whether the row's editor already prints the unit's name, so the title
+	// cell would say it twice.
+	bool rowEditorNamesItself() const;
+	// Puts the title into a row's narrow title cell.
+	void setRowTitle(const QString& title);
+	// Whether the raw line editor is open.
+	bool rawEditing() const;
 };

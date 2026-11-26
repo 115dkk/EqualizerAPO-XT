@@ -144,9 +144,9 @@ void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget
 	// Neutral default: rows keep their stock construction.
 }
 
-bool ISkin::presentsRowInline(const CommandRowInfo&, const QWidget*) const
+bool ISkin::supportsRowMode() const
 {
-	// Neutral default: every row keeps its header strip.
+	// Neutral default: the list stays in cards.
 	return false;
 }
 

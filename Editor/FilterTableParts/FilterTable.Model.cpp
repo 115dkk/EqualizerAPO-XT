@@ -103,7 +103,7 @@ ChannelFlowContext FilterTable::channelFlowContext() const
 void FilterTable::applyChannelFlow(const std::vector<ChannelFlowAtLine>& flow)
 {
 	// Each row widget only reads its own element of the document walk.
-	const QVector<QWidget*> rowWidgets = renderMode == ModernCards
+	const QVector<QWidget*> rowWidgets = usesCardRows()
 		? rowWidgetsByRow() : QVector<QWidget*>();
 	for (int row = 0; row < model.items().size(); row++)
 	{
@@ -155,7 +155,7 @@ void FilterTable::moveRows(const QList<Item*>& itemsInOrder, int dropRow)
 	emit linesChanged();
 
 	// The frozen legacy path keeps the full rebuild.
-	if (renderMode != ModernCards || gridLayout == nullptr)
+	if (!usesCardRows() || gridLayout == nullptr)
 	{
 		updateGuis();
 		return;
@@ -674,5 +674,13 @@ void FilterTable::setRenderMode(RenderMode mode)
 FilterTable::RenderMode FilterTable::getRenderMode() const
 {
 	return renderMode;
+}
+
+FilterTable::RenderMode FilterTable::effectiveRenderMode() const
+{
+	if (renderMode == LegacyRows)
+		return LegacyRows;
+	const bool rowsWanted = renderMode == ModernRows || qEnvironmentVariableIsSet("EAPO_MODERN_ROWS");
+	return rowsWanted && SkinManager::instance()->supportsRowMode() ? ModernRows : ModernCards;
 }
 
