@@ -2770,89 +2770,93 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="139"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="437"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="461"/>
         <source>Graph</source>
         <translation>그래프</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="246"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="270"/>
         <source>Interface</source>
         <translation>인터페이스</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="250"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="274"/>
         <source>Modern cards</source>
         <translation>모던 카드</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="254"/>
         <source>Legacy rows</source>
-        <translation>레거시 행</translation>
+        <translation type="vanished">레거시 행</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="269"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="293"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="270"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="294"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="271"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="295"/>
         <source>Stock Flat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="272"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="296"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="273"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="297"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="303"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="327"/>
         <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="185"/>
         <source>Knob gain range</source>
         <translation>노브 게인 범위</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="308"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="332"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="313"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="371"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="337"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="395"/>
         <source>Custom...</source>
         <translation>사용자 지정...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="332"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="356"/>
         <source>Native title bar</source>
         <translation>기본 제목 표시줄</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="340"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="364"/>
         <source>Windows file dialog</source>
         <translation>Windows 기본 파일 대화상자</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="372"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="396"/>
         <source>Custom (±%1 dB)...</source>
         <translation>사용자 지정 (±%1 dB)...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="285"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="309"/>
         <source>Dark theme</source>
         <translation>어두운 테마</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="323"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="278"/>
+        <source>Legacy editor</source>
+        <translation>레거시 에디터</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="347"/>
         <source>Fullscreen graph</source>
         <translation>그래프 전체화면</translation>
     </message>
