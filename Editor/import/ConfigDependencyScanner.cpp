@@ -267,6 +267,12 @@ ImportManifest ConfigDependencyScanner::scanPluginLibrary(const QString& library
         const QFileInfo info(path);
         if (info.isDir())
         {
+            if (!canListDirectory(path))
+            {
+                manifest.hasErrors = true;
+                manifest.warnings.append(tr("Cannot open %1 for scanning.").arg(path));
+                continue;
+            }
             const QFileInfoList children = QDir(path).entryInfoList(
                 QDir::AllEntries | QDir::Hidden | QDir::System | QDir::NoDotAndDotDot, QDir::Name);
             // The stack visits entries in the same stable order as the listing.

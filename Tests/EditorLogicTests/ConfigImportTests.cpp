@@ -21,6 +21,7 @@
 #include <QDebug>
 #include <QDir>
 #include <QProcess>
+#include <QScopeGuard>
 
 #include "filters/ConfigFileReference.h"
 #include <QFile>
@@ -283,6 +284,57 @@ TEST_CASE(EditorLogicTests, testPluginFolderWithoutModuleStillReportsMissingFile
 		expectTrue(manifest.warnings.contains("Missing file: " + folder), "keeps existing missing-file warning");
 		expectManifestEqual(manifest, EqAPO::Import::ConfigDependencyScanner::scan(folder, temp.path()));
 	}
+}
+
+TEST_CASE(EditorLogicTests, testPluginBundleUnreadableResourcesBlockImportButKeepModuleItem)
+{
+	QTemporaryDir temp;
+	requireTrue(temp.isValid(), "temporary bundle directory must be valid");
+	const QString bundle = makePluginBundle(temp.path());
+	const QString resources = bundle + "/Contents/Resources";
+	const auto changeAccess = [&](const QString& action, const QString& principal) {
+		QProcess process;
+		process.setProgram(qEnvironmentVariable("SystemRoot", "C:/Windows") + "/System32/icacls.exe");
+		process.setArguments({QDir::toNativeSeparators(resources), action, principal});
+		process.start();
+		if (!process.waitForFinished(10000))
+		{
+			process.kill();
+			process.waitForFinished();
+			return false;
+		}
+		return process.exitStatus() == QProcess::NormalExit && process.exitCode() == 0;
+	};
+	// Register cleanup before applying the deny, including the skip and failed
+	// assertion paths. The deny is not inherited by the resource file.
+	auto restoreAccess = qScopeGuard([&] {
+		if (!changeAccess(QStringLiteral("/remove:d"), QStringLiteral("*S-1-1-0")))
+			qFatal("Bundle unreadable resources: could not remove the test deny entry");
+		qInfo("Bundle unreadable resources: test deny entry removed");
+	});
+	if (!changeAccess(QStringLiteral("/deny"), QStringLiteral("*S-1-1-0:(RD)")))
+	{
+		qInfo("SKIP bundle unreadable resources: could not deny directory listing");
+		return;
+	}
+	qInfo("Bundle unreadable resources: directory listing deny applied");
+	expectTrue(QDir(resources).entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot).isEmpty(),
+		"Qt returns an empty listing for the denied resource folder");
+	const auto manifest = EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config/config.txt");
+	// Keep scanning readable siblings for the dialog, but forbid an incomplete import.
+	bool moduleListed = false;
+	for (const auto& item : manifest.items)
+		moduleListed = moduleListed || item.sourceAbsolute == bundle + "/" + bundleModuleRelative();
+	qInfo().noquote() << "Bundle unreadable resources: hasErrors=" << manifest.hasErrors
+		<< "moduleListed=" << moduleListed << "warnings=" << manifest.warnings.join('\n');
+	expectTrue(manifest.hasErrors, "an unreadable bundle resource folder must block import");
+	expectTrue(manifest.warnings.contains("Cannot open " + resources + " for scanning."),
+		"an unreadable bundle resource folder must have a warning naming the folder");
+	expectTrue(moduleListed, "readable module remains listed despite unreadable resources");
+	restoreAccess.commit();
+	expectBundleFiles(EqAPO::Import::ConfigDependencyScanner::scanPluginLibrary(
+		bundle, temp.path() + "/config/config.txt"), bundle);
 }
 
 TEST_CASE(EditorLogicTests, testLegacyConvolutionPathRules)

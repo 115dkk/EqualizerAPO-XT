@@ -27,4 +27,18 @@ inline bool isReparsePoint(const QString& path, DWORD requiredAttributes = 0)
     return attributes != INVALID_FILE_ATTRIBUTES && (attributes & mask) == mask;
 }
 
+// QDir::entryInfoList gives the same empty list for an empty directory and
+// for one it could not list. Distinguish those before scanning a bundle.
+inline bool canListDirectory(const QString& path)
+{
+    const std::wstring pattern = QDir::toNativeSeparators(QDir(path).filePath(QStringLiteral("*"))).toStdWString();
+    WIN32_FIND_DATAW data = {};
+    const HANDLE search = FindFirstFileExW(pattern.c_str(), FindExInfoBasic, &data,
+        FindExSearchNameMatch, nullptr, 0);
+    if (search == INVALID_HANDLE_VALUE)
+        return GetLastError() == ERROR_FILE_NOT_FOUND;
+    FindClose(search);
+    return true;
+}
+
 }
