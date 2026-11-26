@@ -1433,6 +1433,59 @@ void renderRoutingSectionScene(SkinRenderContext& ctx)
 	}
 }
 
+// EXPERIMENT TOOLING: documents named by a spec file, rendered as whole
+// tables (EAPO_GALLERY_PROBE). One spec per line:
+//   name|channel count|channel mask (hex)|viewport width|line 1;;line 2;;...
+void renderProbeScenes(SkinRenderContext& ctx)
+{
+	QFile specFile(qEnvironmentVariable("EAPO_GALLERY_PROBE"));
+	if (!specFile.open(QIODevice::ReadOnly))
+	{
+		qWarning("SkinGallery: cannot read the probe spec");
+		ctx.failures++;
+		return;
+	}
+	const QStringList specs = QString::fromUtf8(specFile.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+	for (const QString& specLine : specs)
+	{
+		const QStringList parts = specLine.trimmed().split(QLatin1Char('|'));
+		if (parts.size() != 5)
+			continue;
+		const int channels = parts[1].toInt();
+		const unsigned long mask = parts[2].toULong(nullptr, 16);
+		const int width = parts[3].toInt();
+		const QList<QString> lines = parts[4].split(QStringLiteral(";;"));
+		std::shared_ptr<GalleryAPOInfo> device;
+		if (channels > 0)
+			device = std::make_shared<GalleryAPOInfo>(L"Speakers", L"Probe Audio", false, true, channels, mask);
+		QScrollArea scrollArea;
+		scrollArea.resize(width, 720);
+		QList<FilterCardRow*> rows = buildRows(scrollArea, ctx.configPath, lines, device, mask);
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		for (int pass = 0; pass < 6; pass++)
+		{
+			QApplication::processEvents();
+			if (table != nullptr && table->layout() != nullptr)
+				table->layout()->activate();
+		}
+		QApplication::processEvents();
+		QStringList heights;
+		int bars = 0;
+		for (FilterCardRow* row : rows)
+		{
+			heights.append(QString::number(row->height()));
+			for (const QScrollBar* bar : row->findChildren<QScrollBar*>())
+				if (bar->orientation() == Qt::Horizontal && bar->isVisible())
+					bars++;
+		}
+		qWarning("PROBE %s %s %s: rows %s, table %dx%d, sideways bars %d", qPrintable(ctx.skinId), qPrintable(ctx.mode),
+			qPrintable(parts[0]), qPrintable(heights.join(QLatin1Char(','))),
+			table != nullptr ? table->width() : -1, table != nullptr ? table->height() : -1, bars);
+		if (table != nullptr)
+			saveGrab(table, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("probe"), parts[0]);
+	}
+}
+
 // Whole-table shots whose presentation spans rows.
 void renderTableScenes(SkinRenderContext& ctx)
 {
@@ -1704,6 +1757,11 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 
 	const QString mode = dark ? QStringLiteral("dark") : QStringLiteral("light");
 	SkinRenderContext ctx{ outDir, skinId, mode, configPath };
+	if (qEnvironmentVariableIsSet("EAPO_GALLERY_PROBE"))
+	{
+		renderProbeScenes(ctx);
+		return ctx.failures;
+	}
 	ctx.failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), false);
 	ctx.failures += renderStates(outDir, skinId, mode, configPath, galleryRows(), true);
 
