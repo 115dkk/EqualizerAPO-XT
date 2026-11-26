@@ -37,8 +37,8 @@
 	                     --expect-audio or --expect-silence.
 	  --panel            reproduces the Editor's VST3 panel-open sequence from a
 	                     VSTPlugin config line. It varies the library-load thread,
-	                     first instance, and the initialize/destroy thread and
-	                     lifetime of repeated worker-owned instances before
+	                     first instance, and the lifetime of worker-owned instances
+	                     using the product UI-thread runner before
 	                     attaching a hidden HWND editor. A watchdog reports a stuck
 	                     phase or any visible top-level window before terminating.
 	  --list-vst-lines   parses a config and lists only the line number and library
@@ -88,6 +88,7 @@
 #include "Tests/ProbeSupport/ToneMeter.h"
 #include "Tests/ProbeSupport/WasapiEndpoint.h"
 #include "vst/VSTPluginInstance.h"
+#include "Tests/PluginUiThreadRunner.h"
 #include "vst/VSTPluginLibrary.h"
 
 using winutil::ComApartment;
@@ -661,12 +662,6 @@ enum class FirstInstanceThread
 	Worker
 };
 
-enum class WorkerOperationThread
-{
-	Main,
-	Worker
-};
-
 enum class WorkerDestroyTiming
 {
 	BeforeAttach,
@@ -679,8 +674,7 @@ struct PanelOptions
 	int lineNumber = 0;
 	PanelLoadThread loadThread = PanelLoadThread::Worker;
 	FirstInstanceThread firstInstanceThread = FirstInstanceThread::Worker;
-	WorkerOperationThread workerInitializeThread = WorkerOperationThread::Worker;
-	WorkerOperationThread workerDestroyThread = WorkerOperationThread::Worker;
+	bool noUiRunner = false;
 	WorkerDestroyTiming workerDestroyTiming = WorkerDestroyTiming::AfterPanel;
 	int workerCycles = 1;
 	int timeoutSeconds = 20;
@@ -984,19 +978,15 @@ class WorkerInstance
 {
 public:
 	WorkerInstance(const std::shared_ptr<VSTPluginLibrary>& library, const VSTPluginCommand& command,
-		PanelThreadIds& threadIds, WorkerOperationThread initializeThread,
-		WorkerOperationThread destroyThread, WorkerDestroyTiming destroyTiming, int cycles)
-		: ready(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+		PanelThreadIds& threadIds, test::PluginUiThreadRunner& uiRunner,
+		WorkerDestroyTiming destroyTiming, int cycles)
+		: uiRunner(uiRunner), ready(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
 		release(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
 		inspectRequest(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
 		inspectDone(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
-		initializeRequest(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
-		initializeDone(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
-		destroyRequest(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
-		destroyDone(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
 		finished(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
-		worker([this, library, &command, &threadIds, initializeThread, destroyThread, destroyTiming, cycles]() {
-			run(library, command, threadIds, initializeThread, destroyThread, destroyTiming, cycles);
+		worker([this, library, &command, &threadIds, destroyTiming, cycles]() {
+			run(library, command, threadIds, destroyTiming, cycles);
 		})
 	{
 	}
@@ -1008,16 +998,12 @@ public:
 		CloseHandle(release);
 		CloseHandle(inspectRequest);
 		CloseHandle(inspectDone);
-		CloseHandle(initializeRequest);
-		CloseHandle(initializeDone);
-		CloseHandle(destroyRequest);
-		CloseHandle(destroyDone);
 		CloseHandle(finished);
 	}
 
 	bool wait(std::wstring& failure)
 	{
-		waitForWorkerEvent(ready);
+		uiRunner.wait(ready);
 		failure = reason;
 		return succeeded;
 	}
@@ -1037,85 +1023,23 @@ public:
 			return;
 		stopped = true;
 		SetEvent(release);
-		waitForWorkerEvent(finished);
+		uiRunner.wait(finished);
 		if (worker.joinable())
 			worker.join();
 	}
 
 private:
-	void waitForWorkerEvent(HANDLE finalEvent)
+	void destroyInstance(VSTPluginInstancePtr& instance)
 	{
-		HANDLE events[] = {finalEvent, initializeRequest, destroyRequest};
-		for (;;)
-		{
-			const DWORD wait = MsgWaitForMultipleObjects(static_cast<DWORD>(std::size(events)), events,
-				FALSE, INFINITE, QS_ALLINPUT);
-			if (wait == WAIT_OBJECT_0)
-				break;
-			if (wait == WAIT_OBJECT_0 + 1)
-			{
-				initializeResult = timedPanelPhase(L"worker-initialize", [&]() {
-					return pendingInitialize != nullptr && pendingInitialize->initialize();
-				});
-				SetEvent(initializeDone);
-			}
-			else if (wait == WAIT_OBJECT_0 + 2)
-			{
-				timedPanelPhase(L"worker-destroy", [&]() {
-					delete pendingDestroy;
-					pendingDestroy = nullptr;
-					return true;
-				});
-				SetEvent(destroyDone);
-			}
-			else if (wait == WAIT_OBJECT_0 + std::size(events))
-				pumpPendingMessages();
-		}
-		pumpPendingMessages();
-	}
-
-	bool initializeInstance(VSTPluginInstance* instance, WorkerOperationThread initializeThread)
-	{
-		if (initializeThread == WorkerOperationThread::Worker)
-		{
-			return timedPanelPhase(L"worker-initialize", [&]() {
-				return instance->initialize();
-			});
-		}
-		pendingInitialize = instance;
-		SetEvent(initializeRequest);
-		WaitForSingleObject(initializeDone, INFINITE);
-		pendingInitialize = nullptr;
-		return initializeResult;
-	}
-
-	void destroyInstance(VSTPluginInstancePtr& instance,
-		WorkerOperationThread destroyThread)
-	{
-		if (!instance)
-			return;
-		if (destroyThread == WorkerOperationThread::Worker)
-		{
+		if (instance)
 			timedPanelPhase(L"worker-destroy", [&]() {
 				instance.reset();
 				return true;
 			});
-			return;
-		}
-		pendingDestroy = instance.release();
-		SetEvent(destroyRequest);
-		WaitForSingleObject(destroyDone, INFINITE);
-	}
-
-	void finishFailure()
-	{
-		SetEvent(ready);
-		SetEvent(finished);
 	}
 
 	void run(const std::shared_ptr<VSTPluginLibrary>& library, const VSTPluginCommand& command,
-		PanelThreadIds& threadIds, WorkerOperationThread initializeThread,
-		WorkerOperationThread destroyThread, WorkerDestroyTiming destroyTiming, int cycles)
+		PanelThreadIds& threadIds, WorkerDestroyTiming destroyTiming, int cycles)
 	{
 		threadIds.worker.store(GetCurrentThreadId(), std::memory_order_release);
 		VSTPluginInstancePtr instance;
@@ -1127,72 +1051,62 @@ private:
 				instance = timedPanelPhase(L"worker-create", [&]() {
 					return VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
 				});
-				if (!initializeInstance(instance.get(), initializeThread))
+				if (!timedPanelPhase(L"worker-initialize", [&]() { return instance->initialize(); }))
 				{
 					reason = L"worker plug-in instance initialize failed";
-					destroyInstance(instance, destroyThread);
-					finishFailure();
-					return;
+					break;
 				}
 				if (!preparePanelInstance(*instance, command, false, reason))
 				{
 					reason = L"worker " + reason;
-					destroyInstance(instance, destroyThread);
-					finishFailure();
-					return;
+					break;
 				}
-
-				const bool keepUntilPanelEnds = destroyTiming == WorkerDestroyTiming::AfterPanel
-					&& cycle == cycles - 1;
-				if (keepUntilPanelEnds)
+				if (destroyTiming == WorkerDestroyTiming::AfterPanel && cycle == cycles - 1)
 					liveInstance = std::move(instance);
 				else
-					destroyInstance(instance, destroyThread);
+					destroyInstance(instance);
 			}
-
-			succeeded = true;
+			destroyInstance(instance);
+			succeeded = reason.empty();
 			SetEvent(ready);
-			HANDLE events[] = {release, inspectRequest};
-			for (;;)
+			if (succeeded)
 			{
-				const DWORD wait = WaitForMultipleObjects(static_cast<DWORD>(std::size(events)), events,
-					FALSE, INFINITE);
-				if (wait == WAIT_OBJECT_0)
-					break;
-				if (wait == WAIT_OBJECT_0 + 1)
+				HANDLE events[] = {release, inspectRequest};
+				for (;;)
 				{
-					std::vector<JuceWindowRecord> found = inspectOwnJuceWindows();
+					const DWORD wait = WaitForMultipleObjects(static_cast<DWORD>(std::size(events)), events,
+						FALSE, INFINITE);
+					if (wait == WAIT_OBJECT_0)
+						break;
+					if (wait == WAIT_OBJECT_0 + 1)
 					{
-						std::lock_guard<std::mutex> lock(recordsMutex);
-						records = std::move(found);
+						std::vector<JuceWindowRecord> found = inspectOwnJuceWindows();
+						{
+							std::lock_guard<std::mutex> lock(recordsMutex);
+							records = std::move(found);
+						}
+						SetEvent(inspectDone);
 					}
-					SetEvent(inspectDone);
 				}
 			}
-			destroyInstance(liveInstance, destroyThread);
-			SetEvent(finished);
 		}
 		catch (...)
 		{
-			destroyInstance(instance, destroyThread);
-			destroyInstance(liveInstance, destroyThread);
 			reason = L"worker plug-in instance raised an exception";
-			finishFailure();
+			succeeded = false;
+			SetEvent(ready);
 		}
+		destroyInstance(instance);
+		destroyInstance(liveInstance);
+		SetEvent(finished);
 	}
 
+	test::PluginUiThreadRunner& uiRunner;
 	HANDLE ready = nullptr;
 	HANDLE release = nullptr;
 	HANDLE inspectRequest = nullptr;
 	HANDLE inspectDone = nullptr;
-	HANDLE initializeRequest = nullptr;
-	HANDLE initializeDone = nullptr;
-	HANDLE destroyRequest = nullptr;
-	HANDLE destroyDone = nullptr;
 	HANDLE finished = nullptr;
-	VSTPluginInstance* pendingInitialize = nullptr;
-	VSTPluginInstance* pendingDestroy = nullptr;
-	bool initializeResult = false;
 	bool succeeded = false;
 	bool stopped = false;
 	std::wstring reason;
@@ -1359,6 +1273,21 @@ HWND createHiddenPanelParent()
 		-32000, -32000, 1, 1, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
 }
 
+class PanelUiRunner final : public test::PluginUiThreadRunner
+{
+public:
+	explicit PanelUiRunner(bool enabled)
+	{
+		if (enabled)
+			PluginUiThread::setRunner(this);
+	}
+	~PanelUiRunner() override
+	{
+		drain();
+		PluginUiThread::setRunner(nullptr);
+	}
+};
+
 int runPanelProbe(const PanelOptions& options)
 {
 	ComApartment apartment(COINIT_APARTMENTTHREADED);
@@ -1368,6 +1297,7 @@ int runPanelProbe(const PanelOptions& options)
 		return 2;
 	}
 
+	PanelUiRunner uiRunner(!options.noUiRunner);
 	VSTPluginCommand command;
 	std::wstring reason;
 	if (!readPanelCommand(options.configPath, options.lineNumber, command, reason))
@@ -1444,7 +1374,7 @@ int runPanelProbe(const PanelOptions& options)
 	};
 	const auto setUpWorkerInstance = [&]() {
 		instanceWorker = std::make_unique<WorkerInstance>(library, command, threadIds,
-			options.workerInitializeThread, options.workerDestroyThread,
+			uiRunner,
 			options.workerDestroyTiming, options.workerCycles);
 		return instanceWorker->wait(reason);
 	};
@@ -1519,10 +1449,9 @@ int runPanelProbe(const PanelOptions& options)
 	instance.reset();
 	wprintf(L"PHASE destroy %lld ms\n", elapsedMilliseconds(destroyStarted));
 	fflush(stdout);
-	watchdog.finish();
-
 	instanceWorker.reset();
 	loader.reset();
+	watchdog.finish();
 	wprintf(L"PANEL-OK\n");
 	fflush(stdout);
 	return 0;
@@ -1579,10 +1508,8 @@ int wmain(int argc, wchar_t* argv[])
 		L"       VstPreviewProbe --list-vst-lines --config <config.txt>\n"
 		L"       VstPreviewProbe --panel --config <config.txt> --line <N>\n"
 		L"                       [--load-on main|worker] [--first-instance main|worker]\n"
-		L"                       [--worker-init-on main|worker]\n"
-		L"                       [--worker-destroy-on main|worker]\n"
 		L"                       [--worker-destroy before-attach|after-panel]\n"
-		L"                       [--worker-cycles N]\n"
+		L"                       [--worker-cycles N] [--no-ui-runner]\n"
 		L"                       [--timeout S] [--hold S] [--seconds S]\n";
 
 	probesupport::CommandLine commandLine;
@@ -1602,8 +1529,6 @@ int wmain(int argc, wchar_t* argv[])
 	TCLAP::MultiArg<std::string> lineArg("", "line", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> loadOnArg("", "load-on", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> firstInstanceArg("", "first-instance", "", false, "value", parser);
-	TCLAP::MultiArg<std::string> workerInitializeArg("", "worker-init-on", "", false, "value", parser);
-	TCLAP::MultiArg<std::string> workerDestroyOnArg("", "worker-destroy-on", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> workerDestroyArg("", "worker-destroy", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> workerCyclesArg("", "worker-cycles", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> timeoutArg("", "timeout", "", false, "value", parser);
@@ -1616,6 +1541,7 @@ int wmain(int argc, wchar_t* argv[])
 	TCLAP::MultiSwitchArg expectSilenceArg("", "expect-silence", "", parser, 0, &expectSilenceVisitor);
 	TCLAP::MultiSwitchArg loopbackArg("", "loopback", "", parser);
 	TCLAP::MultiSwitchArg captureOnlyArg("", "capture-only", "", parser);
+	TCLAP::MultiSwitchArg noUiRunnerArg("", "no-ui-runner", "", parser);
 	TCLAP::MultiSwitchArg panelArg("", "panel", "", parser);
 	TCLAP::MultiSwitchArg listVstArg("", "list-vst-lines", "", parser);
 	if (!commandLine.parse(argc, argv))
@@ -1665,6 +1591,7 @@ int wmain(int argc, wchar_t* argv[])
 			wprintf(L"%s", usage);
 			return 1;
 		}
+		panelOptions.noUiRunner = noUiRunnerArg.getValue() != 0;
 		panelOptions.configPath = probesupport::lastWide(configArg);
 		panelOptions.lineNumber = _wtoi(probesupport::lastWide(lineArg).c_str());
 		if (secondsArg.isSet())
@@ -1679,10 +1606,6 @@ int wmain(int argc, wchar_t* argv[])
 		const std::wstring loadOn = loadOnArg.isSet() ? probesupport::lastWide(loadOnArg) : L"worker";
 		const std::wstring firstInstance = firstInstanceArg.isSet()
 			? probesupport::lastWide(firstInstanceArg) : L"worker";
-		const std::wstring workerInitialize = workerInitializeArg.isSet()
-			? probesupport::lastWide(workerInitializeArg) : L"worker";
-		const std::wstring workerDestroyOn = workerDestroyOnArg.isSet()
-			? probesupport::lastWide(workerDestroyOnArg) : L"worker";
 		const std::wstring workerDestroy = workerDestroyArg.isSet()
 			? probesupport::lastWide(workerDestroyArg) : L"after-panel";
 		if (loadOn == L"main")
@@ -1695,20 +1618,6 @@ int wmain(int argc, wchar_t* argv[])
 		if (firstInstance == L"main")
 			panelOptions.firstInstanceThread = FirstInstanceThread::Main;
 		else if (firstInstance != L"worker")
-		{
-			wprintf(L"%s", usage);
-			return 1;
-		}
-		if (workerInitialize == L"main")
-			panelOptions.workerInitializeThread = WorkerOperationThread::Main;
-		else if (workerInitialize != L"worker")
-		{
-			wprintf(L"%s", usage);
-			return 1;
-		}
-		if (workerDestroyOn == L"main")
-			panelOptions.workerDestroyThread = WorkerOperationThread::Main;
-		else if (workerDestroyOn != L"worker")
 		{
 			wprintf(L"%s", usage);
 			return 1;
