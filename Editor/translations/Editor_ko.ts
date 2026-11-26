@@ -1443,7 +1443,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
@@ -1472,27 +1472,27 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="837"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="847"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
         <source>Collapse filter card</source>
         <translation>필터 카드 접기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1036"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1046"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>이 줄을 끕니다. 파일에는 주석으로 남습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1037"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1047"/>
         <source>Switch this line back on.</source>
         <translation>이 줄을 다시 켭니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="835"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="845"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO가 이 필터를 준비하지 못해 설정 전체를 적용하지 않았고, 이전 설정이 계속 재생됩니다. 이 줄이 쓰는 파일이나 플러그인을 확인하거나 이 줄을 끄십시오.</translation>
     </message>
@@ -3746,78 +3746,78 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="89"/>
         <source>Copy this file into the config directory</source>
         <translation>이 파일을 구성 디렉터리로 복사</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="105"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="107"/>
         <source>Channel mapping</source>
         <translation>채널 매핑</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="116"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>출력 채널 추가 (새 이름은 가상 채널을 만듭니다)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="199"/>
         <source>Add output channel</source>
         <translation>출력 채널 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="172"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="200"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>채널 이름 (알 수 없는 이름은 가상 채널을 만듭니다):</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="245"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="276"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>Select impulse response file</source>
         <translation>임펄스 응답 파일 선택</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="246"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="277"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>임펄스 응답 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="270"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
         <source>No file selected</source>
         <translation>선택된 파일 없음</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="283"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
         <source>Unsupported file format</source>
         <translation>지원하지 않는 파일 형식</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="323"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="293"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="324"/>
         <source>%1 samples</source>
         <translation>%1 샘플</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="294"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="325"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="326"/>
         <source>%1 ch</source>
         <translation>%1 ch</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="300"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="331"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>샘플레이트가 장치와 일치하지 않습니다 (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="349"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>매핑이 채널 %1을(를) 참조하지만 파일에는 채널이 %2개뿐입니다</translation>
     </message>
@@ -3826,12 +3826,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="339"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="370"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>Locate the missing file</source>
         <translation>누락된 파일 위치 찾기</translation>
     </message>
@@ -4360,6 +4360,24 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
     </message>
 </context>
 <context>
+    <name>RoutingSectionHead</name>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="84"/>
+        <source>No connections</source>
+        <translation>연결 없음</translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <source>Expand channel mapping</source>
+        <translation>채널 매핑 펼치기</translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <source>Collapse channel mapping</source>
+        <translation>채널 매핑 접기</translation>
+    </message>
+</context>
+<context>
     <name>ScalarKnobCardEditor</name>
     <message>
         <location filename="../widgets/cards/ScalarKnobCardEditor.cpp" line="66"/>
@@ -4370,62 +4388,67 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>SendCardEditor</name>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="65"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="67"/>
         <source>To</source>
         <translation>받는 쪽</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="70"/>
         <source>The playback endpoint that receives these channels</source>
         <translation>이 채널을 받을 재생 엔드포인트</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="78"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="80"/>
         <source>Mix with its audio</source>
         <translation>받는 쪽 소리에 섞기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="79"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="81"/>
         <source>Replace its audio</source>
         <translation>받는 쪽 소리를 대체하기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="80"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="82"/>
         <source>Whether the received channels are added to what the endpoint already plays, or take its place</source>
         <translation>받은 채널을 받는 쪽에서 재생 중인 소리에 섞을지, 그 소리를 대체할지 고릅니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="84"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="86"/>
         <source>Latency</source>
         <translation>지연 시간</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="89"/>
         <source>Default</source>
         <translation>기본값</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="88"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="90"/>
         <source>Milliseconds, or a whole number followed by &quot;samples&quot;. Empty uses two processing periods of this device; raise it if the log reports underruns.</source>
         <translation>밀리초 단위로 입력하거나 정수 뒤에 ‘samples’를 붙이세요. 비워 두면 이 장치의 처리 주기 두 번만큼 지연합니다. 로그에 버퍼 부족이 남으면 값을 늘리세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="96"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
         <source>Delay this device to match</source>
         <translation>이 장치도 지연해 재생 시점 맞추기</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="100"/>
         <source>Delays this device&apos;s own channels by the same latency, so both devices play in time</source>
         <translation>이 장치의 채널도 같은 시간만큼 지연해 두 장치가 동시에 재생하도록 합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="181"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="115"/>
+        <source>Channel mapping</source>
+        <translation>채널 매핑</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="207"/>
         <source>The Send option of this endpoint is off in the Device Selector</source>
         <translation>장치 선택기에서 이 엔드포인트의 전송 옵션이 꺼져 있습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="184"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="210"/>
         <source>Choose an endpoint</source>
         <translation>엔드포인트 선택</translation>
     </message>
@@ -5026,12 +5049,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="113"/>
+        <location filename="../widgets/TitleBar.cpp" line="119"/>
         <source>Restore</source>
         <translation>복원</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="113"/>
+        <location filename="../widgets/TitleBar.cpp" line="119"/>
         <source>Maximize</source>
         <translation>최대화</translation>
     </message>
@@ -5074,14 +5097,14 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
@@ -5132,7 +5155,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="437"/>
         <source>No plugin selected</source>
         <translation>선택된 플러그인 없음</translation>
     </message>
@@ -5141,12 +5164,12 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">오디오 서비스가 읽을 수 없습니다</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="543"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="545"/>
         <source>Locate...</source>
         <translation>위치 찾기...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
         <source>Locate the missing plugin library</source>
         <translation>누락된 플러그인 라이브러리 위치 찾기</translation>
     </message>
@@ -5187,7 +5210,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation>구형 &apos;스테레오 입력&apos; 옵션을 Input Stereo, Output Auto로 읽었습니다. 저장할 때에도 이 형태로 기록됩니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
@@ -5196,7 +5219,7 @@ This folder is now the one the audio pipeline reads. The previous folder is no l
         <translation type="vanished">패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
         <source>Close panel</source>
         <translation type="unfinished">패널 닫기</translation>
     </message>
@@ -5209,7 +5232,7 @@ Change the file permissions or copy the files to the config directory.</source>
 파일 권한을 바꾸거나 구성 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="538"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
         <source>Loading plugin...</source>
         <translation>플러그인을 불러오는 중...</translation>
     </message>
@@ -5228,13 +5251,13 @@ Change the file permissions or copy the files to the config directory.</source>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.cpp" line="74"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="313"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="314"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation>스테레오 신호를 다채널로 확장하는 업믹서에 사용합니다.</translation>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="417"/>
         <source>Open panel</source>
         <translation>패널 열기</translation>
     </message>
@@ -5264,42 +5287,42 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>삽입</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="248"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="249"/>
         <source>Channel fill</source>
         <translation>채널 채우기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="250"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="251"/>
         <source>Choose which channels occupy the negotiated bus slots.</source>
         <translation>협상된 버스 슬롯을 어느 채널로 채울지 고릅니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="256"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="257"/>
         <source>Output fill</source>
         <translation>출력 채우기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="256"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="257"/>
         <source>Input fill</source>
         <translation>입력 채우기</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="269"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="270"/>
         <source>Discard (-)</source>
         <translation>버림 (-)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="269"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="270"/>
         <source>Silence (-)</source>
         <translation>무음 (-)</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="306"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="307"/>
         <source>A VST2 plugin ignores the Input and Output layouts.</source>
         <translation>VST2 플러그인은 입력/출력 레이아웃을 무시합니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="312"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="313"/>
         <source>Not available while Input and Output layouts are set.</source>
         <translation>입력/출력 레이아웃이 설정된 동안에는 쓸 수 없습니다.</translation>
     </message>
@@ -5334,12 +5357,12 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>초기화 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="387"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
         <source>Select VST plugin</source>
         <translation>VST 플러그인 선택</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="387"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 플러그인 (*.dll *.vst3)</translation>
     </message>
@@ -5349,7 +5372,7 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>패널을 여는 중 플러그인이 충돌했습니다.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="417"/>
         <source>Close panel</source>
         <translation>패널 닫기</translation>
     </message>
@@ -5370,7 +5393,7 @@ Change the file permissions or copy the files to the config directory.</source>
 파일 권한을 바꾸거나 구성 디렉터리로 파일을 복사하세요.</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="372"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="373"/>
         <source>Loading plugin...</source>
         <translation>플러그인을 불러오는 중...</translation>
     </message>

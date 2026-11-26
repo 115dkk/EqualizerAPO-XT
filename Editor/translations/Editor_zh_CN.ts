@@ -1445,7 +1445,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
         <source>Expand filter card</source>
         <translation>展开滤波器卡片</translation>
     </message>
@@ -1474,27 +1474,27 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="837"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="847"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1034"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
         <source>Collapse filter card</source>
         <translation>折叠滤波器卡片</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1036"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1046"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>关闭此行。该行仍以注释形式保留在文件中。</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1037"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1047"/>
         <source>Switch this line back on.</source>
         <translation>重新启用此行。</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="835"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="845"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO 无法准备此滤波器，因此整个配置未被应用，之前的设置仍在播放。请检查此行使用的文件或插件，或关闭此行。</translation>
     </message>
@@ -3748,78 +3748,78 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="89"/>
         <source>Copy this file into the config directory</source>
         <translation>将此文件复制到配置目录</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="105"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="107"/>
         <source>Channel mapping</source>
         <translation>声道映射</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="112"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="116"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>添加输出声道（新名称会创建虚拟声道）</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="171"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="199"/>
         <source>Add output channel</source>
         <translation>添加输出声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="172"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="200"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>声道名称（未知名称会创建虚拟声道）：</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="245"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="276"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>Select impulse response file</source>
         <translation>选择脉冲响应文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="246"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="277"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>脉冲响应 (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="270"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
         <source>No file selected</source>
         <translation>未选择文件</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="283"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
         <source>Unsupported file format</source>
         <translation>不支持的文件格式</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="292"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="323"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="293"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="324"/>
         <source>%1 samples</source>
         <translation>%1 采样</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="294"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="325"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="295"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="326"/>
         <source>%1 ch</source>
         <translation>%1 声道</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="300"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="331"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>采样率与设备不匹配（%1 Hz）</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="318"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="349"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>映射引用了声道 %1，但文件只有 %2 个声道</translation>
     </message>
@@ -3828,12 +3828,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">音频服务无法读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="339"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="370"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="340"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
         <source>Locate the missing file</source>
         <translation>定位缺失的文件</translation>
     </message>
@@ -4342,6 +4342,24 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
 </context>
 <context>
+    <name>RoutingSectionHead</name>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="84"/>
+        <source>No connections</source>
+        <translation>无连接</translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <source>Expand channel mapping</source>
+        <translation>展开声道映射</translation>
+    </message>
+    <message>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <source>Collapse channel mapping</source>
+        <translation>折叠声道映射</translation>
+    </message>
+</context>
+<context>
     <name>ScalarKnobCardEditor</name>
     <message>
         <location filename="../widgets/cards/ScalarKnobCardEditor.cpp" line="66"/>
@@ -4352,62 +4370,67 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>SendCardEditor</name>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="65"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="67"/>
         <source>To</source>
         <translation>发送到</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="68"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="70"/>
         <source>The playback endpoint that receives these channels</source>
         <translation>接收这些声道的播放端点</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="78"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="80"/>
         <source>Mix with its audio</source>
         <translation>与接收端音频混合</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="79"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="81"/>
         <source>Replace its audio</source>
         <translation>替换接收端音频</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="80"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="82"/>
         <source>Whether the received channels are added to what the endpoint already plays, or take its place</source>
         <translation>选择将接收到的声道与端点正在播放的音频混合，还是替换该音频</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="84"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="86"/>
         <source>Latency</source>
         <translation>延迟</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="89"/>
         <source>Default</source>
         <translation>默认</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="88"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="90"/>
         <source>Milliseconds, or a whole number followed by &quot;samples&quot;. Empty uses two processing periods of this device; raise it if the log reports underruns.</source>
         <translation>输入毫秒数，或整数后加 &quot;samples&quot;。留空时使用此设备的两个处理周期；如果日志报告缓冲区欠载，请增大此值。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="96"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
         <source>Delay this device to match</source>
         <translation>延迟此设备以同步播放</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="100"/>
         <source>Delays this device&apos;s own channels by the same latency, so both devices play in time</source>
         <translation>将此设备自身的声道延迟相同的时间，使两台设备同步播放</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="181"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="115"/>
+        <source>Channel mapping</source>
+        <translation>声道映射</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="207"/>
         <source>The Send option of this endpoint is off in the Device Selector</source>
         <translation>此端点的发送选项已在设备选择器中关闭</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SendCardEditor.cpp" line="184"/>
+        <location filename="../widgets/cards/SendCardEditor.cpp" line="210"/>
         <source>Choose an endpoint</source>
         <translation>选择端点</translation>
     </message>
@@ -5008,12 +5031,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="113"/>
+        <location filename="../widgets/TitleBar.cpp" line="119"/>
         <source>Restore</source>
         <translation>还原</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="113"/>
+        <location filename="../widgets/TitleBar.cpp" line="119"/>
         <source>Maximize</source>
         <translation>最大化</translation>
     </message>
@@ -5056,14 +5079,14 @@ Do you want to run the Device Selector application to fix the problem?</source>
 <context>
     <name>VSTCardEditor</name>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
         <source>Select VST plugin</source>
         <translation>选择 VST 插件</translation>
     </message>
     <message>
         <location filename="../widgets/cards/VSTCardEditor.cpp" line="107"/>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
         <source>Open panel</source>
         <translation>打开面板</translation>
     </message>
@@ -5114,7 +5137,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">插件在初始化期间崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="435"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="437"/>
         <source>No plugin selected</source>
         <translation>未选择插件</translation>
     </message>
@@ -5123,12 +5146,12 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">音频服务无法读取</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="543"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="545"/>
         <source>Locate...</source>
         <translation>定位...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="544"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="546"/>
         <source>Locate the missing plugin library</source>
         <translation>定位缺失的插件库</translation>
     </message>
@@ -5169,7 +5192,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="644"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="646"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 插件 (*.dll *.vst3)</translation>
     </message>
@@ -5178,7 +5201,7 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">插件在打开面板时崩溃。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="700"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="702"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5191,7 +5214,7 @@ Change the file permissions or copy the files to the config directory.</source>
 请更改文件权限，或将这些文件复制到配置目录。</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/VSTCardEditor.cpp" line="538"/>
+        <location filename="../widgets/cards/VSTCardEditor.cpp" line="540"/>
         <source>Loading plugin...</source>
         <translation>正在加载插件...</translation>
     </message>
@@ -5210,7 +5233,7 @@ Change the file permissions or copy the files to the config directory.</source>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.cpp" line="74"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="313"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="314"/>
         <source>Use for upmixers that expand a stereo signal to multichannel.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5226,7 +5249,7 @@ Change the file permissions or copy the files to the config directory.</source>
     </message>
     <message>
         <location filename="../guis/VSTPluginFilterGUI.ui" line="44"/>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="417"/>
         <source>Open panel</source>
         <translation>打开面板</translation>
     </message>
@@ -5246,42 +5269,42 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>嵌入</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="248"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="249"/>
         <source>Channel fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="250"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="251"/>
         <source>Choose which channels occupy the negotiated bus slots.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="256"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="257"/>
         <source>Output fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="256"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="257"/>
         <source>Input fill</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="269"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="270"/>
         <source>Discard (-)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="269"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="270"/>
         <source>Silence (-)</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="306"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="307"/>
         <source>A VST2 plugin ignores the Input and Output layouts.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="312"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="313"/>
         <source>Not available while Input and Output layouts are set.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5316,12 +5339,12 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>插件在初始化期间崩溃。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="387"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
         <source>Select VST plugin</source>
         <translation>选择 VST 插件</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="387"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="388"/>
         <source>VST plugins (*.dll *.vst3)</source>
         <translation>VST 插件 (*.dll *.vst3)</translation>
     </message>
@@ -5331,7 +5354,7 @@ Change the file permissions or copy the files to the config directory.</source>
         <translation>打开面板时插件崩溃。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="416"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="417"/>
         <source>Close panel</source>
         <translation type="unfinished"></translation>
     </message>
@@ -5352,7 +5375,7 @@ Change the file permissions or copy the files to the config directory.</source>
 更改文件权限或将文件复制到配置目录。</translation>
     </message>
     <message>
-        <location filename="../guis/VSTPluginFilterGUI.cpp" line="372"/>
+        <location filename="../guis/VSTPluginFilterGUI.cpp" line="373"/>
         <source>Loading plugin...</source>
         <translation>正在加载插件...</translation>
     </message>

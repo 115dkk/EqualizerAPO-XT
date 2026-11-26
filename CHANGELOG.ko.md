@@ -8,6 +8,27 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **편집기: Send와 MultiConvolution 카드의 채널 매핑을 한 줄로 접을 수
+  있습니다.** 두 카드는 제 컨트롤 아래에 라우팅 보드를 싣고 있어, 대부분의
+  설정에서 가장 키가 큰 카드였습니다. 이제 **채널 매핑** 캡션 앞에 카드 머리와
+  같은 접기 표시(`v`)가 있습니다(Send 카드에는 이 캡션이 새로 생겼습니다).
+  표시나 캡션을 누르면 보드가 사라지고, 캡션이 있는 줄에 라우팅이 설정 줄에
+  적힌 그대로(`L=L+0.5*R R=R`) 나옵니다. 카드보다 긴 라우팅은 말줄임표로
+  끝나고 전체는 풍선 도움말에 나옵니다. 접지 않으면 열려 있고, 접은 상태는
+  그 행에 기억되어 파일을 다시 열어도 유지됩니다. 접어도 줄은 바뀌지 않고
+  파일이 수정된 것으로 표시되지도 않습니다. Hardware Rack 스킨에서 접은 Send
+  카드는 191px(열면 387px), 접은 MultiConvolution 카드는 159px(열면
+  353px)입니다. 열린 Send 카드는 캡션 줄만큼 전보다 큽니다.
+  ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533),
+  [#491](https://github.com/115dkk/EqualizerAPO-XT/issues/491))
+- **Signal Matrix와 Precision Minimal 스킨에서 Copy 카드의 숨은 채널을 펼쳐도
+  카드가 커지지 않던 문제를 고쳤습니다.** `+N CH`로 채널을 펼치면 새로 나온
+  줄이 카드의 예전 높이에서 잘렸고, 다시 접는 단추도 함께 잘려 누를 수
+  없었습니다. 서라운드 장치에서 MultiConvolution 카드가 내용보다 스크롤바
+  높이만큼 크게 남던 것도 같은 크기 갱신 누락에서 나온 문제라 함께
+  고쳤습니다.
+  ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533))
+
 ## v2.82.1 — 2026-11-26
 
 - **Hardware Rack: 단추, 칩, 입력 칸의 가장자리 선이 네 면을 모두 감쌉니다.**

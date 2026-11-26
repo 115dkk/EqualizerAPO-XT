@@ -39,8 +39,10 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/helpers/GUIHelper.h"
+#include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
 #include "Editor/widgets/routing/MultiConvolutionRoutingAdapter.h"
+#include "Editor/widgets/routing/RoutingSectionHead.h"
 #include "Editor/widgets/routing/RoutingViewScroll.h"
 #include "ReferenceCardView.h"
 #include "FileReferenceController.h"
@@ -92,28 +94,29 @@ MultiConvolutionCardEditor::MultiConvolutionCardEditor(FilterTable* filterTable,
 	// No in-body path pencil: it duplicated the header's raw-line editor and
 	// read as "edit this file". Browse is the path affordance here.
 
-	// The channel mapping rides under the file reference: a caption row with
-	// the virtual-output entry point, then the active skin's routing view.
+	// The channel mapping rides under the file reference: the section head
+	// with the fold toggle and the virtual-output entry point, then the
+	// active skin's routing view. Folded, the head says the mapping in one
+	// line (RoutingSectionHead).
 	mappingArea = new QWidget(this);
 	mappingArea->setObjectName(QStringLiteral("MultiConvolutionMappingArea"));
 	QVBoxLayout* mappingLayout = new QVBoxLayout(mappingArea);
 	mappingLayout->setContentsMargins(4, 0, 4, 2);
 	mappingLayout->setSpacing(4);
 
-	QHBoxLayout* captionRow = new QHBoxLayout();
-	captionRow->setContentsMargins(0, 0, 0, 0);
-	mappingCaption = new QLabel(tr("Channel mapping"), mappingArea);
-	mappingCaption->setObjectName(QStringLiteral("MultiConvolutionMappingCaption"));
-	captionRow->addWidget(mappingCaption);
+	routingHead = new RoutingSectionHead(tr("Channel mapping"),
+		QStringLiteral("MultiConvolutionMappingCaption"), mappingArea);
+	connect(routingHead, &RoutingSectionHead::foldChosen, this, [this](bool) {
+		routingFoldChosen = true;
+	});
 
-	addChannelButton = new QToolButton(mappingArea);
+	addChannelButton = new QToolButton(routingHead);
 	addChannelButton->setObjectName(QStringLiteral("FilterCardIconButton"));
 	addChannelButton->setText(QStringLiteral("+"));
 	addChannelButton->setToolTip(tr("Add an output channel (a new name creates a virtual channel)"));
 	connect(addChannelButton, SIGNAL(clicked()), this, SLOT(addOutputChannel()));
-	captionRow->addWidget(addChannelButton);
-	captionRow->addStretch(1);
-	mappingLayout->addLayout(captionRow);
+	routingHead->addOpenControl(addChannelButton);
+	mappingLayout->addWidget(routingHead);
 
 	routingLayout = new QVBoxLayout();
 	routingLayout->setContentsMargins(0, 0, 0, 0);
@@ -146,6 +149,30 @@ void MultiConvolutionCardEditor::setChannelFlow(const ChannelFlowAtLine& flow)
 	rebuildRoutingView();
 }
 
+void MultiConvolutionCardEditor::loadPreferences(const QVariantMap& prefs)
+{
+	const QString key = QStringLiteral("routingFolded");
+	if (!prefs.contains(key))
+		return;
+	routingFoldChosen = true;
+	routingHead->setFolded(prefs.value(key).toBool());
+}
+
+void MultiConvolutionCardEditor::storePreferences(QVariantMap& prefs)
+{
+	if (routingFoldChosen)
+		prefs.insert(QStringLiteral("routingFolded"), routingHead->isFolded());
+}
+
+void MultiConvolutionCardEditor::updateRoutingSummary()
+{
+	// The mapping as the routing view shows it: a simple-form line ("every
+	// channel of the file") is written out channel by channel, so the folded
+	// section says which channels that is.
+	routingHead->setSummary(CopyRoutingAdapter::serialize(
+		MultiConvolutionRoutingAdapter::toAssignments(mappings, fileChannelCount)));
+}
+
 void MultiConvolutionCardEditor::routingEdited()
 {
 	if (routingView == nullptr)
@@ -162,6 +189,7 @@ void MultiConvolutionCardEditor::routingEdited()
 	}
 
 	mappings = std::move(edited);
+	updateRoutingSummary();
 	emit updateModel();
 }
 
@@ -238,6 +266,9 @@ void MultiConvolutionCardEditor::rebuildRoutingView()
 	routingScroll = new RoutingViewScroll(routingView, mappingArea);
 	routingLayout->addWidget(routingScroll);
 	connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
+	// The new board takes the section's fold state.
+	routingHead->setBody(routingScroll);
+	updateRoutingSummary();
 }
 
 void MultiConvolutionCardEditor::chooseFile()

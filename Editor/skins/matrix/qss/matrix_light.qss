@@ -1505,6 +1505,12 @@ QLabel#SendFieldCaption {
     font-size: 9pt; letter-spacing: 2px;
     text-transform: uppercase;
 }
+/* A folded channel-mapping section (Send, MultiConvolution) leaves its
+   routing beside the caption, as the line writes it. */
+QLabel#RoutingSectionSummary {
+    color: @MUTED@; background: transparent;
+    font-family: @MONO_STACK@;
+}
 /* ====================================================================
    Config cards (Phase 2): Device / Channel / Stage / Comment
    Four registers of one board language - see the dark sheet for the

@@ -827,6 +827,12 @@ QLabel#SendFieldCaption {
     font-size: 9pt;
     letter-spacing: 1px;
 }
+/* A folded channel-mapping section (Send, MultiConvolution) leaves its
+   routing beside the caption, as the line writes it. */
+QLabel#RoutingSectionSummary {
+    color: @MUTED@; background: transparent;
+    font-family: @MONO_STACK@;
+}
 
 /* ===== VST row: a softly glowing module card ===== */
 /* The frame's gradient border and painted halo come from StudioSkin; the

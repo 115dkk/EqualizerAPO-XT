@@ -59,6 +59,7 @@
 #include "Editor/widgets/cards/VSTSlotFillBlock.h"
 #include "Editor/widgets/cards/VSTSlotFillRail.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/routing/RoutingSectionHead.h"
 #include "vst/VST3BusLayout.h"
 
 using namespace SkinGalleryDetail;
@@ -1238,6 +1239,14 @@ int SkinGallery::runRoutingEditTest()
 				check(body->widget()->height() <= body->widget()->sizeHint().height() + 1,
 					QStringLiteral("%1 body (%2) is %3 px tall for %4 px of content")
 					.arg(who, QLatin1String(state)).arg(body->widget()->height()).arg(body->widget()->sizeHint().height()));
+				// The card follows its body. The body had the right height
+				// while the row above it kept the old one, and the opened
+				// board was cut off at the card's lower edge, with the control
+				// that folds it again (Matrix and Minimal Copy cards).
+				const int bodyBottom = body->mapTo(rows[0], QPoint(0, body->height())).y();
+				check(bodyBottom <= rows[0]->height(),
+					QStringLiteral("%1 body (%2) ends %3 px below its card, which is %4 px tall")
+					.arg(who, QLatin1String(state)).arg(bodyBottom - rows[0]->height()).arg(rows[0]->height()));
 			}
 		}
 	}
@@ -1402,6 +1411,123 @@ int SkinGallery::runRoutingEditTest()
 			settle();
 			check(lineText(scrollArea, 0).contains(QStringLiteral("VX")),
 				QStringLiteral("Hilbert card: the added channel is missing from '%1'").arg(lineText(scrollArea, 0)));
+		}
+	}
+
+	// Part 5: the channel-mapping section of the Send and MultiConvolution
+	// cards. It is open unless the user folded it. Folding is a view state:
+	// the line stays as it is and the document is not marked edited. The
+	// folded section says its routing in the line's own grammar, the focus
+	// that was inside it goes to the fold button (not to another card), and a
+	// rebuilt row (a skin switch, an undo) comes back in the state the user
+	// left it in.
+	for (ISkin* skin : Skins::all())
+	{
+		const QString name = skin->id();
+		SkinManager::instance()->applySkin(name, true);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		const QList<QString> lines = {
+			QStringLiteral("Send: {0d6a0000-0000-4000-8000-000000000002} L=L+0.5*R R=R Latency=20"),
+			QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") };
+		const QStringList summaries = { QStringLiteral("L=L+0.5*R R=R"), QStringLiteral("L=0+1 R=2+3") };
+		buildRows(scrollArea, configPath, lines, stereo, 0x3);
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (!check(table != nullptr, QStringLiteral("%1: the routing fold table was not built").arg(name)))
+			continue;
+		const auto rowAt = [&](int index) -> FilterCardRow* {
+			const QList<FilterCardRow*> current = table->findChildren<FilterCardRow*>(QString(), Qt::FindDirectChildrenOnly);
+			return index < current.size() ? current.at(index) : nullptr;
+		};
+		// A MultiConvolution row builds its board when the file's channel count
+		// arrives, a few event-loop passes after the row; the grid follows one
+		// layout request at a time. Heights are read once the rows have stopped
+		// changing.
+		const auto relayout = [&]() {
+			QList<int> heights;
+			for (int pass = 0; pass < 20; pass++)
+			{
+				settle();
+				if (table->layout() != nullptr)
+					table->layout()->activate();
+				QApplication::processEvents();
+				QList<int> now;
+				for (int index = 0; rowAt(index) != nullptr; index++)
+					now.append(rowAt(index)->height());
+				if (pass > 0 && now == heights)
+					break;
+				heights = now;
+			}
+		};
+		int edits = 0;
+		QObject::connect(table, &FilterTable::linesChanged, table, [&edits]() { edits++; });
+		scrollArea.activateWindow();
+		relayout();
+
+		for (int i = 0; i < lines.size(); i++)
+		{
+			const QString label = QStringLiteral("%1 %2").arg(name, lines.at(i).section(QLatin1Char(':'), 0, 0));
+			FilterCardRow* row = rowAt(i);
+			RoutingSectionHead* head = row != nullptr ? row->findChild<RoutingSectionHead*>() : nullptr;
+			RoutingView* view = row != nullptr ? liveView(row) : nullptr;
+			if (!check(head != nullptr && head->isVisibleTo(row) && view != nullptr,
+				QStringLiteral("%1: no section head or no routing view").arg(label)))
+				continue;
+			check(!head->isFolded(), QStringLiteral("%1: the section starts folded").arg(label));
+			const int openHeight = row->height();
+			const QString lineBefore = lineText(scrollArea, i);
+
+			// The focus is inside the section when it folds.
+			if (view->focusPolicy() == Qt::NoFocus)
+				view->setFocusPolicy(Qt::StrongFocus);
+			view->setFocus(Qt::OtherFocusReason);
+			const bool focusInside = QApplication::focusWidget() == view;
+			check(focusInside, QStringLiteral("%1: the routing view did not take the focus").arg(label));
+
+			head->foldButton()->click();
+			relayout();
+			check(head->isFolded() && !view->isVisibleTo(row),
+				QStringLiteral("%1: the section did not fold").arg(label));
+			const int foldedHeight = row->height();
+			check(foldedHeight < openHeight,
+				QStringLiteral("%1: folded the card is %2 px, open it was %3 px").arg(label).arg(foldedHeight).arg(openHeight));
+			check(head->summaryText() == summaries.at(i),
+				QStringLiteral("%1: the folded summary is '%2' (expected '%3')").arg(label, head->summaryText(), summaries.at(i)));
+			check(!focusInside || QApplication::focusWidget() == head->foldButton(),
+				QStringLiteral("%1: folding moved the focus away from the section head").arg(label));
+			check(lineText(scrollArea, i) == lineBefore && edits == 0,
+				QStringLiteral("%1: folding changed the document ('%2', %3 edit(s))").arg(label, lineText(scrollArea, i)).arg(edits));
+
+			// A rebuilt row keeps the fold the user chose.
+			table->updateGuis();
+			relayout();
+			row = rowAt(i);
+			head = row != nullptr ? row->findChild<RoutingSectionHead*>() : nullptr;
+			if (!check(head != nullptr && head->isFolded(),
+				QStringLiteral("%1: the fold did not survive a rebuilt row").arg(label)))
+				continue;
+			check(row->height() == foldedHeight,
+				QStringLiteral("%1: the rebuilt folded card is %2 px (was %3 px)").arg(label).arg(row->height()).arg(foldedHeight));
+
+			// Opened again, the board is back and the card is as tall as before.
+			head->foldButton()->click();
+			relayout();
+			view = liveView(row);
+			check(!head->isFolded() && view != nullptr,
+				QStringLiteral("%1: the section did not open again").arg(label));
+			check(row->height() == openHeight,
+				QStringLiteral("%1: reopened the card is %2 px, it was %3 px").arg(label).arg(row->height()).arg(openHeight));
+
+			// And a section the user opened again stays open.
+			table->updateGuis();
+			relayout();
+			row = rowAt(i);
+			head = row != nullptr ? row->findChild<RoutingSectionHead*>() : nullptr;
+			check(head != nullptr && !head->isFolded(),
+				QStringLiteral("%1: the reopened section folded again on a rebuilt row").arg(label));
+			check(lineText(scrollArea, i) == lineBefore && edits == 0,
+				QStringLiteral("%1: the fold round trip changed the document ('%2', %3 edit(s))")
+				.arg(label, lineText(scrollArea, i)).arg(edits));
 		}
 	}
 

@@ -402,6 +402,7 @@ SOURCES += main.cpp\
 	widgets/routing/RoutingFold.cpp \
 	widgets/routing/MultiConvolutionRoutingAdapter.cpp \
 	widgets/routing/RoutingGridModel.cpp \
+	widgets/routing/RoutingSectionHead.cpp \
 	widgets/routing/GridRoutingViewBase.cpp \
 	widgets/routing/RoutingViewScroll.cpp \
 	widgets/routing/SumRoutingViewBase.cpp \
@@ -787,6 +788,7 @@ HEADERS  += \
 	widgets/routing/MultiConvolutionRoutingAdapter.h \
 	widgets/routing/IRoutingRenderer.h \
 	widgets/routing/RoutingGridModel.h \
+	widgets/routing/RoutingSectionHead.h \
 	widgets/routing/RoutingChannelEditor.h \
 	widgets/routing/GridRoutingViewBase.h \
 	widgets/routing/RoutingViewScroll.h \

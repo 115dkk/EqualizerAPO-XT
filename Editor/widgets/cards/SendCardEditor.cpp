@@ -23,7 +23,9 @@
 #include "Editor/SkinManager.h"
 #include "Editor/skins/ISkin.h"
 #include "Editor/widgets/StyleRefresh.h"
+#include "Editor/widgets/routing/CopyRoutingAdapter.h"
 #include "Editor/widgets/routing/IRoutingRenderer.h"
+#include "Editor/widgets/routing/RoutingSectionHead.h"
 
 namespace
 {
@@ -108,6 +110,15 @@ SendCardEditor::SendCardEditor(FilterTable* filterTable, const QString& paramete
 	warning->hide();
 	layout->addWidget(warning);
 
+	// The routing is a section of its own under the fields. Folded, it is
+	// one line that still says what is routed (RoutingSectionHead).
+	routingHead = new RoutingSectionHead(tr("Channel mapping"), QStringLiteral("SendFieldCaption"), this);
+	routingHead->hide();
+	connect(routingHead, &RoutingSectionHead::foldChosen, this, [this](bool) {
+		routingFoldChosen = true;
+	});
+	layout->addWidget(routingHead);
+
 	routingLayout = new QVBoxLayout();
 	routingLayout->setContentsMargins(0, 0, 0, 0);
 	layout->addLayout(routingLayout);
@@ -142,6 +153,21 @@ void SendCardEditor::setChannelFlow(const ChannelFlowAtLine& flow)
 	loadEndpoints();
 	rebuildRoutingView();
 	updateWarning();
+}
+
+void SendCardEditor::loadPreferences(const QVariantMap& prefs)
+{
+	const QString key = QStringLiteral("routingFolded");
+	if (!prefs.contains(key))
+		return;
+	routingFoldChosen = true;
+	routingHead->setFolded(prefs.value(key).toBool());
+}
+
+void SendCardEditor::storePreferences(QVariantMap& prefs)
+{
+	if (routingFoldChosen)
+		prefs.insert(QStringLiteral("routingFolded"), routingHead->isFolded());
 }
 
 void SendCardEditor::loadEndpoints()
@@ -240,8 +266,16 @@ void SendCardEditor::routingEdited()
 	if (routingView == nullptr)
 		return;
 	model.setAssignments(routingView->assignments());
+	updateRoutingSummary();
 	updateWarning();
 	emit updateModel();
+}
+
+void SendCardEditor::updateRoutingSummary()
+{
+	// The routing as the line writes it; rows without a connection are not
+	// part of the line and not part of the summary.
+	routingHead->setSummary(CopyRoutingAdapter::serialize(model.assignments()));
 }
 
 void SendCardEditor::rebuildRoutingView()
@@ -258,7 +292,12 @@ void SendCardEditor::rebuildRoutingView()
 
 	IRoutingRenderer* renderer = SkinManager::instance()->routingRenderer();
 	if (renderer == nullptr || model.target().isEmpty())
+	{
+		// No endpoint, no routing view: there is no section to fold.
+		routingHead->setBody(nullptr);
+		routingHead->hide();
 		return;
+	}
 
 	// Targets: the receiving endpoint's channels, then any the line names
 	// that the endpoint does not have (so they stay visible and removable).
@@ -286,6 +325,10 @@ void SendCardEditor::rebuildRoutingView()
 		SkinManager::instance()->tokens());
 	routingLayout->addWidget(routingView);
 	connect(routingView, SIGNAL(routingChanged()), this, SLOT(routingEdited()));
+	// The new view takes the section's fold state.
+	routingHead->setBody(routingView);
+	routingHead->show();
+	updateRoutingSummary();
 }
 
 void SendCardEditor::updateWarning()

@@ -730,6 +730,12 @@ QLabel#SendFieldCaption {
     font-family: @MONO_STACK@;
     font-size: 9pt; letter-spacing: 1px;
 }
+/* A folded channel-mapping section (Send, MultiConvolution) leaves its
+   routing beside the caption, as the line writes it. */
+QLabel#RoutingSectionSummary {
+    color: @MUTED@; background: transparent;
+    font-family: @MONO_STACK@;
+}
 /* ====================================================================
    Scope and note cards (Device / Channel / Stage / Comment),
    printed. Identical grammar to the dark console: boxed mono tokens on

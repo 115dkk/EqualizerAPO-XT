@@ -615,9 +615,19 @@ void FilterCardRow::syncEditorScrollHeight(QScrollArea* scroll)
 		// card never grows" when the routing views' channel fold expands.
 		// Invalidate the whole chain explicitly so the next grid pass
 		// re-queries a fresh row minimum.
+		//
+		// Each hop also announces its own new geometry. A layout keeps the
+		// size hint of every widget it holds until that widget says its
+		// geometry changed, so invalidating the layouts alone left the body
+		// stack's old hint in the card frame's layout: a card whose body
+		// lost its sideways scroll bar during the first layout passes stayed
+		// that bar's height too tall until something else rebuilt the chain.
 		for (QWidget* w = scroll->parentWidget(); w != nullptr && w != this; w = w->parentWidget())
+		{
 			if (w->layout() != nullptr)
 				w->layout()->invalidate();
+			w->updateGeometry();
+		}
 		if (layout() != nullptr)
 			layout()->invalidate();
 		updateGeometry();

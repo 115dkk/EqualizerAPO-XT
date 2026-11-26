@@ -569,6 +569,9 @@ QLabel#SendFieldCaption {
     color: @MUTED@;
     font-size: 10pt;
 }
+/* A folded channel-mapping section (Send, MultiConvolution) leaves its
+   routing beside the caption, as the line writes it. */
+QLabel#RoutingSectionSummary { color: @MUTED@; background: transparent; }
 
 /* ====================================================================
    The plumbing cards (Device / Channel / NewChannel / Comment / Stage).
