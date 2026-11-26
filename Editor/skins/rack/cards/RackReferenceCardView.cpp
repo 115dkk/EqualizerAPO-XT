@@ -27,13 +27,16 @@ namespace
 // Engraved function caption over the label strip, per reference kind.
 // Hardware printing, never translated (rack.md: engravings are not UI
 // strings). The Include caption echoes the PATCH designation the ear
-// engraving and the patchbay jacks already give that unit type.
+// engraving and the patchbay jacks already give that unit type. A
+// Subwoofer Routing unit holds a routing profile, not an impulse response.
 QString captionForKind(const QString& kind)
 {
 	if (kind == QLatin1String("include"))
 		return QStringLiteral("PATCH");
 	if (kind == QLatin1String("vst"))
 		return QStringLiteral("MODULE");
+	if (kind == QLatin1String("subwoofer"))
+		return QStringLiteral("PROFILE");
 	return QStringLiteral("IR PROGRAM");
 }
 }

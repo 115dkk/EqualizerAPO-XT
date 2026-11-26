@@ -7,6 +7,7 @@
 #include "MinimalReferenceCardView.h"
 
 #include <QAbstractButton>
+#include <QEvent>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
@@ -20,8 +21,9 @@ namespace
 // The engraved command token for a host action: uppercase mono words are the
 // terminal's grammar, so they stay untranslated; the host's tooltips carry
 // the translated explanation. Browse's LOCATE recovery swap happens in
-// applyState because it depends on the state.
-QString commandToken(ReferenceCardView::ActionRole role)
+// applyState because it depends on the state. The Subwoofer Routing card's
+// panel is its full editor, so its OpenPanel word is EDITOR.
+QString commandToken(ReferenceCardView::ActionRole role, const QString& kind)
 {
 	switch (role)
 	{
@@ -32,23 +34,26 @@ QString commandToken(ReferenceCardView::ActionRole role)
 	case ReferenceCardView::ActionRole::Import:
 		return QStringLiteral("IMPORT");
 	case ReferenceCardView::ActionRole::OpenPanel:
-		return QStringLiteral("PANEL");
+		return kind == QStringLiteral("subwoofer")
+			? QStringLiteral("EDITOR") : QStringLiteral("PANEL");
 	case ReferenceCardView::ActionRole::Options:
 		return QStringLiteral("OPT");
 	case ReferenceCardView::ActionRole::EditPath:
 		return QStringLiteral("EDIT");
+	case ReferenceCardView::ActionRole::Preset:
+		return QStringLiteral("PRESET");
 	}
 	return QString();
 }
 }
 
 MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget* parent)
-	: ReferenceCardView(parent)
+	: ReferenceCardView(parent), cardKind(kind)
 {
 	// The state's kind (mirrored as the refKind property by the base) is all
 	// the differentiation this skin wants: Include, Convolution and VST are
-	// deliberately the same one-line grammar (constitution).
-	Q_UNUSED(kind);
+	// deliberately the same one-line grammar (constitution). The one word
+	// that follows the kind is the OpenPanel command (commandToken).
 
 	QWidget* page = contentWidget();
 	lineLayout = new QHBoxLayout(page);
@@ -142,7 +147,7 @@ void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButto
 	// Text and icon are presentation (the view's), while behavior, enabled
 	// state, visibility and the translated tooltip remain the host's.
 	button->setProperty("minimalRefCommand", true);
-	button->setText(commandToken(role));
+	button->setText(commandToken(role, cardKind));
 	button->setIcon(QIcon());
 	QToolButton* toolButton = qobject_cast<QToolButton*>(button);
 	if (toolButton != nullptr)
@@ -152,6 +157,27 @@ void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButto
 	// to the terminal's right edge.
 	lineLayout->insertWidget(lineLayout->count() - 1, button, 0, Qt::AlignVCenter);
 	repolish(button);
+	// The floor below is measured in the button's font, which can still
+	// change after the first state: a host that builds its card before the
+	// row joins the window (Subwoofer Routing) gets the final font only then.
+	button->installEventFilter(this);
+}
+
+bool MinimalReferenceCardView::eventFilter(QObject* watched, QEvent* event)
+{
+	if (event->type() == QEvent::FontChange)
+	{
+		for (ActionRole role : {ActionRole::Browse, ActionRole::OpenTarget, ActionRole::Import,
+			ActionRole::OpenPanel, ActionRole::Preset, ActionRole::Options, ActionRole::EditPath})
+		{
+			if (watched == actionButton(role))
+			{
+				restateCommandFloors();
+				break;
+			}
+		}
+	}
+	return ReferenceCardView::eventFilter(watched, event);
 }
 
 void MinimalReferenceCardView::placeBusStrip(QWidget* strip)
@@ -232,8 +258,13 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	// clipped command carries nothing, while the data columns elide into
 	// tooltips - so the floor is restated from each engraved word, after
 	// the state pass that may have swapped BROWSE for LOCATE.
+	restateCommandFloors();
+}
+
+void MinimalReferenceCardView::restateCommandFloors()
+{
 	for (ActionRole role : {ActionRole::Browse, ActionRole::OpenTarget, ActionRole::Import,
-		ActionRole::OpenPanel, ActionRole::Options, ActionRole::EditPath})
+		ActionRole::OpenPanel, ActionRole::Preset, ActionRole::Options, ActionRole::EditPath})
 	{
 		QAbstractButton* button = actionButton(role);
 		if (button != nullptr)

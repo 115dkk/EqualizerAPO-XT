@@ -182,14 +182,16 @@ look).
 
 Rows whose subject is an external file (Include, Convolution,
 MultiConvolution, VSTPlugin) render their body through a per-skin view,
-following the Copy routing-renderer precedent:
+following the Copy routing-renderer precedent. SubwooferRouting uses the
+same view (kind `subwoofer`): its profile, linked as a file or embedded in
+the line, is edited in a window of its own, the way a plugin's panel is:
 
 ```cpp
 // ISkin (Editor/skins/ISkin.h)
 virtual ReferenceCardView* createReferenceCardView(const QString& kind, QWidget* parent) const;
 ```
 
-The host editors (`Editor/widgets/cards/{Include,Convolution,MultiConvolution,VST}CardEditor`)
+The host editors (`Editor/widgets/cards/{Include,Convolution,MultiConvolution,VST,SubwooferRouting}CardEditor`)
 own all behavior - path resolution, file dialogs, plugin lifecycle, dependency
 import - and describe themselves through `ReferenceCardState`
 (`Editor/widgets/cards/ReferenceCardView.h`): primary name, as-written
@@ -205,7 +207,12 @@ the name-activation plumbing (clicking the name opens the target / plugin
 panel). Hosts hand action buttons over with semantic roles
 (`addActionButton`) and never lose control of their behavior or visibility;
 the Browse button doubles as the "Locate..." recovery entry while the
-reference is missing. The default is the neutral
+reference is missing. The Preset role is a menu of ready-made targets
+(Subwoofer Routing's built-in presets); it stays available while the
+reference is broken, because choosing one is the repair, and views place it
+right after OpenPanel and dress it like their other worded actions. The
+Subwoofer Routing card's Browse button exists only while the line links a
+profile file. The default is the neutral
 `DefaultReferenceCardView`; the five shipped skins override it in
 `Editor/skins/<id>/cards/<Skin>ReferenceCardView.{h,cpp}`. Paths elide at paint
 time (`Editor/widgets/ElidedLabel.h`), never at set time.
@@ -418,13 +425,12 @@ add-card row (`addrow` normal/hover/focused), one for the insertion seam's hover
 reveal (`seam`) and one for the update toast (`toast`). Keyboard focus has its
 own shots, judged against shared article 8 of docs/skins/README.md: the metric
 switch in `segment_focused` and `segment_focushover`, and the `focus` scene
-with the focused card (`card`), the GraphicEQ plot (`geqplot`) and the
-subwoofer summary (`subwoofer`). The card is focused through
-`FilterTable::selectOnlyFromCard`, the path a click takes; the other widgets
-take their `setPreviewFocused` hook rather than real focus, which offscreen
-depends on window activation. Output names are
+with the focused card (`card`) and the GraphicEQ plot (`geqplot`). The card
+is focused through `FilterTable::selectOnlyFromCard`, the path a click takes;
+the plot takes its `setPreviewFocused` hook rather than real focus, which
+offscreen depends on window activation. Output names are
 stable: `<skin>_<dark|light>_<row>_<state>.png`,
-5 × 2 × (21 × 3 + 12) = 750 PNGs
+5 × 2 × (41 × 3 + 55) = 1,780 PNGs
 for a full run; the run self-checks the count, so adding a gallery row needs
 no external count update. A row shot fails the render (non-zero exit) if a
 visible horizontal scrollbar is found inside the row — rows must fit the
