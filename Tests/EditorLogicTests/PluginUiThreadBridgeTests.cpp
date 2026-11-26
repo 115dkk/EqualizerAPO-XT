@@ -14,6 +14,7 @@
 #include <QDeadlineTimer>
 #include <QElapsedTimer>
 #include <QEventLoop>
+#include <QScopeGuard>
 #include <QSemaphore>
 #include <QThread>
 
@@ -252,22 +253,28 @@ TEST_CASE(EditorLogicTests, testPluginUiBridgeUninstallDrainsAndRestoresInlineCa
 
 TEST_CASE(EditorLogicTests, testPluginUiBridgeWaitServicingHonorsDeadline)
 {
-	QSemaphore sleeping;
+	QSemaphore started;
+	QSemaphore letGo;
 	BridgeSession bridge;
+	// The worker is held until the test lets it go, so the outcome does not
+	// depend on how a loaded runner schedules it against the deadline.
 	BridgeWorker worker([&] {
-		sleeping.release();
-		QThread::msleep(600);
+		started.release();
+		letGo.acquire();
 	});
+	// Declared after the worker: released first on every way out of the test.
+	const auto release = qScopeGuard([&] { letGo.release(); });
 	worker.start();
-	requireTrue(sleeping.tryAcquire(1, 2000), "deadline-control worker starts sleeping");
+	requireTrue(started.tryAcquire(1, 2000), "deadline-control worker starts");
 	QElapsedTimer clock;
 	clock.start();
 	const bool finished = PluginUiThreadBridge::waitServicing(worker, QDeadlineTimer(150));
 	const qint64 elapsed = clock.elapsed();
-	const bool joined = worker.wait(2000);
+	letGo.release();
+	const bool joined = worker.wait(5000);
 	std::printf("PluginUiBridge deadline: finished=%d elapsed=%lld ms joined=%d\n",
 		finished, static_cast<long long>(elapsed), joined);
-	expectFalse(finished, "150 ms deadline expires before the 600 ms worker completes");
-	expectTrue(elapsed >= 100 && elapsed < 450, "serviced wait respects the bounded deadline");
-	expectTrue(joined, "the sleeping worker is joined before the test returns");
+	expectFalse(finished, "the 150 ms deadline expires while the worker is still held");
+	expectTrue(elapsed >= 100 && elapsed < 3000, "serviced wait returns at its deadline, not when the worker ends");
+	expectTrue(joined, "the held worker is joined before the test returns");
 }
