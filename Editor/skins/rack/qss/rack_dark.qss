@@ -1402,3 +1402,59 @@ QToolButton#VelvetRegenerate:focus {
 }
 /* A name the engine refuses keeps the danger edge while focused. */
 QToolButton#NewChannelChip[invalid="true"]:focus { border-color: @DANGER@; }
+
+/* Inside the card list every cap is one 22 px module including its outline
+   (RackSkin::controlContract), so a cap carries little empty room above and
+   below its legend. The content box is 18 px and the vertical padding plus
+   borders always add up to 4 px: a latched or pressed cap moves its 1 px
+   label drop from the bottom padding to the top, and a lamp row or top bar
+   that is 2 px thick takes its extra pixel out of the padding on its own
+   side, so no state changes the box. Widths, side padding, type and glyphs
+   stay as they were. A text field on the same line as caps takes the same
+   box so the line stays level. Each rule names the card frame and an id, so
+   it outranks every single-id rule above; the state rules below restate the
+   label drop and the lamp pixel at the same level. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QPushButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit {
+    min-height: 18px; max-height: 18px; padding-top: 1px; padding-bottom: 1px;
+}
+/* Velvet's worded keys have no vertical padding: their 20 px box and the
+   border make the 22. */
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
+    min-height: 20px; max-height: 20px; padding-top: 0px; padding-bottom: 0px;
+}
+/* Latched and pressed caps drop their label 1 px (the 4px/2px padding of
+   the rules above becomes 2px/0px here). */
+QFrame#FilterCardRow QToolButton#DeviceChip:checked,
+QFrame#FilterCardRow QToolButton#DeviceChip:pressed,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:checked,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:pressed,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:pressed {
+    padding-top: 2px; padding-bottom: 0px;
+}
+/* An engaged Channel key's 2 px lamp row and an engaged Stage key's 2 px
+   top bar take their extra pixel from the padding on their own side. */
+QFrame#FilterCardRow QToolButton#ChannelChip:checked {
+    padding-top: 1px; padding-bottom: 0px;
+}
+QFrame#FilterCardRow QToolButton#StageChip:checked {
+    padding-top: 0px; padding-bottom: 1px;
+}
+/* The patchbay's add-channel field is a 22 px box level with its ADD cap
+   (HardwarePatchbayView::channelEditorRect), in the card list and in the
+   routing dialog alike; its padding leaves the text an 18 px box. */
+QLineEdit#PatchbayChannelEditor { padding-top: 1px; padding-bottom: 1px; }

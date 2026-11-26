@@ -412,8 +412,25 @@ Keyboard focus is part of the promise. After the scenes, a skin that promises
 closed outlines builds the gallery rows once more, gives the keyboard focus
 (`setFocus(Qt::TabFocusReason)`, no OS input) to one instance of each
 focusable cap class, and requires its outline to differ from its resting
-outline by at least 15 on all four sides, in one colour. A cap that cannot
-take the focus fails. This test writes no capture.
+outline by at least 15 on all four sides, in one colour. A latched key (and
+Rack's LOCATE cap, which rests lit) only has to stay one colour on four
+sides. A cap that cannot take the focus fails. This test writes no capture.
+
+`listCapHeight` promises the height of every cap inside the filter list
+(inside a `QFrame#FilterCardRow`, card header included): keys, framed
+combos (parameter selectors are not caps), the caps a routing view paints,
+and the fields that share a line with caps (`ChannelChipAdd`,
+`NewChannelAdd`, `SendLatencyEdit`, `PatchbayChannelEditor`). Each must be
+that tall in every state, or be listed in the height exception table of the
+.cpp with its reason; a failure prints `SkinGallery: OUTLINE FAIL height`. In
+a cap of that height the legend's ink (rows inside the outline where a pixel
+differs from the row's median by more than 20 delta-E) keeps at least 2 px
+clear of the outline above and below, or the capture fails with
+`OUTLINE FAIL ink`. A focused field is not measured for ink (its caret runs
+the height of the text box). The VST fill block's painted caps are custom
+widgets; they are listed by class in the report with their exception. Each
+capture with list caps prints one `SkinGallery: list caps` line. Hardware
+Rack promises 22 px.
 
 ## Routing renderer hook
 

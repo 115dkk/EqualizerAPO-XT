@@ -14,13 +14,24 @@
 
 using std::vector;
 
+namespace
+{
+// Every cap of the field (crosspoint caps and the strip's keys) is one 22 px
+// module with its outline, the height of every cap in the card list
+// (RackSkin::controlContract). The pitch (cellH 42) and the strip (26) give
+// up the 8 px the caps lost against the earlier 30, so the gap between
+// stacked caps stays as it was. The patchbay is the same part wherever it is
+// shown, the routing dialog included.
+constexpr int kCapHeight = 22;
+}
+
 HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 	QWidget* parent, const SkinTokens& tokens)
 	: GridRoutingViewBase(assignments, channelNames, portModel, parent, tokens,
 		// Widened to the engraved labels in updateMetrics(); the defaults fit
 		// a Copy row's short device names.
-		{ .rowHeaderWidth = 60, .colHeaderHeight = 34, .cellW = 56, .cellH = 50 },
+		{ .rowHeaderWidth = 60, .colHeaderHeight = 34, .cellW = 56, .cellH = 42 },
 		QStringLiteral("PatchbayEditor"), QStringLiteral("PatchbayChannelEditor"))
 {
 	rebuildMatrix();
@@ -205,7 +216,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			// switch bank in rack_dark.qss / rack_light.qss; a routed cap
 			// latches like the header caps (RackPalette).
 			const int capW = qMin(cellW - 10, 46);
-			const int capH = 30;
+			const int capH = kCapHeight;
 			QRect cap(cr.center().x() - capW / 2, cr.center().y() - capH / 2, capW, capH);
 
 			if (!cell.present)
@@ -311,18 +322,18 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		const QString capText = channelsExpanded
 			? QStringLiteral("ALL")
 			: QStringLiteral("+%1").arg(fold.hiddenChannels);
-		revealRect = QRect(x, strip.top(), 44, 30);
+		revealRect = QRect(x, strip.top(), 44, kCapHeight);
 		drawCap(revealRect, channelsExpanded, capText, hoveredControl == 1);
 		// Tracked engraving under the cap's right shoulder names the bank.
 		p.setFont(label);
 		p.setPen(withAlpha(QColor(t.mutedText), 220));
 		const QString engrave = QStringLiteral("CHANNELS");
-		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, 30),
+		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, kCapHeight),
 			Qt::AlignVCenter | Qt::AlignLeft, engrave);
 		x += 52 + fm.horizontalAdvance(engrave) + 24;
 	}
 
-	addRect = QRect(x, strip.top(), 44, 30);
+	addRect = QRect(x, strip.top(), 44, kCapHeight);
 	drawCap(addRect, false, QStringLiteral("ADD"), hoveredControl == 2);
 }
 
@@ -334,9 +345,10 @@ QRect HardwarePatchbayView::factorEditorRect(int outRow, int inCol) const
 
 QRect HardwarePatchbayView::channelEditorRect() const
 {
+	// The add-channel field is a 22 px box level with the ADD cap beside it.
 	return addRect.isNull()
-		? QRect(6, stripRect().top() + 4, 110, 24)
-		: QRect(addRect.right() + 10, addRect.top() + 3, 110, 24);
+		? QRect(6, stripRect().top(), 110, kCapHeight)
+		: QRect(addRect.right() + 10, addRect.top(), 110, kCapHeight);
 }
 
 RoutingView* HardwarePatchbayRoutingRenderer::create(const vector<Assignment>& assignments,

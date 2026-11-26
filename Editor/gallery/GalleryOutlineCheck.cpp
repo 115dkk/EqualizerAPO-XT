@@ -692,18 +692,200 @@ QList<OutlinedPart> collectOutlinedParts(QWidget* root)
 	return parts;
 }
 
+namespace
+{
+// The fields that share a line with caps in the card list and take the
+// caps' box (the Add channel fields, the Send unit's LATENCY field, the
+// patchbay's add-channel field), and the patchbay's factor field, which has
+// its own row in the height exceptions.
+bool isCapLineField(const QString& name)
+{
+	return name == QLatin1String("ChannelChipAdd") || name == QLatin1String("NewChannelAdd")
+		|| name == QLatin1String("SendLatencyEdit") || name == QLatin1String("PatchbayChannelEditor")
+		|| name == QLatin1String("PatchbayEditor");
+}
+
+// A part whose height the list cap contract covers: a key, a framed combo,
+// a cap a routing view paints, or a field on a cap line. Parameter
+// selectors are engraved legends, not caps, and stay outside it.
+bool isListCap(const OutlinedPart& part)
+{
+	if (!part.inList)
+		return false;
+	if (part.cls == QLatin1String("QComboBox"))
+		return !hasProp(part, "paramSelector=true");
+	if (part.cls == QLatin1String("QLineEdit"))
+		return isCapLineField(part.name);
+	return part.cls == QLatin1String("QPushButton") || part.cls == QLatin1String("QToolButton")
+		|| part.cls == QLatin1String("PaintedCap");
+}
+
+// A list cap that is not the contract's height on purpose. Each row says
+// why; the gallery prints every row it uses.
+struct HeightException
+{
+	std::function<bool(const OutlinedPart&)> matches;
+	const char* reason;
+};
+
+const std::vector<HeightException>& heightExceptions()
+{
+	static const std::vector<HeightException> table = {
+		// The factor field opens over the crosspoint cap it edits, inside
+		// the cell; it is not on a line of caps.
+		{ [](const OutlinedPart& part) { return part.name == QLatin1String("PatchbayEditor"); },
+			"patchbay factor field: opens inside its crosspoint cell" },
+	};
+	return table;
+}
+
+// Rows of a cap's interior (inside its outline, 3 px in from its sides)
+// that carry ink: some pixel differs from the row's median colour by more
+// than 20. Returns false when the cap holds no ink.
+bool inkRows(const QImage& image, const QRect& rect, int bottomOutline, int& clearAbove, int& clearBelow,
+	int& inkHeight)
+{
+	std::vector<bool> rows;
+	for (int y = rect.top() + 1; y <= rect.bottom() - bottomOutline; y++)
+	{
+		std::vector<QPoint> line;
+		for (int x = rect.left() + 3; x < rect.left() + rect.width() - 3; x++)
+			line.emplace_back(x, y);
+		if (line.empty())
+			return false;
+		const QRgb median = medianColour(image, line);
+		bool ink = false;
+		for (const QPoint& point : line)
+			ink = ink || deltaE(image.pixel(point), median) > 20.0;
+		rows.push_back(ink);
+	}
+	int first = -1;
+	int last = -1;
+	for (int i = 0; i < static_cast<int>(rows.size()); i++)
+	{
+		if (!rows[i])
+			continue;
+		if (first < 0)
+			first = i;
+		last = i;
+	}
+	if (first < 0)
+		return false;
+	clearAbove = first;
+	clearBelow = static_cast<int>(rows.size()) - 1 - last;
+	inkHeight = last - first + 1;
+	return true;
+}
+
+// The list cap contract on one capture: every cap in the filter list is
+// contract.listCapHeight tall in every state, and its legend's ink keeps
+// at least 2 px clear of the outline above and below. The fill block's
+// painted caps are custom widgets outside the outline check; they are
+// listed here by class so the inventory covers them.
+int checkListCaps(QWidget* grabbed, const QImage& pixels, const QList<OutlinedPart>& parts, int capHeight,
+	OutlineReport& report, const QString& skinId, const QString& mode, const QString& scene, const QString& state,
+	int& checkedCaps)
+{
+	int failing = 0;
+	for (const OutlinedPart& part : parts)
+	{
+		if (!isListCap(part))
+			continue;
+		const HeightException* exception = nullptr;
+		for (const HeightException& row : heightExceptions())
+			if (row.matches(part))
+				exception = &row;
+		if (exception != nullptr)
+		{
+			report.write(skinId, mode, scene, state, part, QStringLiteral("height"), QString::number(part.rect.height()),
+				QStringLiteral("height exception: ") + QLatin1String(exception->reason));
+			continue;
+		}
+		checkedCaps++;
+		const bool tall = part.rect.height() == capHeight;
+		report.write(skinId, mode, scene, state, part, QStringLiteral("height"), QString::number(part.rect.height()),
+			tall ? QStringLiteral("ok") : QStringLiteral("fail"));
+		if (!tall)
+		{
+			qWarning("SkinGallery: OUTLINE FAIL height %s %s %s %s: %s: %d px, the list cap height is %d",
+				qPrintable(skinId), qPrintable(mode), qPrintable(scene), qPrintable(state), qPrintable(partText(part)),
+				part.rect.height(), capHeight);
+			failing++;
+			continue;
+		}
+		if (part.clipped || !QRect(QPoint(0, 0), pixels.size()).contains(part.rect))
+			continue;
+		// A focused field's caret runs the height of its text box; it is
+		// not the legend, so a focused field's ink is not measured.
+		if (part.cls == QLatin1String("QLineEdit") && hasState(part, "focus"))
+			continue;
+		// Qt draws a 1 px dashed bottom border two pixels thick, so a
+		// dashed seat's outline takes the bottom two rows.
+		const bool dashed = part.name == QLatin1String("NewChannelChip")
+			|| part.name == QLatin1String("StageChipUnknown") || hasProp(part, "customChannel=true");
+		int above = 0;
+		int below = 0;
+		int ink = 0;
+		if (!inkRows(pixels, part.rect, dashed ? 2 : 1, above, below, ink))
+			continue;
+		const bool clear = above >= 2 && below >= 2;
+		report.write(skinId, mode, scene, state, part, QStringLiteral("ink"),
+			QStringLiteral("%1/%2/%3").arg(ink).arg(above).arg(below),
+			clear ? QStringLiteral("ok") : QStringLiteral("fail"));
+		if (!clear)
+		{
+			qWarning("SkinGallery: OUTLINE FAIL ink %s %s %s %s: %s: ink %d px, %d px clear above, %d below (2 needed)",
+				qPrintable(skinId), qPrintable(mode), qPrintable(scene), qPrintable(state), qPrintable(partText(part)), ink,
+				above, below);
+			failing++;
+		}
+	}
+	for (QWidget* w : grabbed->findChildren<QWidget*>())
+	{
+		const bool fillCap = qstrcmp(w->metaObject()->className(), "VSTSlotFillCell") == 0
+			|| w->objectName() == QLatin1String("VSTSlotFillLatch");
+		if (!fillCap || !w->isVisibleTo(grabbed))
+			continue;
+		OutlinedPart part;
+		part.widget = w;
+		part.cls = QString::fromLatin1(w->metaObject()->className());
+		part.name = w->objectName();
+		part.state = widgetState(w).words;
+		part.rect = QRect(w->mapTo(grabbed, QPoint(0, 0)), w->size());
+		// The fill block's value caps and FILL cap are painted 18 px tall
+		// by RackSkin::vstSlotFillBlockMetrics, settled with the fill block
+		// itself; they are not sheet caps.
+		report.write(skinId, mode, scene, state, part, QStringLiteral("height"), QString::number(part.rect.height()),
+			QStringLiteral("height exception: VST fill block cap, painted by the fill block's own metrics"));
+	}
+	return failing;
+}
+}
+
 int checkControlOutlines(QWidget* grabbed, const QImage& image, const QString& skinId, const QString& mode,
 	const QString& scene, const QString& state)
 {
 	const SkinControlContract contract = SkinManager::instance()->controlContract();
-	if (!contract.closedOutlines)
+	if (!contract.closedOutlines && contract.listCapHeight <= 0)
 		return 0;
 	const QImage pixels = image.convertToFormat(QImage::Format_RGB32);
+	const QList<OutlinedPart> parts = collectOutlinedParts(grabbed);
 	OutlineReport report;
-	int failing = 0;
+	int listCaps = 0;
+	const int capFailures = contract.listCapHeight > 0
+		? checkListCaps(grabbed, pixels, parts, contract.listCapHeight, report, skinId, mode, scene, state, listCaps)
+		: 0;
+	if (listCaps > 0)
+	{
+		qWarning("SkinGallery: list caps %s %s %s %s: %d caps, %d failing", qPrintable(skinId), qPrintable(mode),
+			qPrintable(scene), qPrintable(state), listCaps, capFailures);
+	}
+	if (!contract.closedOutlines)
+		return capFailures;
+	int failing = capFailures;
 	int measuredParts = 0;
 	int reviewSides = 0;
-	for (const OutlinedPart& part : collectOutlinedParts(grabbed))
+	for (const OutlinedPart& part : parts)
 	{
 		// A part an ancestor cuts, or one that runs off the capture, has
 		// sides that are not in the picture.

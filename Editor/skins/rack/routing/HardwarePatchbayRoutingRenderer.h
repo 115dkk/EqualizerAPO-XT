@@ -46,7 +46,7 @@ private:
 	// button).
 	QRect stripRect() const;
 
-	int stripH = 34;
+	int stripH = 26;
 	// The caps the last paint drew, for paintedCaps().
 	QList<QPair<QRect, QString>> capsPainted;
 };
