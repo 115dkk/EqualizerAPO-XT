@@ -1039,9 +1039,6 @@ int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, c
 		// which in the light finish is the focus signal itself.
 		const bool latched = (button != nullptr && button->isChecked()) || hasProp(listed, "rackLocate=true");
 		const bool failed = (unlit && !latched) || verdict.colourFailure || verdict.sideFailure;
-		qWarning("SkinGallery: focus %s %s %s#%s: change %s, colour spread %.1f%s", qPrintable(skinId), qPrintable(mode),
-			qPrintable(part.cls), qPrintable(part.name), qPrintable(changes.join(QLatin1Char(' '))), verdict.colourSpread,
-			failed ? " FAIL" : "");
 		if (failed)
 		{
 			qWarning("SkinGallery: OUTLINE FAIL focus %s %s: %s: change %s, outline %s, spread %.1f", qPrintable(skinId),
@@ -1057,6 +1054,9 @@ int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, c
 		qWarning("SkinGallery: OUTLINE FAIL focus %s %s: no focusable cap was found", qPrintable(skinId), qPrintable(mode));
 		failures++;
 	}
+	// One line per finish; the per-cap readings are in the report file.
+	qWarning("SkinGallery: focus %s %s: %d caps given the keyboard focus, %d failing", qPrintable(skinId), qPrintable(mode),
+		tested, failures);
 	return failures;
 }
 }
