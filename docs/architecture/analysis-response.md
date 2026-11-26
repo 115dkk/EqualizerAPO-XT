@@ -47,6 +47,20 @@ ramp thousands of turns deep. The bins therefore describe the configuration
 with its bulk delay removed, and a view that wants the delay back reapplies the
 linear phase this implies rather than asking for a second analysis.
 
+## Plug-in lifecycle
+
+The analysis worker still builds its own FilterEngine and performs negotiation,
+state restoration, preparation and processing there. In the Editor process,
+instance initialization and final destruction instead use the UI-thread runner
+so analysis cannot bind a plug-in's message thread to the worker before its
+panel opens. Retirements are queued; a later worker initialization follows them
+in the same FIFO. No analysis request/result mutex is held across these calls.
+
+AnalysisThread's destructor services the runner while waiting for the worker,
+using its existing five-second deadline. This avoids waiting on a worker that
+is itself waiting for UI initialization. The deadline cannot interrupt a
+third-party initialization or destructor that hangs inside the UI drain.
+
 ## Publication
 
 The thread builds the response outside the mutex — the copy out of the FFTW

@@ -141,6 +141,7 @@ SOURCES += main.cpp\
 	helpers/FileDialogShellMenu.cpp \
 	helpers/PanelFeedEngine.cpp \
 	helpers/PanelPreviewFeeder.cpp \
+	helpers/PluginUiThreadBridge.cpp \
 	helpers/PluginLoadQueue.cpp \
 	helpers/BackgroundProbe.cpp \
 	helpers/SpinBoxEditFieldFix.cpp \
@@ -462,6 +463,7 @@ HEADERS  += \
 	helpers/PanelFeedEngine.h \
 	helpers/PanelMonitorGate.h \
 	helpers/PanelPreviewFeeder.h \
+	helpers/PluginUiThreadBridge.h \
 	helpers/PluginLoadQueue.h \
 	helpers/BackgroundProbe.h \
 	helpers/TroubleshootingNotices.h \

@@ -75,6 +75,8 @@
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/helpers/BackgroundProbe.h"
 #include "Editor/helpers/PluginLoadQueue.h"
+#include "Editor/helpers/PluginUiThreadBridge.h"
+#include <QScopeGuard>
 #include "Editor/helpers/SpinBoxEditFieldFix.h"
 #include "services/settings/EditorSettings.h"
 #include "Editor/skins/SkinThemeData.h"
@@ -529,6 +531,8 @@ int main(int argc, char* argv[])
 		}
 
 		QApplication application(argc, argv);
+		PluginUiThreadBridge::install();
+		const auto pluginUiThreadCleanup = qScopeGuard([] { PluginUiThreadBridge::uninstall(); });
 		// Before anything can load a plug-in; see PluginLoadQueue.h.
 		PluginLoadQueue::prepareUiThread();
 		// Qt 6.12.0 only: spin box text placement (QTBUG-151308).
