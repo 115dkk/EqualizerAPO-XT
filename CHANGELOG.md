@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.86.0 — 2026-11-26
+
 - **Editor: the Legacy rows interface is now called Legacy editor.** View >
   Interface shows the new name. Nothing else about that interface changed,
   and whichever interface you were using stays selected after the update.
