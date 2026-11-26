@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.84.1 — 2026-11-26
+
 - **편집기: All-pass 카드에서 MAGNITUDE 값과 GRAPH 스위치를 뺐습니다.**
   MAGNITUDE 아래의 `0.0 dB`에서 알 수 있는 것은 올패스가 음량을 바꾸지 않는다는
   사실뿐이었고, 그 내용은 카드의 풍선 도움말에 있습니다. Phase / Group delay

@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.84.1 — 2026-11-26
+
 - **Editor: the all-pass card no longer shows a MAGNITUDE figure or a GRAPH
   switch.** Under MAGNITUDE the card printed `0.0 dB`, which said only that an
   all-pass does not change the level, and the card's tooltip says that. The
