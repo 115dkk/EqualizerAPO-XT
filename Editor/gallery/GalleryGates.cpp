@@ -1090,9 +1090,30 @@ bool checkRawPickerStable(FocusScene& f)
 	pendingEditor->selectAll();
 	pendingEditor->insert(QStringLiteral("Preamp: -7 dB"));
 	f.anchorReplacedInPopup = false;
-	QTimer::singleShot(30, focusTable, [scene]() {
-		scene->anchorReplacedInPopup = scene->editedAnchor.isNull();
-		if (QWidget* popup = QApplication::activePopupWidget())
+	// The picker's nested event loop runs this. The popup taking the focus
+	// commits the raw edit and replaces its row, some event-loop passes after
+	// the popup opens, and how long that takes depends on the machine. The
+	// check used to read the anchor once, 30 ms in. On a loaded machine that
+	// was before the replacement: it failed in the Stock Flat scene locally
+	// and in CI on 2026-11-26 (raw-picker=0) with nothing wrong in the Editor.
+	// It now waits for the replacement itself and for the popup to be there
+	// to answer, with a deadline, so a row that is never replaced still fails
+	// and a popup that never opens cannot hang the gate.
+	QTimer* poll = new QTimer(focusTable);
+	QElapsedTimer waited;
+	waited.start();
+	QObject::connect(poll, &QTimer::timeout, focusTable, [scene, poll, waited]() {
+		FilterTable* table = scene->focusTable;
+		QWidget* popup = QApplication::activePopupWidget();
+		if (popup == nullptr)
+			popup = table->findChild<QWidget*>(QStringLiteral("FilterPickerPopup"));
+		const bool replaced = scene->editedAnchor.isNull();
+		if ((!replaced || popup == nullptr) && waited.elapsed() < 3000)
+			return;
+		poll->stop();
+		poll->deleteLater();
+		scene->anchorReplacedInPopup = replaced;
+		if (popup != nullptr)
 		{
 			FilterPickerView* picker = popup->findChild<FilterPickerView*>();
 			if (picker != nullptr)
@@ -1101,14 +1122,21 @@ bool checkRawPickerStable(FocusScene& f)
 				popup->hide();
 		}
 	});
+	poll->start(10);
 	QMetaObject::invokeMethod(f.editedAnchor, "addAbove", Qt::DirectConnection);
 	QApplication::processEvents();
 	f.focusArea.activateWindow();
 	QApplication::processEvents();
-	return f.anchorReplacedInPopup
-		&& focusTable->documentItems().size() == f.focusLines.size() + 1
-		&& focusTable->documentItems().at(3)->text == QStringLiteral("Preamp: -7 dB")
-		&& QApplication::focusWidget() == focusTable;
+	const bool sizeGrew = focusTable->documentItems().size() == f.focusLines.size() + 1;
+	const bool editKept = sizeGrew && focusTable->documentItems().at(3)->text == QStringLiteral("Preamp: -7 dB");
+	const bool focusOnTable = QApplication::focusWidget() == focusTable;
+	const bool stable = f.anchorReplacedInPopup && sizeGrew && editKept && focusOnTable;
+	// The verdict line prints one digit for this check; when it is 0, say
+	// which of its four conditions it was.
+	if (!stable)
+		qWarning("CardSelectionTest: raw-picker replaced-in-popup=%d line-added=%d edit-kept=%d focus-on-table=%d",
+			f.anchorReplacedInPopup, sizeGrew, editKept, focusOnTable);
+	return stable;
 }
 
 bool checkRemoveStable(const FocusScene& f, const QGridLayout* focusGrid)

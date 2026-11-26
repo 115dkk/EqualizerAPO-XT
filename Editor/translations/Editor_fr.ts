@@ -726,17 +726,17 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>DefaultReferenceCardView</name>
     <message>
-        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="70"/>
+        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="72"/>
         <source>Absolute path - this reference does not move with the configuration</source>
         <translation>Chemin absolu - cette référence ne suit pas la configuration</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="74"/>
+        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="76"/>
         <source>MISSING</source>
         <translation>MANQUANT</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="82"/>
+        <location filename="../widgets/cards/DefaultReferenceCardView.cpp" line="84"/>
         <source>Checking...</source>
         <translation>Vérification...</translation>
     </message>
@@ -1452,7 +1452,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1049"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
@@ -1461,47 +1461,47 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="vanished">Activer ou commenter cette commande</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="179"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="180"/>
         <source>Add filter above this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="191"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="194"/>
         <source>Remove filter</source>
         <translation>Supprimer le filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="192"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="195"/>
         <source>Remove this filter. %1 brings it back.</source>
         <translation>Supprimer ce filtre. %1 permet de le rétablir.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="208"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="211"/>
         <source>Edit raw command</source>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="847"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="851"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1044"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1049"/>
         <source>Collapse filter card</source>
         <translation>Replier la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1046"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1052"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Désactiver cette ligne. Elle reste dans le fichier sous forme de commentaire.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1047"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1053"/>
         <source>Switch this line back on.</source>
         <translation>Réactiver cette ligne.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="845"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="849"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO n’a pas pu préparer ce filtre : la configuration entière n’a donc pas été appliquée et les réglages précédents continuent d’être lus. Vérifiez le fichier ou le plug-in qu’utilise cette ligne, ou désactivez la ligne.</translation>
     </message>
@@ -1985,89 +1985,89 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>GraphicEQCardEditor</name>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="72"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="73"/>
         <source>15-band</source>
         <translation type="unfinished">15 bandes</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="73"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="74"/>
         <source>31-band</source>
         <translation type="unfinished">31 bandes</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="74"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="75"/>
         <source>variable</source>
         <translation type="unfinished">variable</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="75"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="76"/>
         <source>Band layout</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="86"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="87"/>
         <source>Import</source>
         <translation type="unfinished">Importer</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="87"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="88"/>
         <source>Export</source>
         <translation type="unfinished">Exporter</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="88"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="89"/>
         <source>Invert response</source>
         <translation type="unfinished">Inverser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="89"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="90"/>
         <source>Normalize response</source>
         <translation type="unfinished">Normaliser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="90"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="91"/>
         <source>Reset response</source>
         <translation type="unfinished">Réinitialiser la réponse</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="134"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="137"/>
         <source>Freq.</source>
         <translation type="unfinished">Fréq.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="146"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="149"/>
         <source>Gain</source>
         <translation type="unfinished">Gain</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="256"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="259"/>
         <source>Band %0 / %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="262"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="265"/>
         <source>No bands</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="314"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="317"/>
         <source>Import frequency response</source>
         <translation type="unfinished">Importer une réponse en fréquence</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="317"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="342"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="320"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="345"/>
         <source>Frequency response (*.csv)</source>
         <translation type="unfinished">Réponse en fréquence (*.csv)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="318"/>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="343"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="321"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="346"/>
         <source>All files (*.*)</source>
         <translation type="unfinished">Tous les fichiers (*.*)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="338"/>
+        <location filename="../widgets/cards/GraphicEQCardEditor.cpp" line="341"/>
         <source>Export frequency response</source>
         <translation type="unfinished">Exporter une réponse en fréquence</translation>
     </message>
@@ -2348,11 +2348,13 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     </message>
     <message>
         <location filename="../widgets/cards/IncludeCardEditor.cpp" line="158"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="653"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
         <location filename="../widgets/cards/IncludeCardEditor.cpp" line="159"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="654"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -3330,7 +3332,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MatrixReferenceCardView</name>
     <message>
-        <location filename="../skins/matrix/cards/MatrixReferenceCardView.cpp" line="177"/>
+        <location filename="../skins/matrix/cards/MatrixReferenceCardView.cpp" line="180"/>
         <source>Checking...</source>
         <translation>Vérification...</translation>
     </message>
@@ -3505,7 +3507,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MinimalReferenceCardView</name>
     <message>
-        <location filename="../skins/minimal/cards/MinimalReferenceCardView.cpp" line="98"/>
+        <location filename="../skins/minimal/cards/MinimalReferenceCardView.cpp" line="103"/>
         <source>Checking...</source>
         <translation>Vérification...</translation>
     </message>
@@ -3757,78 +3759,78 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MultiConvolutionCardEditor</name>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="89"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="90"/>
         <source>Copy this file into the config directory</source>
         <translation>Copier ce fichier dans le dossier de configuration</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="107"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="108"/>
         <source>Channel mapping</source>
         <translation>Mappage des canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="116"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="117"/>
         <source>Add an output channel (a new name creates a virtual channel)</source>
         <translation>Ajouter un canal de sortie (un nouveau nom crée un canal virtuel)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="199"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="201"/>
         <source>Add output channel</source>
         <translation>Ajouter un canal de sortie</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="200"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="202"/>
         <source>Channel name (an unknown name creates a virtual channel):</source>
         <translation>Nom du canal (un nom inconnu crée un canal virtuel) :</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="276"/>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="278"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
         <source>Select impulse response file</source>
         <translation>Sélectionner le fichier de réponse impulsionnelle</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="277"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="279"/>
         <source>Impulse response (*.wav *.flac *.ogg)</source>
         <translation>Réponse impulsionnelle (*.wav *.flac *.ogg)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="301"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="303"/>
         <source>No file selected</source>
         <translation>Aucun fichier sélectionné</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="314"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="316"/>
         <source>Unsupported file format</source>
         <translation>Format de fichier non pris en charge</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="323"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="325"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="324"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="326"/>
         <source>%1 samples</source>
         <translation>%1 éch.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="325"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="327"/>
         <source>%1 Hz</source>
         <translation>%1 Hz</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="326"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="328"/>
         <source>%1 ch</source>
         <translation>%1 can.</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="331"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="333"/>
         <source>Sample rate does not match the device (%1 Hz)</source>
         <translation>La fréquence d&apos;échantillonnage ne correspond pas au périphérique (%1 Hz)</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="349"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="351"/>
         <source>Mapping references channel %1, but the file has %2 channels</source>
         <translation>Le mappage référence le canal %1, mais le fichier ne compte que %2 canaux</translation>
     </message>
@@ -3837,12 +3839,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Illisible par le service audio</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="370"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="372"/>
         <source>Locate...</source>
         <translation>Localiser...</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="371"/>
+        <location filename="../widgets/cards/MultiConvolutionCardEditor.cpp" line="373"/>
         <source>Locate the missing file</source>
         <translation>Localiser le fichier manquant</translation>
     </message>
@@ -4353,17 +4355,17 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>RoutingSectionHead</name>
     <message>
-        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="84"/>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="85"/>
         <source>No connections</source>
         <translation>Aucune connexion</translation>
     </message>
     <message>
-        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="134"/>
         <source>Expand channel mapping</source>
         <translation>Développer le mappage des canaux</translation>
     </message>
     <message>
-        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="133"/>
+        <location filename="../widgets/routing/RoutingSectionHead.cpp" line="134"/>
         <source>Collapse channel mapping</source>
         <translation>Replier le mappage des canaux</translation>
     </message>
@@ -4755,51 +4757,91 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>SubwooferRoutingCardEditor</name>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="147"/>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="148"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="182"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="183"/>
         <source>Open editor</source>
-        <translation type="unfinished"></translation>
+        <translation>Ouvrir l&apos;éditeur</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="149"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="412"/>
+        <source>Subwoofer routing profile</source>
+        <translation>Profil de routage du caisson de basses</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="413"/>
+        <source>Subwoofer routing profiles (*.swxt.json)</source>
+        <translation>Profils de routage du caisson de basses (*.swxt.json)</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="606"/>
+        <source>Embedded profile</source>
+        <translation>Profil intégré</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="617"/>
+        <source>LFE %1 dB</source>
+        <translation>LFE %1 dB</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="618"/>
+        <source>LFE off</source>
+        <translation>LFE désactivé</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="621"/>
+        <source>Trim %1 dB</source>
+        <translation>Attén. %1 dB</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="623"/>
+        <source>Trim auto</source>
+        <translation>Attén. auto</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="655"/>
+        <source>Choose profile file</source>
+        <translation>Choisir le fichier de profil</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="663"/>
         <source>Open the full subwoofer-routing editor</source>
-        <translation type="unfinished"></translation>
+        <translation>Ouvrir l&apos;éditeur complet de routage du caisson de basses</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="160"/>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="161"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="664"/>
+        <source>The profile could not be loaded. Choose a preset or correct the line.</source>
+        <translation>Impossible de charger le profil. Choisissez un préréglage ou corrigez la ligne.</translation>
+    </message>
+    <message>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="193"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="194"/>
         <source>Preset</source>
-        <translation type="unfinished"></translation>
+        <translation>Préréglage</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="162"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="195"/>
         <source>Choose a built-in subwoofer-routing preset</source>
-        <translation type="unfinished"></translation>
+        <translation>Choisir un préréglage intégré de routage du caisson de basses</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="237"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="270"/>
         <source>Linked profile was not found: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Profil lié introuvable : %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="243"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="276"/>
         <source>Linked profile could not be read: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Impossible de lire le profil lié : %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="254"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="287"/>
         <source>Linked profile is invalid: %1</source>
-        <translation type="unfinished"></translation>
+        <translation>Le profil lié est invalide : %1</translation>
     </message>
     <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="337"/>
+        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="370"/>
         <source>The selected preset could not be created: %1</source>
-        <translation type="unfinished"></translation>
-    </message>
-    <message>
-        <location filename="../widgets/cards/SubwooferRoutingCardEditor.cpp" line="383"/>
-        <source>Unknown</source>
-        <translation type="unfinished"></translation>
+        <translation>Impossible de créer le préréglage sélectionné : %1</translation>
     </message>
 </context>
 <context>
@@ -5040,12 +5082,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>TitleBar</name>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="119"/>
+        <location filename="../widgets/TitleBar.cpp" line="120"/>
         <source>Restore</source>
         <translation>Restaurer</translation>
     </message>
     <message>
-        <location filename="../widgets/TitleBar.cpp" line="119"/>
+        <location filename="../widgets/TitleBar.cpp" line="120"/>
         <source>Maximize</source>
         <translation>Agrandir</translation>
     </message>
@@ -5053,7 +5095,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>UpdateToast</name>
     <message>
-        <location filename="../widgets/UpdateToast.cpp" line="50"/>
+        <location filename="../widgets/UpdateToast.cpp" line="51"/>
         <source>Dismiss</source>
         <translation type="unfinished"></translation>
     </message>

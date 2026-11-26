@@ -27,6 +27,8 @@ QString iconResourceFor(const ReferenceCardState& state)
 		return QStringLiteral(":/icons/modern/plugin.svg");
 	if (state.kind == QStringLiteral("include"))
 		return QStringLiteral(":/icons/modern/file-include.svg");
+	if (state.kind == QStringLiteral("subwoofer"))
+		return QStringLiteral(":/icons/modern/subwoofer-routing.svg");
 	return QStringLiteral(":/icons/modern/waveform.svg");
 }
 }

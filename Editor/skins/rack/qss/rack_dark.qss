@@ -639,6 +639,33 @@ QToolButton#FilterCardIconButton[rackLocate="true"] {
 QToolButton#FilterCardIconButton[rackLocate="true"]:disabled {
     color: #4E4A40; border-color: #22282D; border-top-color: #22282D;
 }
+/* A reference card's worded actions that come as tool buttons (Subwoofer
+   Routing's "Open editor" and "Preset") are the panel's machine keys, like
+   the VST unit's OPEN PANEL key (the QPushButton rule), at the same size:
+   engraved capitals on the raised cap. */
+QToolButton#FilterCardIconButton[refActionRole="openPanel"],
+QToolButton#FilterCardIconButton[refActionRole="preset"] {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #2C333A, stop:1 #1B2126);
+    color: @TEXT@;
+    border: 1px solid #11161A; border-top-color: #3E474F;
+    border-radius: 3px;
+    padding: 4px 14px; min-height: 22px;
+    text-transform: uppercase; letter-spacing: 1px; font-weight: 700;
+}
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:hover,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:hover {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #343C44, stop:1 #20272D);
+    border-color: #787164;
+}
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:pressed,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:pressed {
+    background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #161B1F, stop:1 #242B31);
+    border-color: #8C8578;
+}
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:disabled,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:disabled {
+    color: #4E4A40; background: @SURFACE@; border-color: #22282D;
+}
 /* MultiConvolution's channel-mapping strip: the caption is engraved plate
    printing (uppercase tracking like the other rack captions), the hint is
    quieter service text; the patch grid below paints itself. */

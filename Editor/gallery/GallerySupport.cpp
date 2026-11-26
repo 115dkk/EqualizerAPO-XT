@@ -68,20 +68,28 @@ namespace SkinGalleryDetail
 // "device_all" shows the all-devices master engaged over powered-down
 // endpoint chips.
 // The inline-State fixture is generated through the core instead of pasting
-// JSON, so the gallery always renders exactly what the codec would emit.
-QString subwooferRoutingPresetRowLine()
+// JSON, so the gallery always renders exactly what the codec would emit. The
+// linked-profile fixture file (buildReferenceFiles) holds the same bytes.
+QByteArray subwooferRoutingPresetJson()
 {
 	const subroute::PresetCreateResult preset =
 		subroute::createBuiltInPreset(subroute::kIssue246FrontRear41PresetId);
 	if (!preset.succeeded())
-		return QStringLiteral("SubwooferRouting:");
+		return QByteArray();
 	const subroute::StateEncodeResult encoded =
 		subroute::encodeStateCanonical(*preset.state);
 	if (!encoded.succeeded())
+		return QByteArray();
+	return QByteArray(encoded.text->data(),
+		static_cast<int>(encoded.text->size()));
+}
+
+QString subwooferRoutingPresetRowLine()
+{
+	const QByteArray json = subwooferRoutingPresetJson();
+	if (json.isEmpty())
 		return QStringLiteral("SubwooferRouting:");
-	return QStringLiteral("SubwooferRouting: State ")
-		+ QString::fromUtf8(encoded.text->data(),
-			static_cast<int>(encoded.text->size()));
+	return QStringLiteral("SubwooferRouting: State ") + QString::fromUtf8(json);
 }
 
 // Deterministic VST bus scenes exist only when the environment supplies real
@@ -221,6 +229,12 @@ QList<GalleryRow> galleryRows()
 	rows.append({ QStringLiteral("vst_slotfill_mixed"), QStringLiteral(
 		"VSTPlugin: Library example.vst3 Input 5.1 InputChannels L,R,C,LFE,SL,SR"
 		" Output 7.1 OutputChannels L,R,C,-,RL,RR,SL,SR") });
+	// A healthy linked Subwoofer Routing profile (the fixture file
+	// buildReferenceFiles writes under Surround\): the folder button and the
+	// location line beside the embedded and missing rows. Appended at the
+	// true end, so no earlier scene is renumbered.
+	rows.append({ QStringLiteral("subwooferrouting_linked"),
+		QStringLiteral("SubwooferRouting: Profile Surround\\front-rear-41.swxt.json") });
 	return rows;
 }
 
@@ -288,6 +302,15 @@ QString buildReferenceFiles(const QDir& outDir)
 		return QString();
 	nested.write("# gallery nested include target\n");
 	nested.close();
+
+	// A linked Subwoofer Routing profile in the nested folder, so that card
+	// shows its folder button and location line (subwooferrouting_linked).
+	const QByteArray profileJson = subwooferRoutingPresetJson();
+	QFile profile(refsDir.filePath(QStringLiteral("Surround/front-rear-41.swxt.json")));
+	if (profileJson.isEmpty() || !profile.open(QIODevice::WriteOnly))
+		return QString();
+	profile.write(profileJson);
+	profile.close();
 
 	if (!writeWavFile(refsDir.filePath(QStringLiteral("example.wav")), 1, 48000, 4800))
 		return QString();

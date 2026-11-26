@@ -26,9 +26,9 @@
 #include <regex>
 #include <sstream>
 #include <unordered_map>
+#include <utility>
 
 #include "parser/NumericText.h"
-#include "services/logging/Logging.h"
 #include "text/WideString.h"
 
 
@@ -93,6 +93,12 @@ const wchar_t* biquadTypeTitle(BiQuad::Type type)
 
 namespace
 {
+void appendTraceNote(std::vector<wstring>* traceNotes, wstring note)
+{
+	if (traceNotes != nullptr)
+		traceNotes->push_back(std::move(note));
+}
+
 static const wchar_t* typeLogDescription(BiQuad::Type type)
 {
 	switch (type)
@@ -144,7 +150,7 @@ double getFreq(const wstring& freqString)
 }
 
 bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
-	BiQuadCommand& out, wstring& error)
+	BiQuadCommand& out, wstring& error, std::vector<wstring>* traceNotes)
 {
 	error.clear();
 	static const wregex regexType(L"^\\s*ON\\s+([A-Za-z]+)");
@@ -224,7 +230,7 @@ bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 	if (found)
 	{
 		if (type == BiQuad::LOW_PASS || type == BiQuad::HIGH_PASS || type == BiQuad::NOTCH || type == BiQuad::ALL_PASS)
-			TraceFStatic(L"Ignoring gain for filter of type %s", typeDescription);
+			appendTraceNote(traceNotes, wstring(L"Ignoring gain for filter of type ") + typeDescription);
 		else
 		{
 			wstring gainString = match.str(1);
@@ -253,7 +259,7 @@ bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 	if (found)
 	{
 		if (type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF)
-			TraceFStatic(L"Ignoring bandwidth for filter of type %s", typeDescription);
+			appendTraceNote(traceNotes, wstring(L"Ignoring bandwidth for filter of type ") + typeDescription);
 		else
 		{
 			wstring bwString = match.str(1);
@@ -267,7 +273,7 @@ bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 	if (found)
 	{
 		if (!(type == BiQuad::LOW_SHELF || type == BiQuad::HIGH_SHELF))
-			TraceFStatic(L"Ignoring slope for filter of type %s", typeDescription);
+			appendTraceNote(traceNotes, wstring(L"Ignoring slope for filter of type ") + typeDescription);
 		else
 		{
 			wstring slopeString = match.str(1);
@@ -281,7 +287,7 @@ bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 	if (found)
 	{
 		if (type != BiQuad::ALL_PASS)
-			TraceFStatic(L"Ignoring order for filter of type %s", typeDescription);
+			appendTraceNote(traceNotes, wstring(L"Ignoring order for filter of type ") + typeDescription);
 		else
 		{
 			const wstring orderString = match.str(1);
@@ -307,7 +313,7 @@ bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 		// by Fc alone. A Q or bandwidth on such a line is not an error - a user
 		// who switches an existing filter to 1st order leaves one behind - but
 		// it is discarded, and said so, the way a gain on an all-pass is.
-		TraceFStatic(L"Ignoring width for filter of type %s", typeDescription);
+		appendTraceNote(traceNotes, wstring(L"Ignoring width for filter of type ") + typeDescription);
 		bandwidthOrQOrS = 0;
 		isBandwidthOrS = false;
 	}
@@ -371,7 +377,7 @@ bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 		return false;
 	}
 
-	TraceFStatic(L"%s", stream.str().c_str());
+	appendTraceNote(traceNotes, stream.str());
 
 	out.type = type;
 	out.dbGain = gain;
@@ -385,8 +391,14 @@ bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 }
 
 bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
+	BiQuadCommand& out, wstring& error)
+{
+	return parse(command, parameters, out, error, nullptr);
+}
+
+bool BiQuadCommand::parse(const wstring& command, wstring& parameters,
 	BiQuadCommand& out)
 {
 	wstring ignoredError;
-	return parse(command, parameters, out, ignoredError);
+	return parse(command, parameters, out, ignoredError, nullptr);
 }

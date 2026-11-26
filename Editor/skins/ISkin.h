@@ -764,7 +764,8 @@ public:
 	virtual FilterPickerView* createFilterPicker(QWidget* parent, const SkinTokens& tokens) const;
 
 	// The reference-card body view for rows that point at an external file
-	// (kind: "include", "convolution", "multiconvolution", "vst"). The host
+	// (kind: "include", "convolution", "multiconvolution", "vst",
+	// "subwoofer"). The host
 	// editor owns all behavior and drives the view through
 	// ReferenceCardView::setState; the view owns structure and presentation,
 	// so each skin can answer the same reference with its own grammar instead

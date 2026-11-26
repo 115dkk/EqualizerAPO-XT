@@ -18,9 +18,13 @@ with this program; if not, write to the Free Software Foundation, Inc.,
 */
 
 #include "stdafx.h"
+
+#include <vector>
+
 #include "runtime/memory/AlignedMemory.h"
 #include "BiQuadFilter.h"
 #include "filters/FilterFactoryRegistry.h"
+#include "services/logging/Logging.h"
 #include "BiQuadFilterFactory.h"
 
 REGISTER_FILTER_FACTORY(FilterFactoryPriority::BiQuad, BiQuadFilterFactory, L"Filter")
@@ -35,7 +39,13 @@ LineOutcome BiQuadFilterFactory::createFilter(const wstring& configPath, wstring
 {
 	BiQuadCommand cmd;
 	wstring error;
-	if (!BiQuadCommand::parse(command, parameters, cmd, error))
+	std::vector<wstring> traceNotes;
+	const bool parsed = BiQuadCommand::parse(command, parameters, cmd, error, &traceNotes);
+	// A card-list rebuild parses each row several times. Logging only at the
+	// engine boundary avoids repeated file I/O while preserving engine traces.
+	for (const wstring& note : traceNotes)
+		TraceFStatic(L"%s", note.c_str());
+	if (!parsed)
 	{
 		if (!error.empty())
 			return LineOutcome::malformed(std::move(error));
