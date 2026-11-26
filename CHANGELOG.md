@@ -14,6 +14,14 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Hardware Rack: the all-pass card's MAGNITUDE figure is no longer lit green
+  on the bare panel.** The `0.0 dB` beside the card's switches was printed in
+  the bright green of the display digits but without the dark display window
+  those digits sit in, so on the light finish it was a glaring green on cream
+  and hard to look at. It is now printed in the panel's own ink, on both
+  finishes, as it already was in the other four skins.
+  ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536))
+
 ## v2.83.1 — 2026-11-26
 
 - **Editor: buttons that show only an icon or a sign have a name for screen
