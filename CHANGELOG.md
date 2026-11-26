@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.82.1 — 2026-11-26
+
 - **Hardware Rack: every button, chip and field is outlined on all four
   sides.** On the light finish the top edge of most controls (toolbar buttons,
   selectors, device and channel chips, check boxes) had the colour of the
