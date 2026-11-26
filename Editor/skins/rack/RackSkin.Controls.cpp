@@ -435,8 +435,8 @@ void paintRackKeyBank(QPainter& painter, const SegmentedControlState& state, con
 //
 // The slide switch has its two options printed on the faceplate above it:
 // the legends are lettering on the plate, one centred in each cell, and
-// under them a short recessed slot holds one slider knob that rests under
-// the chosen side. It replaces the key bank on two-option controls. The
+// under them a recessed slot holds one slider knob that rests under the
+// chosen legend. It replaces the key bank on two-option controls. The
 // maintainer judged that bank far too heavy for choosing one of two
 // (2026-11-26, the all-pass card's ORDER and graph switches): tone it down,
 // keep it Rack, and make it read as a hardware part that selects one of two.
@@ -445,8 +445,12 @@ void paintRackKeyBank(QPainter& painter, const SegmentedControlState& state, con
 // The knob's side is the only thing that says which option is chosen (shared
 // article 1: a state is said once), so the two legends print in the same ink
 // at the same weight whatever the selection, as printing on a real panel
-// does. The switch is the same part at the same size wherever the control
-// appears, centred under the legends.
+// does. The maintainer's second verdict (2026-11-26) found the first switch,
+// a 36px part centred under the gap between the legends, ant-sized: once
+// the switch is moved it must be certain that it went to Static, so the knob
+// stands under the word it selects and is about two thirds as wide as that
+// lettering. Its two rests are the centres of the two cells and the slot
+// runs from one rest to the other.
 void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const
 {
 	if (state.labels.isEmpty() || state.rect.width() < 10 || state.rect.height() < 8)
@@ -483,14 +487,13 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	legendFont.setBold(true);
 	const QFontMetricsF legendMetrics(legendFont);
 
-	// The stack: the legend line, a 2px gap, the 10px slot. It is centred in
-	// the widget's height, so the taller instances on the cards share the slack
-	// and the standalone 26px control keeps a pixel below it.
-	constexpr qreal slotWidth = 36.0;
-	constexpr qreal slotHeight = 10.0;
+	// The stack: the legend line, a 2px gap, the 11px slot. It is centred in
+	// the widget's height, so the taller instances on the cards share the
+	// slack; the standalone 26px control (13 + 2 + 11) is filled exactly.
+	constexpr qreal slotHeight = 11.0;
 	constexpr qreal legendGap = 2.0;
-	constexpr qreal knobWidth = 17.0;
 	constexpr qreal knobInset = 1.0;
+	constexpr qreal minimumKnobWidth = 17.0;
 	const QRectF frame(state.rect);
 	const qreal legendHeight = qCeil(legendMetrics.height());
 	const qreal stackHeight = legendHeight + legendGap + slotHeight;
@@ -502,23 +505,39 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	// its printing, faded, as every print on this machine fades.
 	painter.setFont(legendFont);
 	const QColor legendInk = state.enabled ? bodyInk : withAlpha(mutedInk, 150);
+	qreal widestLegend = 0.0;
 	for (int i = 0; i < 2; i++)
 	{
 		const QRectF cell = state.segmentRect(i);
 		const QRectF legendRect(cell.left() + 2.0, stackTop, qMax(0.0, cell.width() - 4.0), legendHeight);
-		RackSkinDetail::engraveText(painter, legendRect, Qt::AlignHCenter | Qt::AlignVCenter,
-			legendMetrics.elidedText(state.labels.at(i), Qt::ElideRight, legendRect.width()), legendInk, dark);
+		const QString printed = legendMetrics.elidedText(state.labels.at(i), Qt::ElideRight, legendRect.width());
+		widestLegend = qMax(widestLegend, legendMetrics.horizontalAdvance(printed));
+		RackSkinDetail::engraveText(painter, legendRect, Qt::AlignHCenter | Qt::AlignVCenter, printed, legendInk, dark);
 	}
 
-	// The slot: a short recessed channel with rounded ends, cut in the plate.
+	// One knob width per control: two thirds of the wider legend as printed,
+	// never under 17px, and never so wide that the two rests overlap or the
+	// slot leaves its cells. An odd width puts the middle grip line on a
+	// pixel column of its own.
+	const qreal leftRest = state.segmentRect(0).center().x();
+	const qreal rightRest = state.segmentRect(1).center().x();
+	const qreal knobLimit = qMin(state.segmentRect(0).width() - 4.0, rightRest - leftRest - 2.0);
+	qreal knobWidth = qMax(minimumKnobWidth, qreal(qRound(widestLegend * 2.0 / 3.0)));
+	knobWidth = qMax(5.0, qMin(knobWidth, qreal(qFloor(knobLimit))));
+	if (qRound(knobWidth) % 2 == 0)
+		knobWidth -= 1.0;
+	const qreal leftKnob = qRound(leftRest - knobWidth / 2.0);
+	const qreal rightKnob = qRound(rightRest - knobWidth / 2.0);
+
+	// The slot: one recessed channel with rounded ends, cut in the plate from
+	// the left rest to the right one with the knob's 1px of clearance.
 	// Its floor is the faceplate itself in shadow (darker() scales value and
 	// keeps the finish's warmth), never a new colour, and it wears the recess
 	// grammar the LCD wells and the patchbay's button field wear: an overhang
 	// shadow under the top lip, the work light caught on the lower one, inside
 	// an outline that parts it from the plate on all four sides (invariant 12).
-	const qreal slotSpan = qMin(slotWidth, frame.width() - 2.0);
-	const QRectF slot(qFloor(frame.center().x() - slotSpan / 2.0), stackTop + legendHeight + legendGap,
-		qRound(slotSpan), slotHeight);
+	const QRectF slot(leftKnob - knobInset, stackTop + legendHeight + legendGap,
+		rightKnob + knobWidth + knobInset - (leftKnob - knobInset), slotHeight);
 	const QRectF slotEdge = slot.adjusted(0.5, 0.5, -0.5, -0.5);
 	QPainterPath slotPath;
 	slotPath.addRoundedRect(slotEdge, slotEdge.height() / 2.0, slotEdge.height() / 2.0);
@@ -567,17 +586,16 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	painter.drawPath(slotPath);
 
 	// The slider knob: a raised cap riding in the slot, lighter than the floor
-	// on both finishes, with three fine grip lines. It rests at the left end for
-	// the first option and at the right end for the second, and it is the one
-	// part that moves, so it alone follows selectionPosition while the
-	// selection travels. On the dark finish the cap is the steel plate mixed
+	// on both finishes, with fine grip lines. It rests centred under the chosen
+	// legend, and it is the one part that moves, so it alone follows
+	// selectionPosition from one rest to the other while the selection
+	// travels. On the dark finish the cap is the steel plate mixed
 	// toward the warm ivory ink, so it reads at a glance against the dark floor
 	// without turning cold. The cream finish's plate colour is already at full
 	// value, so its cap steps downward from the plate - lighter() on it would
 	// return the same colour and flatten the cap.
 	const double travel = qBound(0.0, state.selectionPosition, 1.0);
-	const qreal knobRoom = qMax(0.0, slot.width() - 2.0 * knobInset - knobWidth);
-	const QRectF knob(qRound(slot.left() + knobInset + knobRoom * travel), slot.top() + knobInset,
+	const QRectF knob(qRound(leftKnob + (rightKnob - leftKnob) * travel), slot.top() + knobInset,
 		knobWidth, slotHeight - 2.0 * knobInset);
 	const QRectF knobEdge = knob.adjusted(0.5, 0.5, -0.5, -0.5);
 	QLinearGradient face(knob.topLeft(), knob.bottomLeft());
@@ -601,11 +619,15 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 		painter.setPen(QPen(withAlpha(lightInk, dark ? 60 : 170), 1));
 		painter.drawLine(QPointF(knob.left() + 2.0, knob.top() + 1.5), QPointF(knob.right() - 2.0, knob.top() + 1.5));
 	}
-	// Three grip lines, 4 apart, centred on the cap's middle pixel column.
+	// Fine grip lines, 4 apart and centred on the cap's middle pixel column: a
+	// wider knob gets more lines, never thicker ones. Three on the 17px knob,
+	// two more for every 8px beyond it, always with 4px of cap at each end.
 	painter.setPen(QPen(withAlpha(shadowInk, state.enabled ? (dark ? 170 : 105) : (dark ? 110 : 70)), 1));
-	for (int line = -1; line <= 1; line++)
+	const int gripPairs = qMax(1, qMin(1 + qFloor((knobWidth - minimumKnobWidth) / 8.0), qFloor((knobWidth - 9.0) / 8.0)));
+	const qreal middleColumn = knob.left() + qFloor(knobWidth / 2.0) + 0.5;
+	for (int line = -gripPairs; line <= gripPairs; line++)
 	{
-		const qreal x = knob.left() + 8.5 + line * 4.0;
+		const qreal x = middleColumn + line * 4.0;
 		painter.drawLine(QPointF(x, knob.top() + 2.0), QPointF(x, knob.bottom() - 1.5));
 	}
 
