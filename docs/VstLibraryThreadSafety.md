@@ -121,7 +121,7 @@ before releasing plug-in objects; they do not require a surviving filter.
 
 The UI runner cannot preempt third-party code. If initialization or destruction
 itself hangs on the UI thread, a drain call cannot return to check the shutdown
-deadline. This change prevents the known wrong-thread binding, not arbitrary
+deadline. The routing prevents the known wrong-thread binding, not arbitrary
 plug-in hangs or loader-lock stalls.
 
 `Vst3HostTests` uses a thread-bound companion module and a real FilterEngine on
