@@ -566,6 +566,15 @@ public:
 	virtual void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 		const SkinTokens& tokens) const;
 
+	// Whether a modern card row is built as one line: no header strip, the
+	// header's controls at the left of the same line as the editor. Asked
+	// once, before the row builds its frame, with the editor the row is
+	// about to mount (never null when asked), so a skin can tell a one-line
+	// editor from a tall one of the same command type (an IIR coefficient
+	// table is a "biquad" row too). The row then reports the answer back
+	// through CommandRowInfo::inlineRow. Default: false, every row is a card.
+	virtual bool presentsRowInline(const CommandRowInfo& info, const QWidget* editor) const;
+
 	// Painted decoration over the card frame's QSS background (rails, screws,
 	// per-type markers). Runs after the frame's stylesheet background and
 	// before child widgets paint. Default: no-op.

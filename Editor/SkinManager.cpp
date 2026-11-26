@@ -203,6 +203,11 @@ void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, Q
 	activeSkin->prepareCommandRow(info, card, header, body, tokens());
 }
 
+bool SkinManager::presentsRowInline(const CommandRowInfo& info, const QWidget* editor) const
+{
+	return editor != nullptr && activeSkin->presentsRowInline(info, editor);
+}
+
 void SkinManager::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const
 {
 	activeSkin->paintCardChrome(painter, rect, info, currentTokens);

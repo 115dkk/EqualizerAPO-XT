@@ -144,6 +144,12 @@ void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget
 	// Neutral default: rows keep their stock construction.
 }
 
+bool ISkin::presentsRowInline(const CommandRowInfo&, const QWidget*) const
+{
+	// Neutral default: every row keeps its header strip.
+	return false;
+}
+
 void ISkin::paintCardChrome(QPainter&, const QRect&, const CommandRowInfo&, const SkinTokens&) const
 {
 	// Neutral default: no painted decoration on top of the QSS chrome.
