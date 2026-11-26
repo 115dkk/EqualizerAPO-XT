@@ -18,7 +18,7 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   and left the Import button disabled.** Import now copies the whole bundle,
   including its resources. The Korean and Chinese import summaries also no
   longer display the total size as a file count.
-  ([#PR](https://github.com/115dkk/EqualizerAPO-XT/pull/PR))
+  ([#542](https://github.com/115dkk/EqualizerAPO-XT/pull/542))
 
 ## v2.84.2 — 2026-11-26
 
