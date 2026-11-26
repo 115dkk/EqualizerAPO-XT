@@ -10,6 +10,7 @@
 #include <QList>
 #include <QSettings>
 #include <QString>
+#include <optional>
 
 #include "services/registry/RegistryPaths.h"
 
@@ -29,6 +30,11 @@ namespace Keys
 inline constexpr char Language[] = "language";
 inline constexpr char Skin[] = "interface/skin";
 inline constexpr char Dark[] = "interface/dark";
+// The filter list's presentation, as a word (see ListMode).
+inline constexpr char ListMode[] = "interface/listMode";
+// Up to v2.85 the same choice as a boolean. Read once when ListMode is
+// absent; writeListMode removes it.
+inline constexpr char RetiredLegacyRows[] = "interface/legacyRows";
 inline constexpr char LegacyRows[] = "interface/legacyRows";
 inline constexpr char NativeTitleBar[] = "interface/nativeTitleBar";
 // Off by default: file dialogs are the skinned widget-based ones. On, every
@@ -55,6 +61,55 @@ inline constexpr char AnalysisResolution[] = "analysis/resolution";
 inline constexpr char OpenFiles[] = "openFiles";
 inline constexpr char TabIndex[] = "tabIndex";
 inline constexpr char RecentFiles[] = "recentFiles";
+}
+
+// How the filter list is presented. Stored as a word, so a mode added later
+// never renumbers a stored value.
+enum class ListMode
+{
+	Cards,        // "cards"
+	LegacyEditor  // "legacy"
+};
+
+// The stored word of a mode, and back. An unknown word gives nullopt.
+inline QString listModeWord(ListMode mode)
+{
+	switch (mode)
+	{
+	case ListMode::Cards:
+		return QStringLiteral("cards");
+	case ListMode::LegacyEditor:
+		return QStringLiteral("legacy");
+	}
+	return QString();
+}
+
+inline std::optional<ListMode> listModeFromWord(const QString& word)
+{
+	if (word == QLatin1String("cards"))
+		return ListMode::Cards;
+	if (word == QLatin1String("legacy"))
+		return ListMode::LegacyEditor;
+	return std::nullopt;
+}
+
+// The saved presentation. The word under Keys::ListMode wins when it names a
+// mode this build knows; a word it does not know (written by a newer build)
+// reads as Cards. Without that key the retired boolean decides, and a
+// registry with neither key reads as Cards.
+inline ListMode readListMode(const QSettings& settings)
+{
+	if (settings.contains(QLatin1String(Keys::ListMode)))
+		return listModeFromWord(settings.value(QLatin1String(Keys::ListMode)).toString()).value_or(ListMode::Cards);
+	return settings.value(QLatin1String(Keys::RetiredLegacyRows), false).toBool()
+		? ListMode::LegacyEditor : ListMode::Cards;
+}
+
+// Stores the word and removes the retired boolean.
+inline void writeListMode(QSettings& settings, ListMode mode)
+{
+	settings.setValue(QLatin1String(Keys::ListMode), listModeWord(mode));
+	settings.remove(QLatin1String(Keys::RetiredLegacyRows));
 }
 
 // The group a configuration file's per-file preferences live under: its
