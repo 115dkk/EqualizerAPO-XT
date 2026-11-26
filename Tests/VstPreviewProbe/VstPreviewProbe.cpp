@@ -35,6 +35,12 @@
 	  --capture-only     a measurement sidecar for manual A/B runs: capture
 	                     the endpoint for the given duration and assert
 	                     --expect-audio or --expect-silence.
+	  --panel            reproduces the Editor's VST3 panel-open sequence from a
+	                     VSTPlugin config line. It varies the library-load thread
+	                     and whether the main or worker thread creates the first
+	                     same-plugin instance before attaching a hidden HWND
+	                     editor. A watchdog reports a stuck phase or any visible
+	                     top-level window before terminating the probe.
 
 	The Qt timer face of the feed stays in the Editor; the engine underneath
 	is compiled into this probe directly so the gate, the silence feed and
@@ -53,16 +59,26 @@
 #include <ksmedia.h>
 
 #include <algorithm>
+#include <atomic>
+#include <chrono>
 #include <cmath>
 #include <cstdio>
 #include <cstring>
 #include <cwchar>
+#include <functional>
+#include <iterator>
+#include <memory>
+#include <mutex>
 #include <optional>
 #include <string>
+#include <thread>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "Editor/helpers/PanelFeedEngine.h"
+#include "engine/ConfigurationFileReader.h"
+#include "filters/VSTPluginCommand.h"
 #include "platform/windows/ComPtr.h"
 #include "Tests/ProbeSupport/CommandLine.h"
 #include "Tests/ProbeSupport/ToneMeter.h"
@@ -629,6 +645,712 @@ int runMonitorProbe(const std::wstring& pluginPath, double seconds, bool expectL
 	return 0;
 }
 
+enum class PanelLoadThread
+{
+	Main,
+	Worker
+};
+
+enum class FirstInstanceThread
+{
+	Main,
+	Worker
+};
+
+struct PanelOptions
+{
+	std::wstring configPath;
+	int lineNumber = 0;
+	PanelLoadThread loadThread = PanelLoadThread::Worker;
+	FirstInstanceThread firstInstanceThread = FirstInstanceThread::Worker;
+	int timeoutSeconds = 20;
+	int holdSeconds = 0;
+	double pumpSeconds = 3.0;
+};
+
+struct PanelThreadIds
+{
+	DWORD main = 0;
+	std::atomic<DWORD> loader{0};
+	std::atomic<DWORD> worker{0};
+};
+
+long long elapsedMilliseconds(std::chrono::steady_clock::time_point start)
+{
+	return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - start).count();
+}
+
+template<class Work>
+auto timedPanelPhase(const wchar_t* name, Work&& work)
+{
+	const auto start = std::chrono::steady_clock::now();
+	auto result = work();
+	wprintf(L"PHASE %s %lld ms\n", name, elapsedMilliseconds(start));
+	fflush(stdout);
+	return result;
+}
+
+void pumpPendingMessages()
+{
+	MSG message;
+	while (PeekMessageW(&message, nullptr, 0, 0, PM_REMOVE) != FALSE)
+	{
+		if (message.message == WM_QUIT)
+			continue;
+		TranslateMessage(&message);
+		DispatchMessageW(&message);
+	}
+}
+
+void pumpUntilSignaled(HANDLE event)
+{
+	for (;;)
+	{
+		const DWORD result = MsgWaitForMultipleObjects(1, &event, FALSE, INFINITE, QS_ALLINPUT);
+		if (result == WAIT_OBJECT_0)
+			break;
+		if (result == WAIT_OBJECT_0 + 1)
+			pumpPendingMessages();
+	}
+	pumpPendingMessages();
+}
+
+std::wstring trimWhitespace(const std::wstring& value)
+{
+	const size_t first = value.find_first_not_of(L" \t");
+	if (first == std::wstring::npos)
+		return L"";
+	const size_t last = value.find_last_not_of(L" \t");
+	return value.substr(first, last - first + 1);
+}
+
+bool readPanelCommand(const std::wstring& configPath, int lineNumber, VSTPluginCommand& command,
+	std::wstring& reason)
+{
+	std::stringstream input = ConfigurationFileReader::readWithRetry(configPath);
+	if (!input)
+	{
+		reason = L"could not read the config file";
+		return false;
+	}
+	const std::vector<std::wstring> lines = ConfigurationFileReader::decodeLines(input);
+	if (lineNumber <= 0 || static_cast<size_t>(lineNumber) > lines.size())
+	{
+		reason = L"line number is outside the config file";
+		return false;
+	}
+	const std::wstring& line = lines[static_cast<size_t>(lineNumber - 1)];
+	const size_t separator = line.find(L':');
+	if (separator == std::wstring::npos || trimWhitespace(line.substr(0, separator)) != L"VSTPlugin")
+	{
+		reason = L"selected line is not a VSTPlugin command";
+		return false;
+	}
+	command = VSTPluginCommand::parse(line.substr(separator + 1));
+	if (!command.valid)
+	{
+		reason = L"VSTPlugin parse failed: " + command.error;
+		return false;
+	}
+	if (command.libraryPath.empty())
+	{
+		reason = L"VSTPlugin line has no library path";
+		return false;
+	}
+	return true;
+}
+
+VSTPluginInstance::NegotiationRequest panelNegotiationRequest(const VSTPluginCommand& command,
+	const VSTPluginInstance& instance)
+{
+	VSTPluginInstance::NegotiationRequest request;
+	request.stereoInput = command.stereoInput;
+	if (command.hasBusContract)
+	{
+		request.contract = command.busContract;
+		request.channelCount = std::max(vst3BusLayoutChannelCount(command.busContract.input),
+			vst3BusLayoutChannelCount(command.busContract.output));
+	}
+	else
+		request.channelCount = std::max({2, instance.numInputs(), instance.numOutputs()});
+	return request;
+}
+
+bool preparePanelInstance(VSTPluginInstance& instance, const VSTPluginCommand& command,
+	bool restoreState, std::wstring& reason)
+{
+	const auto negotiated = instance.negotiate(panelNegotiationRequest(command, instance));
+	if (!negotiated.accepted)
+	{
+		reason = L"plug-in negotiation failed: " + negotiated.reason;
+		return false;
+	}
+	if (restoreState)
+	{
+		const auto restored = instance.writeToEffect(command.chunkData, command.paramMap);
+		if (!restored)
+		{
+			reason = L"plug-in state restore failed";
+			if (restored.reason != nullptr)
+				reason += L": " + std::wstring(restored.reason);
+			return false;
+		}
+	}
+	if (!instance.prepareForProcessing(48000.0f, 8192, VSTPluginInstance::InputWidth::Float))
+	{
+		reason = L"prepareForProcessing failed";
+		return false;
+	}
+	return true;
+}
+
+struct JuceWindowRecord
+{
+	HWND window = nullptr;
+	DWORD threadId = 0;
+	std::wstring className;
+};
+
+struct JuceWindowEnumContext
+{
+	DWORD threadId = 0;
+	std::vector<JuceWindowRecord>* records = nullptr;
+};
+
+BOOL CALLBACK collectJuceWindow(HWND window, LPARAM parameter)
+{
+	JuceWindowEnumContext* context = reinterpret_cast<JuceWindowEnumContext*>(parameter);
+	DWORD processId = 0;
+	const DWORD threadId = GetWindowThreadProcessId(window, &processId);
+	if (processId != GetCurrentProcessId() || threadId != context->threadId)
+		return TRUE;
+	wchar_t title[64] = {};
+	GetWindowTextW(window, title, static_cast<int>(std::size(title)));
+	if (wcscmp(title, L"JUCEWindow") != 0)
+		return TRUE;
+	wchar_t className[256] = {};
+	GetClassNameW(window, className, static_cast<int>(std::size(className)));
+	context->records->push_back({window, threadId, className});
+	return TRUE;
+}
+
+std::vector<JuceWindowRecord> inspectOwnJuceWindows()
+{
+	std::vector<JuceWindowRecord> records;
+	JuceWindowEnumContext context{GetCurrentThreadId(), &records};
+	EnumWindows(collectJuceWindow, reinterpret_cast<LPARAM>(&context));
+	return records;
+}
+
+class PersistentLoader
+{
+public:
+	PersistentLoader(std::wstring path, PanelThreadIds& threadIds)
+		: ready(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+		release(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+		inspectRequest(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
+		inspectDone(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
+		worker([this, path = std::move(path), &threadIds]() { run(path, threadIds); })
+	{
+	}
+
+	~PersistentLoader()
+	{
+		stop();
+		CloseHandle(ready);
+		CloseHandle(release);
+		CloseHandle(inspectRequest);
+		CloseHandle(inspectDone);
+	}
+
+	AbstractLibrary::InitializeResult wait()
+	{
+		pumpUntilSignaled(ready);
+		return status;
+	}
+
+	std::vector<JuceWindowRecord> inspect()
+	{
+		SetEvent(inspectRequest);
+		if (WaitForSingleObject(inspectDone, 2000) != WAIT_OBJECT_0)
+			return {};
+		std::lock_guard<std::mutex> lock(recordsMutex);
+		return records;
+	}
+
+	void stop()
+	{
+		if (stopped)
+			return;
+		stopped = true;
+		SetEvent(release);
+		if (worker.joinable())
+			worker.join();
+	}
+
+private:
+	void run(const std::wstring& path, PanelThreadIds& threadIds)
+	{
+		threadIds.loader.store(GetCurrentThreadId(), std::memory_order_release);
+		status = VSTPluginLibrary::load(path).status;
+		SetEvent(ready);
+		if (!AbstractLibrary::succeeded(status))
+			return;
+		HANDLE events[] = {release, inspectRequest};
+		for (;;)
+		{
+			const DWORD wait = WaitForMultipleObjects(static_cast<DWORD>(std::size(events)), events, FALSE, INFINITE);
+			if (wait == WAIT_OBJECT_0)
+				return;
+			if (wait == WAIT_OBJECT_0 + 1)
+			{
+				std::vector<JuceWindowRecord> found = inspectOwnJuceWindows();
+				{
+					std::lock_guard<std::mutex> lock(recordsMutex);
+					records = std::move(found);
+				}
+				SetEvent(inspectDone);
+			}
+		}
+	}
+
+	HANDLE ready = nullptr;
+	HANDLE release = nullptr;
+	HANDLE inspectRequest = nullptr;
+	HANDLE inspectDone = nullptr;
+	AbstractLibrary::InitializeResult status = AbstractLibrary::InitializeResult::LoadingFailed;
+	bool stopped = false;
+	std::mutex recordsMutex;
+	std::vector<JuceWindowRecord> records;
+	std::thread worker;
+};
+
+class WorkerInstance
+{
+public:
+	WorkerInstance(const std::shared_ptr<VSTPluginLibrary>& library, const VSTPluginCommand& command,
+		PanelThreadIds& threadIds)
+		: ready(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+		release(CreateEventW(nullptr, TRUE, FALSE, nullptr)),
+		inspectRequest(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
+		inspectDone(CreateEventW(nullptr, FALSE, FALSE, nullptr)),
+		worker([this, library, &command, &threadIds]() { run(library, command, threadIds); })
+	{
+	}
+
+	~WorkerInstance()
+	{
+		stop();
+		CloseHandle(ready);
+		CloseHandle(release);
+		CloseHandle(inspectRequest);
+		CloseHandle(inspectDone);
+	}
+
+	bool wait(std::wstring& failure)
+	{
+		pumpUntilSignaled(ready);
+		failure = reason;
+		return succeeded;
+	}
+
+	std::vector<JuceWindowRecord> inspect()
+	{
+		SetEvent(inspectRequest);
+		if (WaitForSingleObject(inspectDone, 2000) != WAIT_OBJECT_0)
+			return {};
+		std::lock_guard<std::mutex> lock(recordsMutex);
+		return records;
+	}
+
+	void stop()
+	{
+		if (stopped)
+			return;
+		stopped = true;
+		SetEvent(release);
+		if (worker.joinable())
+			worker.join();
+	}
+
+private:
+	void run(const std::shared_ptr<VSTPluginLibrary>& library, const VSTPluginCommand& command,
+		PanelThreadIds& threadIds)
+	{
+		threadIds.worker.store(GetCurrentThreadId(), std::memory_order_release);
+		try
+		{
+			auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
+			if (!instance->initialize())
+				reason = L"worker plug-in instance initialize failed";
+			else if (!preparePanelInstance(*instance, command, false, reason))
+				reason = L"worker " + reason;
+			else
+				succeeded = true;
+			SetEvent(ready);
+			if (!succeeded)
+				return;
+			HANDLE events[] = {release, inspectRequest};
+			for (;;)
+			{
+				const DWORD wait = WaitForMultipleObjects(static_cast<DWORD>(std::size(events)), events, FALSE, INFINITE);
+				if (wait == WAIT_OBJECT_0)
+					return;
+				if (wait == WAIT_OBJECT_0 + 1)
+				{
+					std::vector<JuceWindowRecord> found = inspectOwnJuceWindows();
+					{
+						std::lock_guard<std::mutex> lock(recordsMutex);
+						records = std::move(found);
+					}
+					SetEvent(inspectDone);
+				}
+			}
+		}
+		catch (...)
+		{
+			reason = L"worker plug-in instance raised an exception";
+			SetEvent(ready);
+		}
+	}
+
+	HANDLE ready = nullptr;
+	HANDLE release = nullptr;
+	HANDLE inspectRequest = nullptr;
+	HANDLE inspectDone = nullptr;
+	bool succeeded = false;
+	bool stopped = false;
+	std::wstring reason;
+	std::mutex recordsMutex;
+	std::vector<JuceWindowRecord> records;
+	std::thread worker;
+};
+
+void printJuceWindows(const PanelThreadIds& threadIds, const std::vector<JuceWindowRecord>& mainRecords,
+	PersistentLoader* loader, WorkerInstance* instanceWorker)
+{
+	std::vector<JuceWindowRecord> records = mainRecords;
+	if (loader != nullptr)
+	{
+		std::vector<JuceWindowRecord> loaderRecords = loader->inspect();
+		records.insert(records.end(), loaderRecords.begin(), loaderRecords.end());
+	}
+	if (instanceWorker != nullptr)
+	{
+		std::vector<JuceWindowRecord> workerRecords = instanceWorker->inspect();
+		records.insert(records.end(), workerRecords.begin(), workerRecords.end());
+	}
+	std::vector<HWND> printed;
+	for (const JuceWindowRecord& record : records)
+	{
+		if (std::find(printed.begin(), printed.end(), record.window) != printed.end())
+			continue;
+		printed.push_back(record.window);
+		wprintf(L"JUCE-WINDOW class=%s tid=%lu main=%lu loader=%lu worker=%lu\n",
+			record.className.c_str(), record.threadId, threadIds.main,
+			threadIds.loader.load(std::memory_order_acquire),
+			threadIds.worker.load(std::memory_order_acquire));
+	}
+	fflush(stdout);
+}
+
+struct VisibleWindow
+{
+	wchar_t className[256] = {};
+	wchar_t title[256] = {};
+	bool found = false;
+};
+
+BOOL CALLBACK findVisibleProcessWindow(HWND window, LPARAM parameter)
+{
+	DWORD processId = 0;
+	GetWindowThreadProcessId(window, &processId);
+	if (processId != GetCurrentProcessId() || IsWindowVisible(window) == FALSE)
+		return TRUE;
+	VisibleWindow* result = reinterpret_cast<VisibleWindow*>(parameter);
+	GetClassNameW(window, result->className, static_cast<int>(std::size(result->className)));
+	DWORD_PTR ignored = 0;
+	SendMessageTimeoutW(window, WM_GETTEXT, static_cast<WPARAM>(std::size(result->title)),
+		reinterpret_cast<LPARAM>(result->title), SMTO_ABORTIFHUNG | SMTO_BLOCK, 100, &ignored);
+	result->found = true;
+	return FALSE;
+}
+
+class PanelWatchdog
+{
+public:
+	PanelWatchdog(int timeoutSeconds, int holdSeconds, std::function<void()> reportJuceWindows)
+		: timeoutMilliseconds(static_cast<ULONGLONG>(timeoutSeconds) * 1000),
+		holdMilliseconds(static_cast<ULONGLONG>(holdSeconds) * 1000),
+		reportJuceWindows(std::move(reportJuceWindows)), worker([this]() { run(); })
+	{
+	}
+
+	~PanelWatchdog()
+	{
+		finish();
+	}
+
+	void arm(const wchar_t* name)
+	{
+		phaseStarted.store(GetTickCount64(), std::memory_order_relaxed);
+		phase.store(name, std::memory_order_release);
+		armed.store(true, std::memory_order_release);
+	}
+
+	void next(const wchar_t* name)
+	{
+		phaseStarted.store(GetTickCount64(), std::memory_order_relaxed);
+		phase.store(name, std::memory_order_release);
+	}
+
+	void finish()
+	{
+		stopped.store(true, std::memory_order_release);
+		if (worker.joinable())
+			worker.join();
+	}
+
+private:
+	bool stopForVisibleWindow()
+	{
+		VisibleWindow visible;
+		EnumWindows(findVisibleProcessWindow, reinterpret_cast<LPARAM>(&visible));
+		if (!visible.found)
+			return false;
+		wprintf(L"VISIBLE-WINDOW class=%s title=%s\n", visible.className, visible.title);
+		fflush(stdout);
+		TerminateProcess(GetCurrentProcess(), 5);
+		return true;
+	}
+
+	void run()
+	{
+		while (!stopped.load(std::memory_order_acquire))
+		{
+			if (stopForVisibleWindow())
+				return;
+			if (armed.load(std::memory_order_acquire))
+			{
+				const ULONGLONG started = phaseStarted.load(std::memory_order_relaxed);
+				const ULONGLONG elapsed = GetTickCount64() - started;
+				if (elapsed >= timeoutMilliseconds)
+				{
+					const wchar_t* name = phase.load(std::memory_order_acquire);
+					wprintf(L"PANEL-HANG phase=%s after %llu ms pid=%lu\n", name, elapsed, GetCurrentProcessId());
+					fflush(stdout);
+					reportJuceWindows();
+					const ULONGLONG holdEnd = GetTickCount64() + holdMilliseconds;
+					while (GetTickCount64() < holdEnd)
+					{
+						if (stopForVisibleWindow())
+							return;
+						Sleep(250);
+					}
+					TerminateProcess(GetCurrentProcess(), 4);
+					return;
+				}
+			}
+			Sleep(250);
+		}
+	}
+
+	const ULONGLONG timeoutMilliseconds;
+	const ULONGLONG holdMilliseconds;
+	std::function<void()> reportJuceWindows;
+	std::atomic<bool> stopped{false};
+	std::atomic<bool> armed{false};
+	std::atomic<ULONGLONG> phaseStarted{0};
+	std::atomic<const wchar_t*> phase{L"setup"};
+	std::thread worker;
+};
+
+LRESULT CALLBACK panelParentWindowProc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
+{
+	return DefWindowProcW(window, message, wParam, lParam);
+}
+
+HWND createHiddenPanelParent()
+{
+	const wchar_t* className = L"EqualizerAPOVstPreviewProbeParent";
+	WNDCLASSEXW windowClass = {};
+	windowClass.cbSize = sizeof(windowClass);
+	windowClass.lpfnWndProc = panelParentWindowProc;
+	windowClass.hInstance = GetModuleHandleW(nullptr);
+	windowClass.lpszClassName = className;
+	if (RegisterClassExW(&windowClass) == 0 && GetLastError() != ERROR_CLASS_ALREADY_EXISTS)
+		return nullptr;
+	return CreateWindowExW(WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE, className, L"", WS_POPUP,
+		-32000, -32000, 1, 1, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+}
+
+int runPanelProbe(const PanelOptions& options)
+{
+	ComApartment apartment(COINIT_APARTMENTTHREADED);
+	if (!apartment.isUsable())
+	{
+		wprintf(L"FAIL: panel COM initialization (hr=0x%08lx)\n", apartment.status());
+		return 2;
+	}
+
+	VSTPluginCommand command;
+	std::wstring reason;
+	if (!readPanelCommand(options.configPath, options.lineNumber, command, reason))
+	{
+		wprintf(L"FAIL: %s\n", reason.c_str());
+		return 2;
+	}
+
+	PanelThreadIds threadIds;
+	threadIds.main = GetCurrentThreadId();
+	std::unique_ptr<PersistentLoader> loader;
+	std::unique_ptr<WorkerInstance> instanceWorker;
+	std::vector<JuceWindowRecord> mainJuceWindows;
+	PanelWatchdog watchdog(options.timeoutSeconds, options.holdSeconds, [&]() {
+		printJuceWindows(threadIds, mainJuceWindows, loader.get(), instanceWorker.get());
+	});
+
+	std::shared_ptr<VSTPluginLibrary> library = VSTPluginLibrary::getInstance(command.libraryPath);
+	const auto loadResult = timedPanelPhase(L"load", [&]() {
+		if (options.loadThread == PanelLoadThread::Worker)
+		{
+			loader = std::make_unique<PersistentLoader>(command.libraryPath, threadIds);
+			return loader->wait();
+		}
+		threadIds.loader.store(threadIds.main, std::memory_order_release);
+		return VSTPluginLibrary::load(command.libraryPath).status;
+	});
+	if (!AbstractLibrary::succeeded(loadResult))
+	{
+		wprintf(L"FAIL: library load returned %d\n", static_cast<int>(loadResult));
+		return 2;
+	}
+
+	std::unique_ptr<VSTPluginInstance> instance;
+	const auto setUpMainInstance = [&]() {
+		const bool initialized = timedPanelPhase(L"create", [&]() {
+			instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
+			return instance->initialize();
+		});
+		if (!initialized)
+		{
+			reason = L"main plug-in instance initialize failed";
+			return false;
+		}
+		const auto negotiated = timedPanelPhase(L"negotiate", [&]() {
+			return instance->negotiate(panelNegotiationRequest(command, *instance));
+		});
+		if (!negotiated.accepted)
+		{
+			reason = L"plug-in negotiation failed: " + negotiated.reason;
+			return false;
+		}
+		const auto restored = timedPanelPhase(L"state", [&]() {
+			return instance->writeToEffect(command.chunkData, command.paramMap);
+		});
+		if (!restored)
+		{
+			reason = L"plug-in state restore failed";
+			if (restored.reason != nullptr)
+				reason += L": " + std::wstring(restored.reason);
+			return false;
+		}
+		const bool prepared = timedPanelPhase(L"prepare", [&]() {
+			return instance->prepareForProcessing(48000.0f, 8192, VSTPluginInstance::InputWidth::Float);
+		});
+		if (!prepared)
+		{
+			reason = L"prepareForProcessing failed";
+			return false;
+		}
+		return true;
+	};
+	const auto setUpWorkerInstance = [&]() {
+		return timedPanelPhase(L"worker", [&]() {
+			instanceWorker = std::make_unique<WorkerInstance>(library, command, threadIds);
+			return instanceWorker->wait(reason);
+		});
+	};
+
+	if (options.firstInstanceThread == FirstInstanceThread::Worker)
+	{
+		if (!setUpWorkerInstance() || !setUpMainInstance())
+		{
+			wprintf(L"FAIL: %s\n", reason.c_str());
+			return 2;
+		}
+	}
+	else
+	{
+		if (!setUpMainInstance() || !setUpWorkerInstance())
+		{
+			wprintf(L"FAIL: %s\n", reason.c_str());
+			return 2;
+		}
+	}
+
+	HWND parent = timedPanelPhase(L"window", []() { return createHiddenPanelParent(); });
+	if (parent == nullptr)
+	{
+		wprintf(L"FAIL: hidden parent window creation failed (gle=%lu)\n", GetLastError());
+		return 2;
+	}
+	mainJuceWindows = inspectOwnJuceWindows();
+
+	short width = 0;
+	short height = 0;
+	watchdog.arm(L"attach");
+	const auto attachStarted = std::chrono::steady_clock::now();
+	const bool attached = instance->startEditing(parent, &width, &height, 1.0);
+	wprintf(L"PHASE attach %lld ms\n", elapsedMilliseconds(attachStarted));
+	fflush(stdout);
+	if (!attached)
+	{
+		mainJuceWindows = inspectOwnJuceWindows();
+		printJuceWindows(threadIds, mainJuceWindows, loader.get(), instanceWorker.get());
+		watchdog.finish();
+		DestroyWindow(parent);
+		wprintf(L"FAIL: startEditing returned false\n");
+		return 2;
+	}
+
+	watchdog.next(L"pump");
+	const auto pumpStarted = std::chrono::steady_clock::now();
+	const ULONGLONG pumpEnd = GetTickCount64() + static_cast<ULONGLONG>(options.pumpSeconds * 1000.0);
+	while (GetTickCount64() < pumpEnd)
+	{
+		pumpPendingMessages();
+		const ULONGLONG remaining = pumpEnd - GetTickCount64();
+		MsgWaitForMultipleObjects(0, nullptr, FALSE,
+			static_cast<DWORD>(std::min<ULONGLONG>(remaining, 50)), QS_ALLINPUT);
+	}
+	pumpPendingMessages();
+	wprintf(L"PHASE pump %lld ms\n", elapsedMilliseconds(pumpStarted));
+	fflush(stdout);
+
+	watchdog.next(L"detach");
+	const auto detachStarted = std::chrono::steady_clock::now();
+	instance->stopEditing();
+	wprintf(L"PHASE detach %lld ms\n", elapsedMilliseconds(detachStarted));
+	fflush(stdout);
+	DestroyWindow(parent);
+
+	mainJuceWindows = inspectOwnJuceWindows();
+	printJuceWindows(threadIds, mainJuceWindows, loader.get(), instanceWorker.get());
+	watchdog.next(L"destroy");
+	const auto destroyStarted = std::chrono::steady_clock::now();
+	instance.reset();
+	wprintf(L"PHASE destroy %lld ms\n", elapsedMilliseconds(destroyStarted));
+	fflush(stdout);
+	watchdog.finish();
+
+	instanceWorker.reset();
+	loader.reset();
+	wprintf(L"PANEL-OK\n");
+	fflush(stdout);
+	return 0;
+}
+
 int runCaptureProbe(double seconds, bool expectAudio)
 {
 	LoopbackTap tap;
@@ -667,13 +1389,18 @@ int wmain(int argc, wchar_t* argv[])
 	bool expectLive = true;
 	bool captureOnly = false;
 	bool expectAudio = true;
+	bool panel = false;
+	PanelOptions panelOptions;
 
 	const wchar_t* usage =
 		L"Usage: VstPreviewProbe [--plugin <path.vst3|path.dll>] [--seconds N] [--rate N]\n"
 		L"                       [--channels N] [--stereo-input] [--input <layout>] [--output <layout>]\n"
 		L"                       [--expect-nonsilent] [--loopback]\n"
 		L"                       [--monitor <path.vst3|path.dll>] [--expect-live | --expect-static]\n"
-		L"                       [--capture-only] [--expect-audio | --expect-silence]\n";
+		L"                       [--capture-only] [--expect-audio | --expect-silence]\n"
+		L"       VstPreviewProbe --panel --config <config.txt> --line <N>\n"
+		L"                       [--load-on main|worker] [--first-instance main|worker]\n"
+		L"                       [--timeout S] [--hold S] [--seconds S]\n";
 
 	probesupport::CommandLine commandLine;
 	TCLAP::CmdLine& parser = commandLine.parser();
@@ -688,6 +1415,12 @@ int wmain(int argc, wchar_t* argv[])
 	TCLAP::MultiArg<std::string> channelsArg("", "channels", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> inputLayoutArg("", "input", "", false, "value", parser);
 	TCLAP::MultiArg<std::string> outputLayoutArg("", "output", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> configArg("", "config", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> lineArg("", "line", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> loadOnArg("", "load-on", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> firstInstanceArg("", "first-instance", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> timeoutArg("", "timeout", "", false, "value", parser);
+	TCLAP::MultiArg<std::string> holdArg("", "hold", "", false, "value", parser);
 	TCLAP::MultiSwitchArg stereoInputArg("", "stereo-input", "", parser);
 	TCLAP::MultiSwitchArg expectNonsilentArg("", "expect-nonsilent", "", parser);
 	TCLAP::MultiSwitchArg expectLiveArg("", "expect-live", "", parser, 0, &expectLiveVisitor);
@@ -696,6 +1429,7 @@ int wmain(int argc, wchar_t* argv[])
 	TCLAP::MultiSwitchArg expectSilenceArg("", "expect-silence", "", parser, 0, &expectSilenceVisitor);
 	TCLAP::MultiSwitchArg loopbackArg("", "loopback", "", parser);
 	TCLAP::MultiSwitchArg captureOnlyArg("", "capture-only", "", parser);
+	TCLAP::MultiSwitchArg panelArg("", "panel", "", parser);
 	if (!commandLine.parse(argc, argv))
 	{
 		wprintf(L"%s", usage);
@@ -723,6 +1457,50 @@ int wmain(int argc, wchar_t* argv[])
 	}
 	loopback = loopbackArg.getValue() != 0;
 	captureOnly = captureOnlyArg.getValue() != 0;
+	panel = panelArg.getValue() != 0;
+	if (panel)
+	{
+		if (!configArg.isSet() || !lineArg.isSet() || !pluginPath.empty() || !monitorPluginPath.empty()
+			|| loopback || captureOnly)
+		{
+			wprintf(L"%s", usage);
+			return 1;
+		}
+		panelOptions.configPath = probesupport::lastWide(configArg);
+		panelOptions.lineNumber = _wtoi(probesupport::lastWide(lineArg).c_str());
+		if (secondsArg.isSet())
+			panelOptions.pumpSeconds = seconds;
+		if (timeoutArg.isSet())
+			panelOptions.timeoutSeconds = _wtoi(probesupport::lastWide(timeoutArg).c_str());
+		if (holdArg.isSet())
+			panelOptions.holdSeconds = _wtoi(probesupport::lastWide(holdArg).c_str());
+
+		const std::wstring loadOn = loadOnArg.isSet() ? probesupport::lastWide(loadOnArg) : L"worker";
+		const std::wstring firstInstance = firstInstanceArg.isSet()
+			? probesupport::lastWide(firstInstanceArg) : L"worker";
+		if (loadOn == L"main")
+			panelOptions.loadThread = PanelLoadThread::Main;
+		else if (loadOn != L"worker")
+		{
+			wprintf(L"%s", usage);
+			return 1;
+		}
+		if (firstInstance == L"main")
+			panelOptions.firstInstanceThread = FirstInstanceThread::Main;
+		else if (firstInstance != L"worker")
+		{
+			wprintf(L"%s", usage);
+			return 1;
+		}
+		if (panelOptions.configPath.empty() || panelOptions.lineNumber <= 0
+			|| panelOptions.timeoutSeconds <= 0 || panelOptions.holdSeconds < 0
+			|| !std::isfinite(panelOptions.pumpSeconds) || panelOptions.pumpSeconds < 0.0)
+		{
+			wprintf(L"%s", usage);
+			return 1;
+		}
+		return runPanelProbe(panelOptions);
+	}
 	if (pluginPath.empty() && monitorPluginPath.empty() && !loopback && !captureOnly)
 	{
 		wprintf(L"%s", usage);
