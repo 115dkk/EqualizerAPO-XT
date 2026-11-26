@@ -1300,7 +1300,7 @@ QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
    list: in a dialog the default button's edge already marks where Enter
    goes, and a clicked dialog button would stay amber. */
 QToolButton:focus:!checked,
-QFrame#FilterCardRow QPushButton:focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:focus,
 QToolBar#MainToolBar QToolButton:focus:!checked,
 QToolButton[rackTransport="true"]:focus:!checked,
 QTabBar QToolButton:focus:!checked,
@@ -1339,10 +1339,13 @@ QToolButton#NewChannelChip[invalid="true"]:focus { border-color: @DANGER@; }
    stay as they were. A text field on the same line as caps takes the same
    box so the line stays level. Each rule names the card frame and an id, so
    it outranks every single-id rule above; the state rules below restate the
-   label drop and the lamp pixel at the same level. */
+   label drop and the lamp pixel at the same level. Only named parts are
+   listed: a descendant selector also reaches a dialog a card opens (the
+   GraphicEQ import and export file dialogs), whose buttons keep their own
+   size. */
 QFrame#FilterCardRow QToolButton#FilterCardIconButton,
 QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
-QFrame#FilterCardRow QPushButton,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
 QFrame#FilterCardRow QComboBox[filterSelector="true"],
 QFrame#FilterCardRow QComboBox#SendTargetCombo,
 QFrame#FilterCardRow QComboBox#SendModeCombo,
