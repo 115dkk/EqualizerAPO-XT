@@ -254,6 +254,7 @@ HilbertCardEditor::HilbertCardEditor(const HilbertCommand& command,
 	direction = new SegmentedControl(directionBlock);
 	direction->setObjectName(QStringLiteral("HilbertDirection"));
 	direction->setLabels({QStringLiteral("−90°"), QStringLiteral("+90°")});
+	direction->setRisingScale(true);
 	direction->setMinimumHeight(40);
 	direction->setCurrentIndex(current.directionDegrees < 0 ? 0 : 1);
 	connect(direction, &SegmentedControl::currentIndexChanged, this, [this](int index) {

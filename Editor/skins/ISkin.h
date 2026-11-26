@@ -16,6 +16,7 @@
 #pragma once
 
 #include <QColor>
+#include <QFont>
 #include <QIcon>
 #include <QList>
 #include <QMargins>
@@ -199,11 +200,25 @@ struct SegmentedControlState
 	int pressedIndex = -1;
 	bool focused = false;
 	bool enabled = true;
+	// The axis the cells tile along, from ISkin::segmentedControlAxis. The
+	// widget hit-tests with the same answer, so the cell the skin paints for an
+	// option is the cell that answers the pointer for it.
+	Qt::Orientation axis = Qt::Horizontal;
+	// The options are a scale that rises with the index
+	// (SegmentedControl::setRisingScale): on the vertical axis index 0 takes
+	// the bottom cell; side by side the flag changes nothing.
+	bool risingScale = false;
 
-	// The cell a given index occupies. Fractional widths are kept rather than
+	// The cell a given index occupies. Fractional sizes are kept rather than
 	// rounded, so the cells tile the control exactly instead of leaving a seam
-	// that drifts with the width.
+	// that drifts with the size.
 	QRectF segmentRect(double index) const;
+	// The same tiling for any rect, option count and axis: cells side by side
+	// (Horizontal) or stacked with index 0 on top (Vertical; on the bottom for
+	// a rising scale). segmentRect and SegmentedControl's hit test both go
+	// through it, so painting and input cannot disagree about where a cell is.
+	static QRectF cellRect(const QRectF& rect, int count, Qt::Orientation axis, double index,
+		bool risingScale = false);
 };
 
 // Snapshot of one VSTBusStrip format selector (the input or output half of a
@@ -658,6 +673,14 @@ public:
 	// through three choices reads as one travelling mark instead of three
 	// jumps.
 	virtual void paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const;
+	// Along which axis this skin lays out the options of a SegmentedControl that
+	// has this many options. The widget asks before it hit-tests and puts the
+	// answer in SegmentedControlState::axis, so the cells the skin paints are the
+	// cells that answer the pointer. Horizontal (the default): cells side by side.
+	virtual Qt::Orientation segmentedControlAxis(int optionCount) const;
+	// The size this skin's part wants for these labels. An invalid size (the
+	// default) keeps the widget's own: equal padded cells in a row.
+	virtual QSize segmentedControlSizeHint(const QStringList& labels, const QFont& font) const;
 
 	// One format selector of the VST bus strip (VSTBusStrip): the interactive
 	// cell that names the input or output layout of a VST3 main-bus contract.

@@ -429,28 +429,105 @@ void paintRackKeyBank(QPainter& painter, const SegmentedControlState& state, con
 }
 }
 
+namespace
+{
+// The upright toggle's layout, shared by the painter and the size the skin
+// asks for: the part in a column of its own, 6px of plate, then the two
+// legends stacked left-aligned, one line pitch apart, the pair centred in
+// the control's height and the whole assembly centred in its width.
+constexpr qreal rackTogglePartWidth = 14.0;
+constexpr qreal rackToggleGap = 6.0;
+constexpr qreal rackToggleMargin = 2.0;
+
+QFont rackToggleLegendFont(const QString& family)
+{
+	QFont font(family);
+	font.setPixelSize(10);
+	font.setBold(true);
+	return font;
+}
+
+struct RackToggleLayout
+{
+	qreal lineHeight = 0.0;
+	qreal partLeft = 0.0;
+	qreal legendLeft = 0.0;
+	qreal legendWidth = 0.0;
+	qreal columnTop = 0.0;
+	qreal lineCenter[2] = { 0.0, 0.0 };
+};
+
+RackToggleLayout rackToggleLayout(const QRectF& rect, const QStringList& labels, const QFont& legendFont)
+{
+	const QFontMetricsF metrics(legendFont);
+	RackToggleLayout layout;
+	layout.lineHeight = qCeil(metrics.height());
+	qreal widest = 0.0;
+	for (const QString& label : labels)
+		widest = qMax(widest, metrics.horizontalAdvance(label));
+	const qreal assembly = rackTogglePartWidth + rackToggleGap + qCeil(widest);
+	layout.partLeft = qMax(rect.left() + rackToggleMargin, qreal(qFloor(rect.center().x() - assembly / 2.0 + 0.5)));
+	layout.legendLeft = layout.partLeft + rackTogglePartWidth + rackToggleGap;
+	layout.legendWidth = qMax(0.0, rect.right() + 1.0 - rackToggleMargin - layout.legendLeft);
+	layout.columnTop = rect.top() + qMax(0.0, qreal(qFloor((rect.height() - 2.0 * layout.lineHeight) / 2.0)));
+	layout.lineCenter[0] = layout.columnTop + layout.lineHeight / 2.0;
+	layout.lineCenter[1] = layout.columnTop + layout.lineHeight * 1.5;
+	return layout;
+}
+}
+
+Qt::Orientation RackSkin::segmentedControlAxis(int optionCount) const
+{
+	// The toggle's two positions are stacked, so its options are too: the upper
+	// half of the control answers for the upper word.
+	return optionCount == 2 ? Qt::Vertical : Qt::Horizontal;
+}
+
+QSize RackSkin::segmentedControlSizeHint(const QStringList& labels, const QFont& font) const
+{
+	if (labels.size() != 2)
+		return QSize();
+	const QFontMetricsF metrics(rackToggleLegendFont(font.family()));
+	qreal widest = 0.0;
+	for (const QString& label : labels)
+		widest = qMax(widest, metrics.horizontalAdvance(label));
+	const int width = qCeil(rackToggleMargin + rackTogglePartWidth + rackToggleGap + widest + rackToggleMargin);
+	// Never lower than the widget's own height, so no card changes height for
+	// the toggle; the two legend lines fit in the 26px of the lowest one.
+	const int height = qMax(26, qCeil(QFontMetricsF(font).height()) + 10);
+	return QSize(width, height);
+}
+
 // Rack's pick-one control is hardware chosen by the count of options: a
-// two-position choice is a slide switch, a choice among three or more is a
-// bank of interlocked keys (paintRackKeyBank above).
+// choice between two is an upright toggle switch with its two names printed
+// beside it, a choice among three or more is a bank of interlocked keys
+// (paintRackKeyBank above).
 //
-// The slide switch has its two options printed on the faceplate above it:
-// the legends are lettering on the plate, one centred in each cell, and
-// under them a recessed slot holds one slider knob that rests under the
-// chosen legend. It replaces the key bank on two-option controls. The
-// maintainer judged that bank far too heavy for choosing one of two
-// (2026-11-26, the all-pass card's ORDER and graph switches): tone it down,
-// keep it Rack, and make it read as a hardware part that selects one of two.
-// A slide switch is that part, with a fraction of the metal.
+// The toggle is the lever of a small panel switch: the first option's name
+// on the upper line, the second's on the lower, left-aligned in one column
+// right beside the part, and the lever's tip standing at the height of the
+// chosen name. The tip's two rests are the centres of the two legend lines,
+// so the travel is one line pitch whatever the words are.
 //
-// The knob's side is the only thing that says which option is chosen (shared
-// article 1: a state is said once), so the two legends print in the same ink
-// at the same weight whatever the selection, as printing on a real panel
-// does. The maintainer's second verdict (2026-11-26) found the first switch,
-// a 36px part centred under the gap between the legends, ant-sized: once
-// the switch is moved it must be certain that it went to Static, so the knob
-// stands under the word it selects and is about two thirds as wide as that
-// lettering. Its two rests are the centres of the two cells and the slot
-// runs from one rest to the other.
+// Three verdicts of the maintainer (2026-11-26) shaped it:
+// - first, the key bank the two-option controls used to wear (two machined
+//   key caps with grain, a lamp in each, an interlock slide) was given far
+//   too much force for choosing one of two: tone it down, keep it Rack, make
+//   it read as a hardware part that selects one of two;
+// - second, the slide switch that replaced it, a 36px part centred under the
+//   gap between the legends, was ant-sized: after moving it there must be no
+//   doubt which word it went to;
+// - third, the slide switch whose knob rested under each word had a travel
+//   as long as the words, and the wide space between its ends made one ask
+//   whether it was right. The maintainer showed the toggles of a Topping
+//   L30 II (a bat lever in an upright cutout, the position names in a column
+//   beside it) as the idea, with the note that it needed a correction to be
+//   Rack.
+//
+// The lever's place is the only thing that says which option is chosen
+// (shared article 1: a state is said once), so both names print in the same
+// ink at the same weight whatever the choice, as printing on a real panel
+// does. No lamp, no fill behind the chosen name.
 void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlState& state, const SkinTokens& tokens) const
 {
 	if (state.labels.isEmpty() || state.rect.width() < 10 || state.rect.height() < 8)
@@ -465,13 +542,13 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	const QColor panel(tokens.card);
 	const QColor bodyInk(tokens.text);
 	const QColor mutedInk(tokens.mutedText);
-	// Light and shadow instead of palette entries: a machined recess is the one
+	// Light and shadow instead of palette entries: a machined part is the one
 	// work light falling across metal. The dark side keeps the cream finish warm
 	// by mixing the plate's own ink toward black rather than laying a neutral
 	// grey over it - this skin's shadows are never cold.
 	const QColor shadowInk = dark ? RackPalette::shadow(255) : mixColor(bodyInk, RackPalette::shadow(255), 0.35);
 	const QColor lightInk = RackPalette::light(255);
-	// One light colour for the whole switch, pointer and keyboard alike: bronze
+	// One light colour for the whole part, pointer and keyboard alike: bronze
 	// on the dark finish (the colour every cap that answers the pointer or holds
 	// focus wears there), the focus colour on the light one, as the VST fill
 	// block's caps do. The part has no lamp, so amber has no place on it in the
@@ -482,158 +559,126 @@ void RackSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	painter.setRenderHint(QPainter::TextAntialiasing, true);
 
-	QFont legendFont(tokens.fontFamily);
-	legendFont.setPixelSize(10);
-	legendFont.setBold(true);
+	const QFont legendFont = rackToggleLegendFont(tokens.fontFamily);
 	const QFontMetricsF legendMetrics(legendFont);
-
-	// The stack: the legend line, a 2px gap, the 11px slot. It is centred in
-	// the widget's height, so the taller instances on the cards share the
-	// slack; the standalone 26px control (13 + 2 + 11) is filled exactly.
-	constexpr qreal slotHeight = 11.0;
-	constexpr qreal legendGap = 2.0;
-	constexpr qreal knobInset = 1.0;
-	constexpr qreal minimumKnobWidth = 17.0;
-	const QRectF frame(state.rect);
-	const qreal legendHeight = qCeil(legendMetrics.height());
-	const qreal stackHeight = legendHeight + legendGap + slotHeight;
-	const qreal stackTop = frame.top() + qMax(0.0, qreal(qFloor((frame.height() - stackHeight) / 2.0)));
+	const RackToggleLayout layout = rackToggleLayout(QRectF(state.rect), state.labels, legendFont);
 
 	// The legends: lettering printed on the plate, engraved as written (they
 	// are translated UI strings, not hardware printing: no uppercasing, no
 	// tracking, the plate's channel caption rule). A powered-down unit keeps
 	// its printing, faded, as every print on this machine fades.
+	// Which line an option prints on comes from the cell the widget tiles for
+	// it (state.segmentRect): the first option on top, or on a rising scale
+	// (SegmentedControl::setRisingScale) the higher option on top. The lines
+	// keep one pitch however tall the control is.
+	const auto lineOf = [&](int index) {
+		return state.segmentRect(index).center().y() < QRectF(state.rect).center().y() ? 0 : 1;
+	};
+	const qreal rest[2] = { layout.lineCenter[lineOf(0)], layout.lineCenter[lineOf(1)] };
 	painter.setFont(legendFont);
 	const QColor legendInk = state.enabled ? bodyInk : withAlpha(mutedInk, 150);
-	qreal widestLegend = 0.0;
 	for (int i = 0; i < 2; i++)
 	{
-		const QRectF cell = state.segmentRect(i);
-		const QRectF legendRect(cell.left() + 2.0, stackTop, qMax(0.0, cell.width() - 4.0), legendHeight);
-		const QString printed = legendMetrics.elidedText(state.labels.at(i), Qt::ElideRight, legendRect.width());
-		widestLegend = qMax(widestLegend, legendMetrics.horizontalAdvance(printed));
-		RackSkinDetail::engraveText(painter, legendRect, Qt::AlignHCenter | Qt::AlignVCenter, printed, legendInk, dark);
+		const QRectF legendRect(layout.legendLeft, rest[i] - layout.lineHeight / 2.0,
+			layout.legendWidth, layout.lineHeight);
+		RackSkinDetail::engraveText(painter, legendRect, Qt::AlignLeft | Qt::AlignVCenter,
+			legendMetrics.elidedText(state.labels.at(i), Qt::ElideRight, layout.legendWidth), legendInk, dark);
 	}
 
-	// One knob width per control: two thirds of the wider legend as printed,
-	// never under 17px, and never so wide that the two rests overlap or the
-	// slot leaves its cells. An odd width puts the middle grip line on a
-	// pixel column of its own.
-	const qreal leftRest = state.segmentRect(0).center().x();
-	const qreal rightRest = state.segmentRect(1).center().x();
-	const qreal knobLimit = qMin(state.segmentRect(0).width() - 4.0, rightRest - leftRest - 2.0);
-	qreal knobWidth = qMax(minimumKnobWidth, qreal(qRound(widestLegend * 2.0 / 3.0)));
-	knobWidth = qMax(5.0, qMin(knobWidth, qreal(qFloor(knobLimit))));
-	if (qRound(knobWidth) % 2 == 0)
-		knobWidth -= 1.0;
-	const qreal leftKnob = qRound(leftRest - knobWidth / 2.0);
-	const qreal rightKnob = qRound(rightRest - knobWidth / 2.0);
-
-	// The slot: one recessed channel with rounded ends, cut in the plate from
-	// the left rest to the right one with the knob's 1px of clearance.
-	// Its floor is the faceplate itself in shadow (darker() scales value and
-	// keeps the finish's warmth), never a new colour, and it wears the recess
-	// grammar the LCD wells and the patchbay's button field wear: an overhang
-	// shadow under the top lip, the work light caught on the lower one, inside
-	// an outline that parts it from the plate on all four sides (invariant 12).
-	const QRectF slot(leftKnob - knobInset, stackTop + legendHeight + legendGap,
-		rightKnob + knobWidth + knobInset - (leftKnob - knobInset), slotHeight);
-	const QRectF slotEdge = slot.adjusted(0.5, 0.5, -0.5, -0.5);
-	QPainterPath slotPath;
-	slotPath.addRoundedRect(slotEdge, slotEdge.height() / 2.0, slotEdge.height() / 2.0);
-	painter.setPen(Qt::NoPen);
-	painter.fillPath(slotPath, panel.darker(dark ? 185 : 135));
-	{
-		QPainterStateGuard slotState(&painter);
-		painter.setClipPath(slotPath);
-		QLinearGradient overhang(slot.topLeft(), QPointF(slot.left(), slot.top() + 3.0));
-		overhang.setColorAt(0.0, withAlpha(shadowInk, dark ? 170 : 110));
-		overhang.setColorAt(1.0, withAlpha(shadowInk, 0));
-		painter.fillRect(QRectF(slot.left(), slot.top(), slot.width(), 3.0), overhang);
-		painter.setPen(QPen(withAlpha(lightInk, dark ? 34 : 150), 1));
-		painter.drawLine(QPointF(slot.left() + 4.0, slot.bottom() - 1.5), QPointF(slot.right() - 4.0, slot.bottom() - 1.5));
-	}
-
-	// The hand on the switch: the slot's outline warms when the pointer is over
-	// the option the knob is not resting under (pressing there moves it), and
-	// harder while the button is held there - the way the bus and fill caps
-	// answer the pointer, by warming an edge the part already has. It is the
-	// slot's edge and not the knob's because the slot's reads at 100 % on the
-	// dark finish: bronze on the ivory-grey knob face is nearly the face's own
-	// value, while on the slot it stands against a black outline. Hover is
-	// weaker than focus on that edge (150 against 220, the fill caps' pair), so
-	// the two states stay apart. Keyboard focus recolours the
-	// slot's own outline (shared article 8): one line on an edge the switch
-	// already draws, never a box of its own. While the slot holds the focus
-	// edge nothing else lights, so the switch never shows a lit edge inside a
-	// lit edge (the nested boxes of the 2026-11-18 ruling).
+	// The hand and the keyboard on the part: one line on an edge the part
+	// already draws. The pointer over the option the lever is not at (pressing
+	// there throws it) warms that edge at 150, a press there at 220, and
+	// keyboard focus recolours it at 220 (shared article 8); while focus holds
+	// it nothing else lights, so there is never a lit edge inside a lit edge
+	// (the nested boxes of the 2026-11-18 ruling).
 	const bool focusEdge = state.enabled && state.focused;
 	const bool aimed = state.enabled && !focusEdge && state.hoveredIndex >= 0 && state.hoveredIndex != state.selectedIndex;
 	const bool held = state.enabled && !focusEdge && state.pressedIndex >= 0 && state.pressedIndex != state.selectedIndex;
-	QColor handEdge;
-	if (held)
-		handEdge = withAlpha(engagedEdge, 220);
+	QColor edge;
+	if (focusEdge || held)
+		edge = withAlpha(engagedEdge, 220);
 	else if (aimed)
-		handEdge = withAlpha(engagedEdge, 150);
+		edge = withAlpha(engagedEdge, 150);
 
-	QColor slotOutline = withAlpha(shadowInk, dark ? 215 : 135);
-	if (focusEdge)
-		slotOutline = withAlpha(engagedEdge, 220);
-	else if (handEdge.isValid())
-		slotOutline = handEdge;
-	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(slotOutline, 1));
-	painter.drawPath(slotPath);
-
-	// The slider knob: a raised cap riding in the slot, lighter than the floor
-	// on both finishes, with fine grip lines. It rests centred under the chosen
-	// legend, and it is the one part that moves, so it alone follows
-	// selectionPosition from one rest to the other while the selection
-	// travels. On the dark finish the cap is the steel plate mixed
-	// toward the warm ivory ink, so it reads at a glance against the dark floor
-	// without turning cold. The cream finish's plate colour is already at full
-	// value, so its cap steps downward from the plate - lighter() on it would
-	// return the same colour and flatten the cap.
+	const qreal partCenterX = layout.partLeft + rackTogglePartWidth / 2.0;
+	const qreal pivotY = (layout.lineCenter[0] + layout.lineCenter[1]) / 2.0;
 	const double travel = qBound(0.0, state.selectionPosition, 1.0);
-	const QRectF knob(qRound(leftKnob + (rightKnob - leftKnob) * travel), slot.top() + knobInset,
-		knobWidth, slotHeight - 2.0 * knobInset);
-	const QRectF knobEdge = knob.adjusted(0.5, 0.5, -0.5, -0.5);
-	QLinearGradient face(knob.topLeft(), knob.bottomLeft());
-	if (state.enabled)
+	const QPointF tip(partCenterX, rest[0] + (rest[1] - rest[0]) * travel);
+
+	// The lever's metal: on the dark finish the plate mixed toward the warm
+	// ivory ink, so it reads at a glance without turning cold; on the cream
+	// finish the machined aluminium of the knobs. Powered down it loses its
+	// light.
+	QColor leverTop;
+	QColor leverBottom;
+	if (dark)
 	{
-		face.setColorAt(0.0, dark ? mixColor(panel, bodyInk, 0.42) : panel);
-		face.setColorAt(1.0, dark ? mixColor(panel, bodyInk, 0.26) : panel.darker(110));
+		leverTop = mixColor(panel, bodyInk, state.enabled ? 0.74 : 0.28);
+		leverBottom = mixColor(panel, bodyInk, state.enabled ? 0.44 : 0.18);
 	}
 	else
 	{
-		// Powered down the cap stays, in the floor's own shadow: no light on it.
-		face.setColorAt(0.0, dark ? mixColor(panel, bodyInk, 0.20) : panel.darker(108));
-		face.setColorAt(1.0, dark ? mixColor(panel, bodyInk, 0.13) : panel.darker(118));
-	}
-	painter.setPen(Qt::NoPen);
-	painter.setBrush(face);
-	painter.drawRoundedRect(knobEdge, 1.5, 1.5);
-	if (state.enabled)
-	{
-		// The work light on the cap's top chamfer, inside its outline.
-		painter.setPen(QPen(withAlpha(lightInk, dark ? 60 : 170), 1));
-		painter.drawLine(QPointF(knob.left() + 2.0, knob.top() + 1.5), QPointF(knob.right() - 2.0, knob.top() + 1.5));
-	}
-	// Fine grip lines, 4 apart and centred on the cap's middle pixel column: a
-	// wider knob gets more lines, never thicker ones. Three on the 17px knob,
-	// two more for every 8px beyond it, always with 4px of cap at each end.
-	painter.setPen(QPen(withAlpha(shadowInk, state.enabled ? (dark ? 170 : 105) : (dark ? 110 : 70)), 1));
-	const int gripPairs = qMax(1, qMin(1 + qFloor((knobWidth - minimumKnobWidth) / 8.0), qFloor((knobWidth - 9.0) / 8.0)));
-	const qreal middleColumn = knob.left() + qFloor(knobWidth / 2.0) + 0.5;
-	for (int line = -gripPairs; line <= gripPairs; line++)
-	{
-		const qreal x = middleColumn + line * 4.0;
-		painter.drawLine(QPointF(x, knob.top() + 2.0), QPointF(x, knob.bottom() - 1.5));
+		leverTop = state.enabled ? QColor(RackPalette::KnobAluminiumHighlight) : panel.darker(110);
+		leverBottom = state.enabled ? QColor(RackPalette::KnobAluminiumEdge) : panel.darker(125);
 	}
 
+	// The part: the Topping's upright cutout corrected for Rack. The bare oval
+	// hole with a chrome stick is what the maintainer found cheap here, so the
+	// cutout wears this skin's recess grammar (a floor of the plate in shadow,
+	// an overhang shadow under the top lip, an outline all round) inside a thin
+	// dress bezel, and the lever is a machined stick from the pivot at the
+	// cutout's middle to a rounded tip at the chosen end. The cutout is as tall
+	// as the two legend lines, so each end stands beside its word. A studio
+	// mini toggle (a round dress nut with a short bat) was drawn beside it and
+	// judged at 100 %: its 13px nut with a foreshortened bat read as a blob,
+	// and with the lower word chosen the ball and the nut merged, while the
+	// cutout's tip stands plainly at the height of the chosen word.
+	const qreal slotWidth = 9.0;
+	const QRectF slot(partCenterX - slotWidth / 2.0, layout.columnTop + 1.5, slotWidth,
+		layout.lineHeight * 2.0 - 3.0);
+	const QRectF bezel = slot.adjusted(-1.5, -1.5, 1.5, 1.5);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(dark ? mixColor(panel, bodyInk, 0.22) : panel.darker(108));
+	painter.drawRoundedRect(bezel, bezel.width() / 2.0, bezel.width() / 2.0);
+	QPainterPath slotPath;
+	slotPath.addRoundedRect(slot, slot.width() / 2.0, slot.width() / 2.0);
+	painter.fillPath(slotPath, panel.darker(dark ? 185 : 140));
+	{
+		QPainterStateGuard slotState(&painter);
+		painter.setClipPath(slotPath);
+		QLinearGradient overhang(slot.topLeft(), QPointF(slot.left(), slot.top() + 4.0));
+		overhang.setColorAt(0.0, withAlpha(shadowInk, dark ? 170 : 110));
+		overhang.setColorAt(1.0, withAlpha(shadowInk, 0));
+		painter.fillRect(QRectF(slot.left(), slot.top(), slot.width(), 4.0), overhang);
+	}
 	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(withAlpha(shadowInk, dark ? 220 : 130), 1));
-	painter.drawRoundedRect(knobEdge, 1.5, 1.5);
+	painter.setPen(QPen(withAlpha(shadowInk, dark ? 200 : 120), 1.0));
+	painter.drawPath(slotPath);
+	// The bezel's outline: the same colour all round (invariant 12), and the
+	// one edge the pointer and the focus recolour.
+	painter.setPen(QPen(edge.isValid() ? edge : withAlpha(shadowInk, dark ? 230 : 150), 1.0));
+	painter.drawRoundedRect(bezel.adjusted(0.5, 0.5, -0.5, -0.5), bezel.width() / 2.0 - 0.5, bezel.width() / 2.0 - 0.5);
+
+	const QPointF pivot(partCenterX, pivotY);
+	QLinearGradient stickFace(QPointF(pivot.x() - 1.5, 0.0), QPointF(pivot.x() + 1.5, 0.0));
+	stickFace.setColorAt(0.0, leverTop);
+	stickFace.setColorAt(1.0, leverBottom);
+	painter.setPen(Qt::NoPen);
+	painter.setBrush(stickFace);
+	painter.drawRect(QRectF(pivot.x() - 1.5, qMin(pivot.y(), tip.y()), 3.0, qAbs(tip.y() - pivot.y())));
+	const qreal tipRadius = 3.4;
+	QRadialGradient tipFace(tip - QPointF(0.8, 1.0), tipRadius * 1.6);
+	tipFace.setColorAt(0.0, leverTop);
+	tipFace.setColorAt(1.0, leverBottom);
+	painter.setPen(QPen(withAlpha(shadowInk, dark ? 220 : 150), 1.0));
+	painter.setBrush(tipFace);
+	painter.drawEllipse(tip, tipRadius, tipRadius);
+	if (state.enabled)
+	{
+		painter.setPen(Qt::NoPen);
+		painter.setBrush(withAlpha(lightInk, dark ? 120 : 220));
+		painter.drawEllipse(tip - QPointF(0.9, 1.0), 0.8, 0.8);
+	}
 }
 
 namespace
