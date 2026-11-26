@@ -14,6 +14,7 @@
 #include <QMouseEvent>
 #include <QToolButton>
 
+#include "Editor/widgets/ButtonName.h"
 #include "Editor/widgets/ElidedLabel.h"
 
 RoutingSectionHead::RoutingSectionHead(const QString& caption, const QString& captionObjectName, QWidget* parent)
@@ -131,6 +132,9 @@ void RoutingSectionHead::apply()
 	// exists.
 	toggle->setText(folded ? QStringLiteral(">") : QStringLiteral("v"));
 	toggle->setToolTip(folded ? tr("Expand channel mapping") : tr("Collapse channel mapping"));
+	// The sign is the whole label, so a screen reader would be given "v" or
+	// ">" as the button's name. It is given what the tooltip says.
+	nameButtonByToolTip(toggle);
 
 	if (folded)
 	{

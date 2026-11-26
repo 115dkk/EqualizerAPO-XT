@@ -14,6 +14,7 @@
 #include <QToolButton>
 
 #include "Editor/SkinManager.h"
+#include "Editor/widgets/ButtonName.h"
 
 UpdateToast::UpdateToast(QWidget* host)
 	: QWidget(host)
@@ -48,6 +49,7 @@ UpdateToast::UpdateToast(QWidget* host)
 	closeButton->setAutoRaise(true);
 	closeButton->setText(QString(QChar(0x00D7))); // multiplication sign as a close glyph
 	closeButton->setToolTip(tr("Dismiss"));
+	nameButtonByToolTip(closeButton);
 	connect(closeButton, &QToolButton::clicked, this, &UpdateToast::hideMessage);
 	layout->addWidget(closeButton, 0, Qt::AlignTop);
 

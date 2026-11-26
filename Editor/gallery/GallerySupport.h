@@ -226,6 +226,13 @@ void forEachSkinMode(const std::function<void(ISkin* skin, bool dark)>& fn);
 // it still elides. Returns the number of failing texts (GallerySelfTests.cpp).
 int checkEngravedLabelFit();
 
+// Every visible button of a captured scene that explains itself in a tooltip
+// has a name in words for assistive technology (Editor/widgets/ButtonName.h):
+// a button that shows an icon or a sign alone is otherwise announced as that
+// sign, or with no name. Each kind of button is reported once per run.
+// Returns the number of kinds newly found in this scene (GallerySelfTests.cpp).
+int checkButtonNames(QWidget* scene, const QString& capture);
+
 // In every listed skin and mode a tooltip is set in the skin's face, at the
 // body text's size and weight. Returns the number of failures
 // (GallerySelfTests.cpp).

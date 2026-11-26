@@ -14,6 +14,7 @@
 #include <QStyleOption>
 #include <QToolButton>
 
+#include "Editor/widgets/ButtonName.h"
 #include "Editor/widgets/TitleBarSkin.h"
 #include "platform/qt/TintedIcon.h"
 
@@ -117,6 +118,7 @@ void TitleBar::updateMaximizeButton()
 		maximized ? QStringLiteral(":/icons/modern/window-restore.svg")
 		: QStringLiteral(":/icons/modern/window-max.svg"), ink, 14));
 	maximizeButton->setToolTip(maximized ? tr("Restore") : tr("Maximize"));
+	nameButtonByToolTip(maximizeButton);
 }
 
 bool TitleBar::isCaptionPoint(const QPoint& point) const

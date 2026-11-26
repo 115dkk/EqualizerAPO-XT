@@ -703,6 +703,7 @@ HEADERS  += \
 	widgets/GraphicEQPlotWidget.h \
 	widgets/FlowLayout.h \
 	widgets/CommandRowFrame.h \
+	widgets/ButtonName.h \
 	widgets/StyleRefresh.h \
 	widgets/SkinComboBox.h \
 	widgets/cards/ChannelCardEditor.h \
