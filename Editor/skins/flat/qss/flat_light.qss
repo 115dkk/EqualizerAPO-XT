@@ -885,3 +885,43 @@ QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]::down-arr
 /* A Channel row lays every seat on its one line; with the card's side
    padding the add field's words were cut. */
 QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip { padding-left: 7px; padding-right: 7px; }
+
+/* ====================================================================
+   One cap height in the list. Every cap in the filter list is 26 px with
+   its outline, in cards and rows alike (FlatPaint::listCapHeight for the
+   painted ones): the header's actions in a card, the reference rows' icon
+   and worded buttons, the type and parameter selects, the Send selects,
+   the chips and the fields on a chip line, the GraphicEQ and Velvet
+   buttons. They were 28 to 37 px with 7 to 11 px clear above and below a
+   14 px legend; that air is halved. The switch keeps its 20 px track (a
+   switch is a pill, constitution rule 5), the value fields keep 33 px,
+   and a row's stacked actions stay bare 18 px glyphs (Modern rows block).
+   The Send latency field stands on the line of the Send selects, so it
+   takes their height (the maintainer's call on the Studio round); it
+   keeps the value fields' fill, line, face and alignment.
+   ==================================================================== */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox[paramSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
+    min-height: 24px; max-height: 24px; padding-top: 0px; padding-bottom: 0px;
+}
+/* The rule above names every icon button of the list; the switch keeps
+   its own track. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[powerToggle="true"] {
+    min-height: 18px; max-height: 18px; padding: 0px;
+}

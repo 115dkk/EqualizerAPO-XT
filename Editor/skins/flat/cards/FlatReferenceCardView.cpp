@@ -159,7 +159,7 @@ FlatReferenceCardView::FlatReferenceCardView(const QString& kind, const SkinToke
 	const QColor onAccent(t.onAccent);
 	locatePillStyle = QStringLiteral(
 		"QToolButton { background: %1; color: %2; border: 1px solid %1; border-radius: 6px;"
-		" padding: 4px 14px; min-height: 22px; font-weight: 600; }"
+		" padding: 0px 14px; min-height: 24px; max-height: 24px; font-weight: 600; }"
 		"QToolButton:hover { background: %3; border-color: %3; }"
 		"QToolButton:pressed { background: %4; border-color: %4; }"
 		"QToolButton:disabled { background: transparent; color: %5; border: 1px solid %6; }")

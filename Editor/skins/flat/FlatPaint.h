@@ -23,6 +23,11 @@ namespace FlatPaint
 // controls (buttons, fields, selects, chips).
 constexpr qreal surfaceRadius = 10.0;
 constexpr qreal controlRadius = 6.0;
+// The one height, outline included, of every cap in the filter list:
+// buttons, selects, chips, segmented controls and the fields on a cap line.
+// The caps were 28 to 37 px with 7 to 11 px clear above and below a 14 px
+// legend; half that air leaves 26 px.
+constexpr int listCapHeight = 26;
 // What a switched-off or unavailable thing is drawn at. It only fades; no
 // dashes, no sinking.
 constexpr qreal disabledOpacity = 0.45;

@@ -10,6 +10,7 @@
 #include <QFontMetricsF>
 #include <QPainter>
 #include <QPainterStateGuard>
+#include <QWidget>
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
@@ -33,7 +34,20 @@ void FlatSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 
 	const QColor accent(tokens.accent);
 	const QColor onAccent(tokens.onAccent);
-	const QRectF frame(state.rect);
+	// The control is the list's one cap height (FlatPaint::listCapHeight),
+	// centred in whatever height its widget is given (the Hilbert direction
+	// control stands in a 40 px box), so it lines up with the selects and
+	// buttons beside it. Outside the filter list (the analysis dock's metric
+	// switch, the subwoofer routing window) it keeps its widget's height.
+	bool inList = false;
+	for (const QWidget* w = dynamic_cast<const QWidget*>(painter.device()); w != nullptr && !inList;
+		w = w->parentWidget())
+		inList = w->objectName() == QLatin1String("FilterCardRow");
+	const qreal inset = inList ? qMax(0.0, (state.rect.height() - FlatPaint::listCapHeight) / 2.0) : 0.0;
+	const auto segmentRect = [&state, inset](double index) {
+			return state.segmentRect(index).adjusted(0.0, inset, 0.0, -inset);
+		};
+	const QRectF frame = QRectF(state.rect).adjusted(0.0, inset, 0.0, -inset);
 	FlatPaint::box(painter, frame, QColor(tokens.card), QColor(tokens.borderStrong), FlatPaint::controlRadius);
 
 	// A cell under the pointer or the press that is not the choice takes the
@@ -41,7 +55,7 @@ void FlatSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	const auto neutralCell = [&](int index, const QString& token) {
 			if (!state.enabled || index < 0 || index == state.selectedIndex)
 				return;
-			FlatPaint::box(painter, state.segmentRect(index).adjusted(1.0, 1.0, -1.0, -1.0), QColor(token),
+			FlatPaint::box(painter, segmentRect(index).adjusted(1.0, 1.0, -1.0, -1.0), QColor(token),
 				QColor(), FlatPaint::controlRadius - 1.0, 0.0);
 		};
 	neutralCell(state.hoveredIndex, tokens.cardHover);
@@ -51,11 +65,11 @@ void FlatSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	// that touch it.
 	for (int i = 1; i < state.labels.size(); i++)
 	{
-		const qreal x = qFloor(state.segmentRect(i).left());
+		const qreal x = qFloor(segmentRect(i).left());
 		painter.fillRect(QRectF(x, frame.top() + 7.0, 1.0, frame.height() - 14.0), QColor(tokens.borderStrong));
 	}
 
-	const QRectF mark = state.segmentRect(state.selectionPosition).adjusted(-0.5, 0.0, 0.5, 0.0)
+	const QRectF mark = segmentRect(state.selectionPosition).adjusted(-0.5, 0.0, 0.5, 0.0)
 		.intersected(frame);
 	// Keyboard focus is a line on the chosen cell's own outline (shared
 	// article 8). The cell is the emphasis colour itself, so the line is that
@@ -68,7 +82,7 @@ void FlatSkin::paintSegmentedControl(QPainter& painter, const SegmentedControlSt
 	const QFont chosenFont = FlatPaint::bodyFont(tokens, 13, QFont::DemiBold);
 	for (int i = 0; i < state.labels.size(); i++)
 	{
-		const QRectF cell = state.segmentRect(i);
+		const QRectF cell = segmentRect(i);
 		// How much of the travelling fill has arrived over this cell.
 		const double arrival = mark.width() > 0.0
 			? qBound(0.0, mark.intersected(cell).width() / mark.width(), 1.0)
