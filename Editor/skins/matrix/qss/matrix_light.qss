@@ -2046,3 +2046,48 @@ QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
 QFrame#FilterCardRow QAbstractSpinBox#VelvetValue {
     min-height: 22px; max-height: 22px;
 }
+/* ===== Lit outlines: one colour on four sides =====
+   Shared article 8 and the edge-line rule: a lit control is ruled on all
+   four sides in one colour. The template select kept the transparent rule
+   of its resting cell under hover, while open and while focused (its own
+   rule outranked the combo's lit rules), and the Velvet Advanced toggle
+   lit nothing while open. No cap or chip in the list showed keyboard
+   focus at all; focus now engages the rule the cell already has in the
+   accent (rule 9's state rule, no second box). */
+QComboBox[filterSelector="true"]:hover,
+QComboBox[filterSelector="true"]:on,
+QComboBox[filterSelector="true"]:focus {
+    border: 1px solid @ACCENT@;
+}
+QToolButton#VelvetAdvancedToggle:checked {
+    color: @TEXT@;
+    background: rgba(@ACCENT_RGB@, 0.22);
+    border: 1px solid @ACCENT@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:focus,
+QFrame#FilterCardRow QToolButton#ChannelChip:focus,
+QFrame#FilterCardRow QToolButton#NewChannelChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:focus,
+QFrame#FilterCardRow QToolButton#StageChip:focus {
+    border-color: @ACCENT@;
+}/* A checked chip is already ruled in the accent, so focus on it takes the
+   body ink instead: the same one rule, a colour the unfocused chip does
+   not have. */
+QFrame#FilterCardRow QToolButton#ChannelChip:checked:focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:checked:focus,
+QFrame#FilterCardRow QToolButton#StageChip:checked:focus {
+    border-color: @TEXT@;
+}
+/* The pre-light of the GraphicEQ buttons, the Stage chips and the reveal
+   cell was the border token, which nearly vanishes on the light board; the
+   hover pre-light is the accent rule like every other cell's. */
+QToolButton#GraphicEQActionButton:hover,
+QToolButton#StageChip:hover,
+QToolButton#DeviceChipMore:hover {
+    border-color: @ACCENT@;
+}
