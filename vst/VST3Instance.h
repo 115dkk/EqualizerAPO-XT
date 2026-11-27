@@ -153,6 +153,9 @@ private:
 	std::atomic<unsigned> vst3ParameterEditWrite{ 0 };
 	std::atomic<unsigned> vst3ParameterEditRead{ 0 };
 	std::atomic<uint64_t> vst3ParameterEditSequence{ 0 };
+	// Non-zero while readFromEffect or readWritableParameterValues is calling
+	// into the plug-in; onVST3ParameterEdit only queues an edit raised then.
+	mutable std::atomic<unsigned> vst3StateReadDepth{ 0 };
 	VST3Lifecycle vst3Lifecycle;
 	int vst3InputBusCount = 0;
 	int vst3OutputBusCount = 0;

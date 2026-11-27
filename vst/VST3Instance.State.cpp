@@ -44,6 +44,25 @@ namespace
 		return wstring(characters, length);
 	}
 
+	// Marks the calls that read the plug-in's state, for onVST3ParameterEdit.
+	class StateReadScope
+	{
+	public:
+		explicit StateReadScope(atomic<unsigned>& depth) : depth(depth)
+		{
+			depth.fetch_add(1, memory_order_acq_rel);
+		}
+		~StateReadScope()
+		{
+			depth.fetch_sub(1, memory_order_acq_rel);
+		}
+		StateReadScope(const StateReadScope&) = delete;
+		StateReadScope& operator=(const StateReadScope&) = delete;
+
+	private:
+		atomic<unsigned>& depth;
+	};
+
 	// A VST3 chunk used to carry the component state alone, losing the
 	// controller-only state (UI preferences) and the parameter snapshot on
 	// every save. The combined layout wraps all three behind a magic header;
@@ -213,6 +232,7 @@ VSTPluginInstance::StateRestoreResult VST3Instance::writeToEffect(const std::wst
 void VST3Instance::readFromEffect(std::wstring& chunkData,
 	std::unordered_map<std::wstring, float>& paramMap) const
 {
+	const StateReadScope reading(vst3StateReadDepth);
 	chunkData = L"";
 	paramMap.clear();
 
@@ -286,6 +306,7 @@ bool VST3Instance::isVST3ParameterReadOnly(ParamID id) const
 
 bool VST3Instance::readWritableParameterValues(WritableParameterValues& values) const
 {
+	const StateReadScope reading(vst3StateReadDepth);
 	values.clear();
 	if (vst3Controller == NULL)
 		return false;

@@ -273,6 +273,8 @@ void VSTPluginSession::replaceLibrary(const QString& writtenPath)
 	if (!replacementPending)
 		replacementOldId = effect != nullptr ? effect->uniqueID() : 0;
 	effect.reset();
+	// A read the old instance asked for is nobody's now.
+	automatedRead = VSTAutomatedRead();
 	replacementPending = true;
 
 	QDir pluginsDir(QString::fromStdWString(VSTPluginLibrary::getDefaultPluginPath()));
@@ -583,7 +585,17 @@ void VSTPluginSession::onIdle()
 
 	if (isEmbedded || autoApply)
 	{
-		if (!lastReadTimer.isValid() || lastReadTimer.elapsed() > 1000)
+		const qint64 sinceLastRead = lastReadTimer.isValid() ? lastReadTimer.elapsed() : -1;
+		if (automatedRead.readDue(sinceLastRead))
+		{
+			// Whatever this needs of the session happens before the read: its
+			// signal has the row store its line, and a row that does can
+			// rebuild and take the session with it.
+			automatedRead.readTaken();
+			lastReadTimer.restart();
+			readAndStoreState(true);
+		}
+		else if (sinceLastRead < 0 || sinceLastRead > 1000)
 			readBack();
 	}
 }
@@ -598,9 +610,13 @@ bool VSTPluginSession::readAndStoreState(bool automated, bool forceRawState, boo
 {
 	wstring newChunkData;
 	unordered_map<wstring, float> newParamMap;
+	// An automate call that arrives during these reads is the plug-in
+	// answering them and asks for no further read (VSTAutomatedRead).
+	automatedRead.stateReadStarted();
 	effect->readFromEffect(newChunkData, newParamMap);
 	VSTPluginInstance::WritableParameterValues writableParameters;
 	const bool newSemanticStateAvailable = effect->readWritableParameterValues(writableParameters);
+	automatedRead.stateReadEnded();
 	const uint64_t editSequence = effect->parameterEditSequence();
 	// Some plug-ins (Kilohearts) write their state as a ZIP archive anew on
 	// every read, so only its file times move. Compared byte for byte, that
@@ -645,8 +661,10 @@ void VSTPluginSession::onAutomate()
 	if (writingState)
 		return;
 
-	if (isEmbedded || autoApply)
-		readAndStoreState(true);
+	// The plug-in is in the middle of its own call here, and zDolbi makes
+	// this call some nine hundred times a second with nothing changed. The
+	// read waits for onIdle (VSTAutomatedRead).
+	automatedRead.automateArrived();
 }
 
 bool VSTPluginSession::embedPlugin(QWidget* host)

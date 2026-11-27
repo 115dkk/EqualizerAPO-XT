@@ -185,6 +185,11 @@ void VST3Instance::doIdle()
 	// used to run here repainted the whole plug-in GUI synchronously on
 	// every event-loop idle, which starved the Editor's own UI and made
 	// interacting with an embedded panel unstable.
+
+	// An edit the plug-in raised while the host was reading its state only
+	// waits in the ring (onVST3ParameterEdit); an idle processor takes it
+	// here. With nothing waiting this is two atomic loads.
+	flushVST3ParameterChanges();
 }
 
 void VST3Instance::stopEditing()

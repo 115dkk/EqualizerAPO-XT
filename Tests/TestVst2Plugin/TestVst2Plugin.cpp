@@ -22,6 +22,9 @@
 	    uint32 version, then the two float parameters. EAPO_TEST_VST_STATE selects
 	    a ZIP-clock persona that rewrites its ZIP timestamps on every read, with an
 	    optional automate callback during setChunk, like the Kilohearts plugins.
+	    Its zip-clock-automate-on-read variant calls automate from inside
+	    getChunk instead, values unchanged, as zDolbi Surround Upmixer announces
+	    its parameters from inside the host's state read.
 	    This lets the host round-trip parameter state through
 	    readFromEffect/writeToEffect, which use the chunk path whenever the
 	    programChunks flag is set.
@@ -123,7 +126,8 @@ enum class StatePersona
 {
 	plain,
 	zipClock,
-	zipClockAutomate
+	zipClockAutomate,
+	zipClockAutomateOnRead
 };
 
 struct PluginState
@@ -495,6 +499,8 @@ intptr_t VST_FUNCTION_INTERFACE dispatcher(vst_effect_t* effect, int32_t opcode,
 			return static_cast<intptr_t>(sizeof(ChunkBlob));
 		}
 		buildZipChunk(state);
+		if (state->statePersona == StatePersona::zipClockAutomateOnRead && state->host != nullptr)
+			state->host(effect, VST_HOST_OPCODE_AUTOMATE, kParamGain, 0, nullptr, state->params[kParamGain]);
 		*static_cast<void**>(ptr) = state->zipChunkScratch.data();
 		return static_cast<intptr_t>(kZipChunkSize);
 	}
@@ -714,6 +720,8 @@ vst_effect_t* createEffect(vst_host_callback_t callback)
 			state->statePersona = StatePersona::zipClock;
 		else if (wcscmp(stateMode, L"zip-clock-automate") == 0)
 			state->statePersona = StatePersona::zipClockAutomate;
+		else if (wcscmp(stateMode, L"zip-clock-automate-on-read") == 0)
+			state->statePersona = StatePersona::zipClockAutomateOnRead;
 	}
 
 	// Host robustness tests select malformed metadata before creating an

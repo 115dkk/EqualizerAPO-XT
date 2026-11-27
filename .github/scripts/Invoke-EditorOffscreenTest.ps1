@@ -145,9 +145,11 @@ $gates = @{
     }
     # A plug-in that writes its state as a fresh archive on every read and
     # calls automate while its state is written back (Kilohearts, #459) must
-    # not mark the document unsaved; a real change must still do so. The VST2
-    # fixture plays that plug-in through EAPO_TEST_VST_STATE, which the gate
-    # sets itself for each case.
+    # not mark the document unsaved; a real change must still do so. A plug-in
+    # that calls automate from inside the state read (zDolbi) must not send the
+    # Editor into reading its state from inside that read: the Editor closed
+    # with its stack used up. The VST2 fixture plays these plug-ins through
+    # EAPO_TEST_VST_STATE, which the gate sets itself for each case.
     "vst-untouched" = [pscustomobject]@{
         Arguments  = @("--vst-untouched-test")
         ExtraEnv   = @{

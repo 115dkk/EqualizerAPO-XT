@@ -14,6 +14,19 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: changing a control in zDolbi's panel no longer closes the
+  Editor.** With the panel of zDolbi Surround Upmixer open, the Editor closed
+  the moment a control was changed. Each time a plug-in reported an edit, the
+  Editor read the plug-in's whole state on the spot; zDolbi reports its
+  parameters again while its state is being read, so every read set off the
+  next one until the Editor ran out of stack. The Editor now reads the state
+  after the plug-in's call has returned, at most ten times a second, and what
+  a plug-in reports while its state is being read no longer starts another
+  read. Reproduced and checked with zDolbi's own panel in a test host on one
+  PC, and with test plug-ins that behave the same way; the installed Editor on
+  the PC where the crash was first seen has not been rechecked yet.
+  ([#554](https://github.com/115dkk/EqualizerAPO-XT/pull/554))
+
 ## v2.86.4 — 2026-11-27
 
 - **Editor, Stock Flat: a switched-off card dims its channel mapping too.**

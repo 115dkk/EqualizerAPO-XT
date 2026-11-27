@@ -11,7 +11,8 @@
 	automation callback, the panel (the plug-in's dialog, or embedded into a
 	host widget the row hands over), what the user asked of the panel while
 	the library was still loading (VSTPanelIntent), the idle poll that reads
-	the plug-in's state back, and the permission warnings. Both widgets used
+	the plug-in's state back (sooner when the plug-in called automate,
+	VSTAutomatedRead), and the permission warnings. Both widgets used
 	to carry a copy of all of this (audit #348 B1, audit #422 D3); they now
 	only build their controls, forward user actions here and draw what this
 	reports.
@@ -34,6 +35,7 @@
 #include <QString>
 
 #include "Editor/helpers/PanelPreviewFeeder.h"
+#include "Editor/widgets/cards/VSTAutomatedRead.h"
 #include "Editor/widgets/cards/VSTPanelIntent.h"
 #include "vst/VSTPluginInstance.h"
 #include "vst/VSTPluginLibrary.h"
@@ -156,7 +158,8 @@ signals:
 	// (the option stays on only while the panel is embedded or waits).
 	void embedStateChanged();
 	// The plug-in automated a parameter and the state read back differs from
-	// the stored one; the row must store its line again.
+	// the stored one; the row must store its line again. Emitted from the
+	// idle read that follows the plug-in's call, never from inside that call.
 	void automated();
 	// The embedded panel asks for a new size.
 	void sizeRequested(int width, int height);
@@ -221,6 +224,8 @@ private:
 	// automate call that arrives meanwhile is the plug-in answering that
 	// write, not an edit.
 	bool writingState = false;
+	// The read an automate call asked for, which onIdle makes.
+	VSTAutomatedRead automatedRead;
 	unsigned loadGeneration = 0;
 	VSTPanelIntent intent;
 	QWidget* embedHost = nullptr;

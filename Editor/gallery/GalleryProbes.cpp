@@ -2057,6 +2057,15 @@ int SkinGallery::runVstUntouchedTest()
 		{ "dialog-untouched", "zip-clock-automate", VstUntouchedAction::DialogUntouched, 0, false },
 		{ "embedded-moved-silently", "zip-clock", VstUntouchedAction::EmbeddedMovedSilently, 1, true },
 		{ "embedded-moved-automate", "zip-clock-automate", VstUntouchedAction::EmbeddedMovedAutomate, 1, true },
+		// A plug-in that calls automate from inside the state read (zDolbi
+		// announces its parameters there). The session used to read the state
+		// from inside that call, which called the read again until the stack
+		// ran out; the Editor closed on the first read. Untouched, the panel
+		// must store nothing, and a real change must still be stored once.
+		{ "embedded-untouched-automate-on-read", "zip-clock-automate-on-read",
+			VstUntouchedAction::EmbeddedUntouched, 0, false },
+		{ "embedded-moved-automate-on-read", "zip-clock-automate-on-read",
+			VstUntouchedAction::EmbeddedMovedAutomate, 1, true },
 	};
 
 	int failures = 0;
