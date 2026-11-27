@@ -1278,3 +1278,17 @@ QFrame#FilterCardRow QPushButton[minimalRefCommand="true"]:pressed,
 QFrame#FilterCardRow QToolButton#DeviceChipMore:pressed {
     border: 1px solid @TEXT@;
 }
+
+/* ===== Resting outlines close on four sides =====
+   Every cap, framed selector and chip in the list shows its hairline on
+   all four sides at rest. The Velvet Regenerate command rested as bare
+   type with no edge; it takes the cap hairline. Parts this skin defines
+   without a frame keep their grammar: the X5 selectors and the segmented
+   field's choices (a caption wearing a caret over an underline), the
+   engraved commands (a transparent edge kept for focus, the underline as
+   the affordance), the add-a-seat prompts, the comment line, the
+   GraphicEQ commands (bare glyphs), a card's header actions (bare glyphs,
+   #456) and the value figures (no box at rest). */
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
+    border: 1px solid @BORDER@;
+}

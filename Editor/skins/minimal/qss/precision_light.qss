@@ -1171,7 +1171,7 @@ QFrame#FilterCardRow QPushButton[minimalRefCommand="true"]:hover,
 QFrame#FilterCardRow QToolButton#DeviceChipMore:hover,
 QFrame#FilterCardRow QLineEdit#ChannelChipAdd:hover,
 QFrame#FilterCardRow QLineEdit#NewChannelAdd:hover {
-    border: 1px solid @BORDER@;
+    border: 1px solid #ABABAB;
 }
 QFrame#FilterCardRow QComboBox[paramSelector="true"]:focus,
 QFrame#FilterCardRow QComboBox[filterSelector="true"]:focus,
@@ -1191,4 +1191,56 @@ QFrame#FilterCardRow QToolButton#FilterCardIconButton[minimalRefCommand="true"]:
 QFrame#FilterCardRow QPushButton[minimalRefCommand="true"]:pressed,
 QFrame#FilterCardRow QToolButton#DeviceChipMore:pressed {
     border: 1px solid @TEXT@;
+}
+
+/* ===== Resting outlines close on four sides =====
+   Every cap, framed selector and chip in the list shows its hairline on
+   all four sides at rest. The Velvet Regenerate command rested as bare
+   type with no edge; it takes the cap hairline. Parts this skin defines
+   without a frame keep their grammar: the X5 selectors and the segmented
+   field's choices (a caption wearing a caret over an underline), the
+   engraved commands (a transparent edge kept for focus, the underline as
+   the affordance), the add-a-seat prompts, the comment line, the
+   GraphicEQ commands (bare glyphs), a card's header actions (bare glyphs,
+   #456) and the value figures (no box at rest). */
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
+    border: 1px solid #ABABAB;
+}
+/* On the paper the border grey (#D1D1D1) stood 5 to 6 delta-E from the
+   card and body grounds (#E0E0E0, #E2E2E2) and from the hover step, too
+   faint to tell a cap's edge from the sheet. The list's hairline is the
+   border grey taken 35 % toward the secondary ink (#ABABAB), at rest and
+   under the pointer; the accent, the body-ink edge of a checked or
+   pressed part and the danger edge stay as they were. The segmented
+   field paints the same hairline (MinimalSkin::paintSegmentedControl). */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:!hover:!focus:!pressed:!checked:!disabled,
+QFrame#FilterCardRow QToolButton#ChannelChip:!focus:!pressed:!checked:!disabled,
+QFrame#FilterCardRow QToolButton#DeviceChip:!focus:!pressed:!checked:!disabled,
+QFrame#FilterCardRow QToolButton#StageChip:!focus:!pressed:!checked:!disabled,
+QFrame#FilterCardRow QToolButton#NewChannelChip:!focus:!pressed:!checked:!disabled,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:!hover:!focus:!pressed:!disabled,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:!hover:!focus:!pressed:!disabled,
+QFrame#FilterCardRow QComboBox#SendTargetCombo:!hover:!focus:!on:!disabled,
+QFrame#FilterCardRow QComboBox#SendModeCombo:!hover:!focus:!on:!disabled {
+    border-color: #ABABAB;
+}
+/* The bare glyphs and the engraved commands keep their resting edge. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[headerAction="true"]:!hover:!focus:!pressed:!checked:!disabled {
+    border-color: transparent;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[minimalRefCommand="true"]:!hover:!focus:!pressed:!checked:!disabled {
+    border-color: transparent; border-bottom-color: @BORDER@;
+}
+QFrame#FilterCardRow QToolButton#NewChannelChip[invalid="true"]:!focus:!pressed:!checked:!disabled {
+    border-color: @DANGER@;
+}
+/* The same hairline under the pointer, where the hover box was drawn in
+   the border grey. */
+QFrame#FilterCardRow QAbstractSpinBox[valueScrub="true"]:hover:!focus,
+QFrame#FilterCardRow QLabel#EditableValue:hover,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit:hover:!focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:hover:!focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:pressed,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:hover:!focus {
+    border-color: #ABABAB;
 }

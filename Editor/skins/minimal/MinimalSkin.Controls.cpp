@@ -10,6 +10,7 @@
 #include <QPainter>
 #include <QPainterPath>
 #include <QPainterStateGuard>
+#include <QWidget>
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
@@ -340,8 +341,20 @@ void MinimalSkin::paintSegmentedControl(QPainter& painter, const SegmentedContro
 
 	// The field's edge: one square 1px hairline. It keeps the border ink under
 	// keyboard focus: a lit frame round every choice is a frame around the
-	// group, and the focus already lives on the mark.
-	painter.setPen(QPen(QColor(tokens.border), 1));
+	// group, and the focus already lives on the mark. In the filter list on
+	// the paper the border grey is too faint to tell the edge from the card
+	// (5 to 6 delta-E), so there the hairline is the border grey taken 35 %
+	// toward the secondary ink, the list hairline of the light sheet.
+	QColor edge(tokens.border);
+	if (!skinIsDark(tokens))
+	{
+		bool inList = false;
+		for (const QWidget* w = dynamic_cast<const QWidget*>(painter.device()); w != nullptr && !inList; w = w->parentWidget())
+			inList = w->objectName() == QLatin1String("FilterCardRow");
+		if (inList)
+			edge = mixColor(QColor(tokens.border), QColor(tokens.mutedText), 0.35);
+	}
+	painter.setPen(QPen(edge, 1));
 	painter.setBrush(Qt::NoBrush);
 	painter.drawRect(rect.adjusted(0, 0, -1, -1));
 }
