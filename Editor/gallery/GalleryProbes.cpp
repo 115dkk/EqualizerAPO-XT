@@ -32,6 +32,7 @@
 #include <QApplication>
 #include <QCheckBox>
 #include <QComboBox>
+#include <QDial>
 #include <QDialog>
 #include <QDir>
 #include <QDockWidget>
@@ -55,6 +56,7 @@
 #include <QPushButton>
 #include <QRawFont>
 #include <QScreen>
+#include <QSlider>
 #include <QSpinBox>
 #include <QStringList>
 #include <QTemporaryDir>
@@ -1400,14 +1402,25 @@ void openEditableValue(EditableValue* value)
 	QApplication::sendEvent(value, &doubleClick);
 }
 
+QAbstractSlider* firstValueSlider(const FilterCardRow* row)
+{
+	// QAbstractSlider also includes scroll bars. A narrow body can expose
+	// one before its value controls, but scrolling is not a parameter edit.
+	for (QAbstractSlider* slider : sweepBodyWidgets<QAbstractSlider>(row))
+	{
+		if (qobject_cast<QSlider*>(slider) != nullptr || qobject_cast<QDial*>(slider) != nullptr)
+			return slider;
+	}
+	return nullptr;
+}
+
 // A drag's worth of change on the first slider (knob), with the press and
 // release a real drag sends.
 bool turnFirstSlider(const FilterCardRow* row)
 {
-	const QList<QAbstractSlider*> sliders = sweepBodyWidgets<QAbstractSlider>(row);
-	if (sliders.isEmpty())
+	QAbstractSlider* slider = firstValueSlider(row);
+	if (slider == nullptr)
 		return false;
-	QAbstractSlider* slider = sliders.first();
 	const int step = qMax(1, (slider->maximum() - slider->minimum()) / 10);
 	const int target = slider->value() + step <= slider->maximum() ? slider->value() + step : slider->value() - step;
 	slider->setSliderDown(true);
@@ -1418,9 +1431,9 @@ bool turnFirstSlider(const FilterCardRow* row)
 
 bool sweepSlider(const FilterCardRow* row)
 {
-	const QList<QAbstractSlider*> sliders = sweepBodyWidgets<QAbstractSlider>(row);
-	if (!sliders.isEmpty() && (sliders.first()->focusPolicy() & Qt::ClickFocus))
-		sliders.first()->setFocus(Qt::MouseFocusReason);
+	QAbstractSlider* slider = firstValueSlider(row);
+	if (slider != nullptr && (slider->focusPolicy() & Qt::ClickFocus))
+		slider->setFocus(Qt::MouseFocusReason);
 	return turnFirstSlider(row);
 }
 
@@ -1523,6 +1536,9 @@ bool sweepCheck(const FilterCardRow* row)
 // prompt took the focus (#459).
 bool sweepFocusedFieldThenSlider(const FilterCardRow* row, bool valueField)
 {
+	// Do not move focus in a route that has no value control to turn.
+	if (firstValueSlider(row) == nullptr)
+		return false;
 	if (valueField)
 	{
 		const QList<EditableValue*> values = sweepBodyWidgets<EditableValue>(row);
