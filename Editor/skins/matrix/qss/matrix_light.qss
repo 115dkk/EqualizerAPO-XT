@@ -2104,3 +2104,26 @@ QLineEdit#ChannelChipAdd:hover,
 QLineEdit#NewChannelAdd:hover {
     border: 1px solid @ACCENT@;
 }
+/* ===== Resting outlines that read on the light board =====
+   A part that has a rule at rest shows it on four sides in a colour that
+   can be told from the board. On the light board the border token sits
+   about 4 dE off the card ground and the rule all but vanished: the
+   coordinate cell (rule 9's one boxed cell per card) and the Send
+   selectors. They take the muted coordinate ink on the light board; the
+   dark board's border rule already reads (about 20 dE). Every other cell
+   in a card keeps rule 9's rule-less rest. */
+QLabel#FilterCardNumber {
+    border-color: @MUTED@;
+}
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo {
+    border-color: @MUTED@;
+}
+QFrame#FilterCardRow QComboBox#SendTargetCombo:hover,
+QFrame#FilterCardRow QComboBox#SendModeCombo:hover,
+QFrame#FilterCardRow QComboBox#SendTargetCombo:focus,
+QFrame#FilterCardRow QComboBox#SendModeCombo:focus,
+QFrame#FilterCardRow QComboBox#SendTargetCombo:on,
+QFrame#FilterCardRow QComboBox#SendModeCombo:on {
+    border-color: @ACCENT@;
+}
