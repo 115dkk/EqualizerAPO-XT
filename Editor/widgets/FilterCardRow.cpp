@@ -896,8 +896,10 @@ void FilterCardRow::setRowTitle(const QString& title)
 	// The cell is narrow, so a two-word title wraps onto a second line
 	// instead of being cut ("Hilbert transform"). A single word wider than
 	// the cell is split before its inner capitals ("MultiConvolution" into
-	// MULTI over CONVOLUTION), without a hyphen. Only a word that still does
-	// not fit after that is elided as in the card header.
+	// MULTI over CONVOLUTION), without a hyphen. A word that carries its own
+	// hyphens breaks after them instead ("Hilbert-Transformator" in German,
+	// "Multi-convolution" in French), when each piece fits the cell. Only a
+	// word that still does not fit after that is elided as in the card header.
 	titleLabel->ensurePolished();
 	const QFontMetrics metrics = titleLabel->fontMetrics();
 	QStringList words;
@@ -907,6 +909,26 @@ void FilterCardRow::setRowTitle(const QString& title)
 		if (metrics.horizontalAdvance(word) <= InlineTitleWidth)
 		{
 			words.append(word);
+			continue;
+		}
+		// A break after a hyphen, never after a leading one ("-90").
+		QStringList pieces;
+		int pieceStart = 0;
+		for (int i = 2; i <= word.size(); i++)
+		{
+			if (i < word.size() && word.at(i - 1) != QLatin1Char('-'))
+				continue;
+			pieces.append(word.mid(pieceStart, i - pieceStart));
+			pieceStart = i;
+		}
+		bool piecesFit = pieces.size() > 1;
+		for (const QString& piece : pieces)
+			piecesFit = piecesFit && metrics.horizontalAdvance(piece) <= InlineTitleWidth;
+		if (piecesFit)
+		{
+			// The line breaks are written out, so the label does not depend
+			// on where the text layout would break a hyphenated word.
+			words.append(pieces.join(QLatin1Char('\n')));
 			continue;
 		}
 		int start = 0;
