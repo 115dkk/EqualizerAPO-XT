@@ -1851,11 +1851,14 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 
 /* Send card: the field captions read like the MultiConvolution mapping
    caption; a latency the card cannot read takes the danger colour. The
-   latency is a value field like the value boxes: the same well, mono, the
-   same height and the same light under the pointer. */
+   latency is a value field like the value boxes: the same well, mono and
+   the same light under the pointer. Its line is a line of 26 px
+   selectors, though, and at the value boxes' 35 px it stood out of step
+   with them, so it takes the cap height and padding of its line, typing
+   included. */
 QLineEdit#SendLatencyEdit {
     background: rgba(6, 9, 20, 0.62);
-    min-height: 25px;
+    min-height: 24px; max-height: 24px; padding-top: 0px; padding-bottom: 0px;
     font-family: @MONO_STACK@;
 }
 QLineEdit#SendLatencyEdit:hover {
