@@ -411,15 +411,26 @@ QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { color: @MUTED@; font-size: 10pt; }
+/* The knob cards' readouts (Preamp, Delay, All-pass) are value fields like
+   the parametric filter's: the same height, line, hover line, weight and
+   left-hung number, so no field on a line stands out. The 23 px text box
+   is the height the value fields' spin-box line takes in the body face. */
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @EDGE@; border-radius: 6px;
-    padding: 5px 10px;
+    padding: 4px 10px; min-height: 23px;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+    /* A framed label indents its text by half an x; the field's 2 px text
+       margin is in the padding instead, so both numbers start together. */
+    qproperty-indent: 0;
 }
+QLabel#EditableValue:hover { border-color: @TEXT@; }
+QLabel#EditableValue:disabled { color: rgba(@MUTED_RGB@, 0.55); border: 1px solid @BORDER_STRONG@; }
 
 QLineEdit#EditableValueEditor {
     background: @CARD@; border: 2px solid @FOCUS@;
-    border-radius: 6px; padding: 4px 9px;
+    border-radius: 6px; padding: 3px 7px; min-height: 23px;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
 }
 
 /* Reference cards (Include / Convolution / MultiConvolution / VST bodies):
@@ -861,7 +872,9 @@ QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-do
    field of an indented Filter row (a Channel scope's member, with its
    channel badges) inside a 960 px window. */
 QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"] { padding-left: 6px; padding-right: 6px; }
-QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"]:focus { padding-left: 5px; padding-right: 5px; }
+QFrame#FilterCardRow[inlineRow="true"] QLabel#EditableValue { padding-left: 8px; padding-right: 8px; }
+QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"]:focus,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#EditableValueEditor { padding-left: 5px; padding-right: 5px; }
 /* The name select of a column is as wide as its longest name; its chevron
    keeps six pixels less room after the name. */
 QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"],
