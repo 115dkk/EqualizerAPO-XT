@@ -1085,10 +1085,11 @@ QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
 /* Hover is one background step above what the part stands on. In a card
    the editor's parts stand on the body strip and their hover is the card
    step; in a row they stand on the frame, which already rises to the
-   hover step as soon as the pointer is anywhere on the line, so a part's
-   own hover sinks to the next step on the paper (the border grey - the
-   toast's step past cardHover). A pressed, checked, focused or dead part keeps its
-   own state rule. */
+   hover step as soon as the pointer is anywhere on the line. A part's own
+   hover there stands on that step and says itself with its hairline box
+   in the secondary ink; a fill on the next step (the border grey) met its
+   own border-grey hairline and the box disappeared. A pressed, checked,
+   focused or dead part keeps its own state rule. */
 QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"]:hover:!pressed:!checked:!focus:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QLabel#EditableValue:hover:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QLineEdit#SendLatencyEdit:hover:!focus:!disabled,
@@ -1105,7 +1106,8 @@ QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChip:hover:!pressed:!che
 QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip:hover:!pressed:!checked:!focus:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QLineEdit#ChannelChipAdd:hover:!pressed:!checked:!focus:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QLineEdit#NewChannelAdd:hover:!pressed:!checked:!focus:!disabled {
-    background: @BORDER@;
+    background: transparent;
+    border-color: @MUTED@;
 }
 
 /* ===== One cap height in the list =====
@@ -1145,4 +1147,48 @@ QFrame#FilterCardRow SegmentedControl {
    height. */
 QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
     min-height: 24px; max-height: 24px;
+}
+
+/* ===== Lit outlines close on four sides =====
+   A lit part's edge is one hairline on all four sides in one colour.
+   The underline grammar (the X5 selectors, the engraved commands, the
+   add-a-seat prompts, the Device reveal command, the comment line) lit
+   only its bottom edge under the pointer or the keyboard, so its other
+   three sides read as the ground: two colours. Under the pointer the
+   whole hairline takes the border grey with the hover step; open or
+   focused, it takes the accent; pressed, the reverse block's edge is its
+   own ink. Caps that showed nothing when they took the keyboard focus
+   (the power cap, a card's header actions, the routing fold, the Velvet
+   Advanced command) recolour their own hairline to the accent; a resting
+   header action brings its cap back to carry it. In a row the hovered
+   part stands on the row's own hover step and its hairline takes the
+   secondary ink (Modern rows block). */
+QFrame#FilterCardRow QComboBox[paramSelector="true"]:hover,
+QFrame#FilterCardRow QComboBox[filterSelector="true"]:hover,
+QFrame#FilterCardRow QComboBox[minimalRefSelector="true"]:hover,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[minimalRefCommand="true"]:hover,
+QFrame#FilterCardRow QPushButton[minimalRefCommand="true"]:hover,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:hover,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd:hover,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd:hover {
+    border: 1px solid @BORDER@;
+}
+QFrame#FilterCardRow QComboBox[paramSelector="true"]:focus,
+QFrame#FilterCardRow QComboBox[filterSelector="true"]:focus,
+QFrame#FilterCardRow QComboBox[minimalRefSelector="true"]:focus,
+QFrame#FilterCardRow QComboBox[paramSelector="true"]:on,
+QFrame#FilterCardRow QComboBox[filterSelector="true"]:on,
+QFrame#FilterCardRow QComboBox[minimalRefSelector="true"]:on,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[minimalRefCommand="true"]:focus,
+QFrame#FilterCardRow QPushButton[minimalRefCommand="true"]:focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:focus,
+QFrame#FilterCardRow QLineEdit#CommentCardText:focus,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:focus {
+    border: 1px solid @ACCENT@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[minimalRefCommand="true"]:pressed,
+QFrame#FilterCardRow QPushButton[minimalRefCommand="true"]:pressed,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:pressed {
+    border: 1px solid @TEXT@;
 }
