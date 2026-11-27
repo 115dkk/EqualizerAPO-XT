@@ -735,6 +735,19 @@ const std::vector<HeightException>& heightExceptions()
 		// the cell; it is not on a line of caps.
 		{ [](const OutlinedPart& part) { return part.name == QLatin1String("PatchbayEditor"); },
 			"patchbay factor field: opens inside its crosspoint cell" },
+		// In a Modern row the header is the row's left column, and its three
+		// actions (add, remove, raw edit) stack in one column beside the power
+		// cap as bare glyphs, 18 px each with the transparent border (the
+		// skin's inlineRow header rule), so the column stays within the
+		// row's top band. In a card they stand in a row on the header strip and
+		// are 22 px caps; the header there carries no inlineRow and this row
+		// does not match.
+		{ [](const OutlinedPart& part) {
+			 return hasProp(part, "headerAction=true") && part.widget != nullptr && part.widget->parentWidget() != nullptr
+				 && part.widget->parentWidget()->objectName() == QLatin1String("FilterCardHeader")
+				 && part.widget->parentWidget()->property("inlineRow").toBool();
+		 },
+			"row header action: three bare glyphs stacked in the row's left column" },
 	};
 	return table;
 }
@@ -952,18 +965,23 @@ int checkControlOutlines(QWidget* grabbed, const QImage& image, const QString& s
 	return failing;
 }
 
-int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, const QString& mode)
+int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, const QString& skinMode,
+	FilterTable::RenderMode renderMode)
 {
 	const SkinControlContract contract = SkinManager::instance()->controlContract();
 	if (!contract.closedOutlines)
 		return 0;
+	// The lines name the presentation after the finish ("dark rows"), so the
+	// two passes of one finish are told apart.
+	const bool inRows = renderMode == FilterTable::ModernRows;
+	const QString mode = inRows ? skinMode + QStringLiteral(" rows") : skinMode;
 
 	QList<QString> lines;
 	for (const GalleryRow& row : galleryRows())
 		lines.append(row.line);
 	QScrollArea scrollArea;
 	scrollArea.resize(960, 720);
-	const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, lines);
+	const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, lines, nullptr, 0, renderMode);
 	QWidget* table = scrollArea.widget();
 	if (rows.isEmpty() || table == nullptr)
 	{
@@ -981,7 +999,7 @@ int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, c
 	int failures = 0;
 	int tested = 0;
 	QSet<QString> seen;
-	const QString scene = QStringLiteral("focus-selftest");
+	const QString scene = inRows ? QStringLiteral("focus-selftest-rows") : QStringLiteral("focus-selftest");
 	for (const OutlinedPart& listed : collectOutlinedParts(table))
 	{
 		QWidget* w = listed.widget;

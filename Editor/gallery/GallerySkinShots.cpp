@@ -2001,8 +2001,11 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 	ctx.failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);
 	renderFocusScenes(ctx);
 	// Keyboard focus lights a cap's outline on four sides, where the skin
-	// promises closed outlines (writes no capture).
+	// promises closed outlines (writes no capture); a skin that draws rows
+	// passes the same test once more in rows.
 	ctx.failures += checkFocusLightsOutlines(configPath, skinId, mode);
+	if (SkinManager::instance()->supportsRowMode())
+		ctx.failures += checkFocusLightsOutlines(configPath, skinId, mode, FilterTable::ModernRows);
 	return ctx.failures;
 }
 }
