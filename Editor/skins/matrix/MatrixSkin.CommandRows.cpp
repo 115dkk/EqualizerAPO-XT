@@ -121,7 +121,9 @@ void paintStatusLamp(QPainter& painter, const QRect& lampRect, const CommandRowI
 // stays on the board between the rows (invariant rule 3).
 void paintRowChrome(QPainter& painter, const QRect& content, const CommandRowInfo& info, const SkinTokens& tokens)
 {
-	painter.fillRect(content, QColor(tokens.background));
+	// A selected row is engaged the way a selected card's header band is:
+	// the raised surface, over the whole row since the row has no band.
+	painter.fillRect(content, QColor(info.selected ? tokens.surfaceRaised : tokens.background));
 
 	const bool remark = info.kind() == FilterCardKind::Comment;
 	const int band = qMin(MatrixMetrics::rowBandHeight, content.height());
