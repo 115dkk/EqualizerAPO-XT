@@ -190,7 +190,9 @@ void FlatReferenceCardView::placeBusStrip(QWidget* strip)
 	strip->setParent(contentWidget());
 	if (rowMode && wiringLayout != nullptr)
 	{
-		wiringLayout->insertWidget(wiringLayout->count() - 1, strip, 0, Qt::AlignVCenter);
+		strip->setSizePolicy(QSizePolicy::Expanding, strip->sizePolicy().verticalPolicy());
+		wiringLayout->addWidget(strip, 1, Qt::AlignVCenter);
+		keepReadoutWhole();
 		return;
 	}
 	// Mid-row between the identity column and the buttons.
@@ -226,15 +228,20 @@ void FlatReferenceCardView::setInlineRow(bool inlineRow)
 	// follows it (rule 9) and the end of the line keeps what is left.
 	captionLabel->setSizePolicy(QSizePolicy::Preferred, captionLabel->sizePolicy().verticalPolicy());
 	wiringLayout->addWidget(captionLabel, 0, Qt::AlignVCenter);
+	// The strip never shrinks below its hint, and it takes the rest of the
+	// line: its readout area is whatever the strip has after the selects,
+	// and the hint reserves it with a narrower face than the readout is
+	// painted in, so a strip held to its hint cut "Stereo -> Stereo".
 	if (busStrip != nullptr)
 	{
 		rootLayout->removeWidget(busStrip);
-		busStrip->setSizePolicy(QSizePolicy::Fixed, busStrip->sizePolicy().verticalPolicy());
-		wiringLayout->addWidget(busStrip, 0, Qt::AlignVCenter);
+		busStrip->setSizePolicy(QSizePolicy::Expanding, busStrip->sizePolicy().verticalPolicy());
+		wiringLayout->addWidget(busStrip, 1, Qt::AlignVCenter);
 	}
-	// A QBoxLayout skips this spacer while the rest of the line is hidden,
-	// so an empty second line takes no height.
-	wiringLayout->addStretch(1);
+	// The strip's hint changes with its readout; the page hears of it as a
+	// layout request and gives the strip its readout slack again.
+	contentWidget()->installEventFilter(this);
+	keepReadoutWhole();
 
 	// The text column now holds the buttons, so it takes the row's width
 	// and the trailing stretch gives it up.
@@ -248,6 +255,29 @@ void FlatReferenceCardView::setInlineRow(bool inlineRow)
 		}
 	}
 	rootLayout->invalidate();
+}
+
+void FlatReferenceCardView::keepReadoutWhole()
+{
+	// The strip reserves its readout with a narrower face than the 13 px
+	// caption face this skin paints it in (FlatSkin::paintVstBusFrame), and
+	// its readout area is what the strip has after the selects. Held to its
+	// hint, the strip cut "Stereo -> Stereo" (in Korean the path took the
+	// rest of the line). The slack is that difference for a pair of layout
+	// names, so the path, not the readout, gives way.
+	if (!rowMode || busStrip == nullptr)
+		return;
+	constexpr int readoutSlack = 40;
+	const int wanted = busStrip->sizeHint().width() + readoutSlack;
+	if (busStrip->minimumWidth() != wanted)
+		busStrip->setMinimumWidth(wanted);
+}
+
+bool FlatReferenceCardView::eventFilter(QObject* watched, QEvent* event)
+{
+	if (rowMode && watched == contentWidget() && event->type() == QEvent::LayoutRequest)
+		keepReadoutWhole();
+	return ReferenceCardView::eventFilter(watched, event);
 }
 
 void FlatReferenceCardView::keepNameCharacters()

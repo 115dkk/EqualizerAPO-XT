@@ -44,12 +44,14 @@ public:
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
+	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
 	const SkinTokens skinTokens;
 	void rebuildChips(const QStringList& readout);
 	void styleBrowseButton();
 	void keepNameCharacters();
+	void keepReadoutWhole();
 
 	QString cardKind;
 	bool rowMode = false;
