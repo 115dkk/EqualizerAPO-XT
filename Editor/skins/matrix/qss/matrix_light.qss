@@ -2002,3 +2002,43 @@ QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendTargetCombo,
 QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendModeCombo {
     padding-left: 6px; padding-right: 22px;
 }
+
+/* ===== One cap height in the list =====
+   Every cap in the filter list (the power key, the header's actions in a
+   card, icon and text caps, framed selectors, chips, the fields on a chip
+   line, the pick-one strips) is 24 px with its rule, one grid pitch (rule
+   3), in cards and rows alike. The caps were 28 to 38 px, with 7 to 10 px
+   clear above and below the legend; that air is about halved. The Send
+   latency field stands on its selectors' line and takes their height; the
+   other value cells keep theirs. The parameter mode selectors are caption
+   cells, not caps, and keep their own size; the row's stacked actions stay
+   bare 18 px glyphs (Modern rows block). */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit {
+    min-height: 22px; max-height: 22px; padding-top: 0px; padding-bottom: 0px;
+}
+/* The painted pick-one strips (All-pass order, Hilbert direction, Velvet
+   mode) are framed selectors on the same lines; the skin paints them in the
+   rect they get. */
+QFrame#FilterCardRow SegmentedControl {
+    min-height: 24px; max-height: 24px;
+}
+/* In a row the coordinate cell takes the same pitch, level with the key. */
+QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
+    min-height: 20px; max-height: 20px;
+}
