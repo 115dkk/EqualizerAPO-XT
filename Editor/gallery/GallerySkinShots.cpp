@@ -41,12 +41,15 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMenuBar>
+#include <QMimeData>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPixmap>
 #include <QPointer>
 #include <QRadioButton>
@@ -70,6 +73,7 @@
 #include "Editor/helpers/FileDialogShellMenu.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
@@ -162,7 +166,13 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("include"), { QStringLiteral("checking") } },
 		{ QStringLiteral("convolution"), { QStringLiteral("checking") } },
 		{ QStringLiteral("multiconvolution"), { QStringLiteral("checking") } },
-		{ QStringLiteral("vst"), { QStringLiteral("checking") } }
+		{ QStringLiteral("vst"), { QStringLiteral("checking") } },
+		// View > Interface as the main window builds it, with Modern rows the
+		// current presentation (renderInterfaceMenuScene): the menu open, and
+		// the menu with the Modern rows submenu open beside it. Its two parent
+		// entries are checkable and open submenus, so each draws a check mark
+		// and a submenu arrow on one line.
+		{ QStringLiteral("interfacemenu"), { QStringLiteral("open"), QStringLiteral("submenu") } }
 	};
 	return scenarios;
 }
@@ -171,6 +181,34 @@ int fixedScenarioShotCount()
 {
 	int count = 0;
 	for (const GalleryScenario& scenario : galleryScenarios())
+		count += scenario.states.size();
+	return count;
+}
+
+// The scenes a skin that draws Modern rows (ISkin::supportsRowMode) adds to
+// the fixed ones (renderRowScenes): every gallery row once more as a row, a
+// short mixed document as a table, and the row's own states, each in a
+// three-line table so the neighbours of the subject row are in the picture.
+// A skin that keeps cards renders none of them and is not expected to; the
+// scenes appear for a skin as soon as it returns true. They go through
+// saveGrab like every other scene, so the control contract and the layout
+// checks measure rows on every run.
+QList<GalleryScenario> rowScenarios()
+{
+	QList<GalleryScenario> scenarios;
+	for (const GalleryRow& row : galleryRows())
+		scenarios.append({ QStringLiteral("rows-") + row.name, { QStringLiteral("normal") } });
+	scenarios.append({ QStringLiteral("rows-table"), { QStringLiteral("normal") } });
+	scenarios.append({ QStringLiteral("rows-states"), { QStringLiteral("selected"), QStringLiteral("focused"),
+		QStringLiteral("hover"), QStringLiteral("poweredoff"), QStringLiteral("comment"),
+		QStringLiteral("loaderror"), QStringLiteral("drop") } });
+	return scenarios;
+}
+
+int rowScenarioShotCount()
+{
+	int count = 0;
+	for (const GalleryScenario& scenario : rowScenarios())
 		count += scenario.states.size();
 	return count;
 }
@@ -578,6 +616,48 @@ bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QSt
 	const bool named = checkButtonNames(row, fileName) == 0;
 	const bool contractKept = checkControlOutlines(row, pixmap.toImage(), skinId, mode, rowName, state) == 0;
 	return named && contractKept;
+}
+
+// saveGrab for a scene made of several top-level windows, such as a menu and
+// the submenu it opened: each window is grabbed and painted where it stands
+// on the screen, over the skin's window background, into one capture, and
+// each is checked on its own grab the way saveGrab checks one widget.
+bool saveWindowsGrab(const QList<QWidget*>& windows, const QDir& outDir, const QString& skinId,
+	const QString& mode, const QString& sceneName, const QString& state)
+{
+	const QString fileName = QStringLiteral("%1_%2_%3_%4.png").arg(skinId, mode, sceneName, state);
+	QRect bounds;
+	for (const QWidget* window : windows)
+		bounds = bounds.united(window->geometry());
+	if (windows.isEmpty() || bounds.isEmpty())
+	{
+		qWarning("SkinGallery: nothing to grab for %s", qPrintable(fileName));
+		return false;
+	}
+	QImage composite(bounds.size(), QImage::Format_RGB32);
+	composite.fill(QColor(SkinManager::instance()->tokens().background));
+	QPainter painter(&composite);
+	bool kept = true;
+	for (QWidget* window : windows)
+	{
+		const QPixmap pixmap = window->grab();
+		if (pixmap.isNull())
+		{
+			qWarning("SkinGallery: grab failed for %s", qPrintable(fileName));
+			kept = false;
+			continue;
+		}
+		painter.drawPixmap(window->geometry().topLeft() - bounds.topLeft(), pixmap);
+		kept = checkButtonNames(window, fileName) == 0 && kept;
+		kept = checkControlOutlines(window, pixmap.toImage(), skinId, mode, sceneName, state) == 0 && kept;
+	}
+	painter.end();
+	if (!composite.save(outDir.filePath(fileName), "PNG"))
+	{
+		qWarning("SkinGallery: could not write %s", qPrintable(fileName));
+		return false;
+	}
+	return kept;
 }
 
 int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
@@ -1960,6 +2040,256 @@ void renderFocusScenes(SkinRenderContext& ctx)
 		QStringLiteral("focus"), QStringLiteral("geqplot")) ? 0 : 1;
 }
 
+// The rowScenarios() scenes, for a skin that draws Modern rows.
+void renderRowScenes(SkinRenderContext& ctx)
+{
+	if (!SkinManager::instance()->supportsRowMode())
+		return;
+	const QDir& outDir = ctx.outDir;
+	const QString& skinId = ctx.skinId;
+	const QString& mode = ctx.mode;
+	const QString& configPath = ctx.configPath;
+	int& failures = ctx.failures;
+	// saveGrab runs the button names and the control contract; the layout
+	// checks the card scenes call beside it run on every row of these scenes,
+	// the whole-table ones included.
+	const auto checkRowLayout = [&](const QList<FilterCardRow*>& rows, const QString& name, const QString& state) {
+		for (FilterCardRow* row : rows)
+		{
+			failures += assertNoHorizontalScrollBar(row, skinId, mode, name, state);
+			failures += assertSpinBoxTextVisible(row, skinId, mode, name, state);
+			failures += assertBodyInsideCard(row, skinId, mode, name, state);
+		}
+	};
+
+	// Every gallery row as a row, in its normal state, from one table as the
+	// card shots come from one table.
+	{
+		const QList<GalleryRow> galleryLines = galleryRows();
+		QList<QString> lines;
+		for (const GalleryRow& row : galleryLines)
+			lines.append(row.line);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, lines, nullptr, 0, FilterTable::ModernRows);
+		if (rows.size() != galleryLines.size())
+		{
+			qWarning("SkinGallery: expected %lld rows in rows, got %lld (%s %s)",
+				static_cast<long long>(galleryLines.size()), static_cast<long long>(rows.size()),
+				qPrintable(skinId), qPrintable(mode));
+			failures++;
+		}
+		else
+		{
+			for (int i = 0; i < rows.size(); i++)
+			{
+				const QString name = QStringLiteral("rows-") + galleryLines[i].name;
+				const QString state = QStringLiteral("normal");
+				checkRowLayout({ rows[i] }, name, state);
+				failures += saveGrab(rows[i], outDir, skinId, mode, name, state) ? 0 : 1;
+			}
+		}
+	}
+
+	// A short mixed document as one table: the spacing between rows of
+	// different heights, a Copy row, and an If block whose scope gutter runs
+	// beside rows. The outer condition is taken and the Else is not, injected
+	// as the logic scene injects its facts.
+	{
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
+			QStringLiteral("Preamp: -6 dB"),
+			QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71"),
+			QStringLiteral("If: outputChannelCount >= 6"),
+			QStringLiteral("Delay: 5 ms"),
+			QStringLiteral("Else:"),
+			QStringLiteral("Filter 2: ON HSC Fc 8000 Hz Gain -2.5 dB Q 0.71"),
+			QStringLiteral("EndIf:"),
+			QStringLiteral("Copy: SL=L SR=R")
+		}, nullptr, 0, FilterTable::ModernRows);
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr)
+		{
+			qWarning("SkinGallery: rows table scene has no table (%s %s)", qPrintable(skinId), qPrintable(mode));
+			failures++;
+		}
+		else
+		{
+			ConfigLoadTraceEntry taken;
+			taken.line = 3;
+			taken.kind = ConfigLoadTraceEntry::Kind::Condition;
+			taken.result = ConfigLoadTraceEntry::Result::True;
+			taken.active = true;
+			ConfigLoadTraceEntry dead;
+			dead.line = 5;
+			dead.kind = ConfigLoadTraceEntry::Kind::ElseBranch;
+			dead.result = ConfigLoadTraceEntry::Result::NotEvaluated;
+			ConfigLoadTraceEntry skipped;
+			skipped.line = 6;
+			skipped.kind = ConfigLoadTraceEntry::Kind::SkippedLine;
+			skipped.result = ConfigLoadTraceEntry::Result::NotEvaluated;
+			table->setLoadTraceFacts({ taken, dead, skipped });
+			QApplication::processEvents();
+			checkRowLayout(rows, QStringLiteral("rows-table"), QStringLiteral("normal"));
+			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("rows-table"), QStringLiteral("normal")) ? 0 : 1;
+		}
+	}
+
+	// The row's own states, each on the middle line of a three-line table, so
+	// the picture shows whether the neighbours cover a side of the subject's
+	// frame and where a drop lands between two rows.
+	const QString filterLine = QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71");
+	const auto stateScene = [&](const QString& state, const QString& subject,
+		const std::function<void(QScrollArea&, FilterTable*, const QList<FilterCardRow*>&)>& stage) {
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 400);
+		const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+			{ QStringLiteral("Preamp: -3 dB"), subject, QStringLiteral("Delay: 5 ms") }, nullptr, 0, FilterTable::ModernRows);
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr || rows.size() != 3 || table->documentItems().size() != 3)
+		{
+			qWarning("SkinGallery: rows state %s could not build its table (%s %s)", qPrintable(state),
+				qPrintable(skinId), qPrintable(mode));
+			failures++;
+			return;
+		}
+		stage(scrollArea, table, rows);
+		QApplication::processEvents();
+		checkRowLayout(rows, QStringLiteral("rows-states"), state);
+		failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("rows-states"), state) ? 0 : 1;
+	};
+	// Selected and current, the result of a click on the row.
+	stateScene(QStringLiteral("selected"), filterLine, [](QScrollArea&, FilterTable* table, const QList<FilterCardRow*>&) {
+		table->selectOnlyFromCard(table->documentItems().at(1));
+	});
+	// The keyboard inside the row: a control of its editor holds the focus,
+	// and the list's focus marker moves to the row without selecting it (the
+	// path a Tab into the row takes).
+	stateScene(QStringLiteral("focused"), filterLine, [](QScrollArea& scrollArea, FilterTable* table,
+		const QList<FilterCardRow*>& rows) {
+		scrollArea.activateWindow();
+		QApplication::processEvents();
+		if (QComboBox* control = rows[1]->findChild<QComboBox*>())
+			control->setFocus(Qt::TabFocusReason);
+		table->focusFromCard(table->documentItems().at(1));
+	});
+	stateScene(QStringLiteral("hover"), filterLine, [](QScrollArea&, FilterTable*, const QList<FilterCardRow*>& rows) {
+		setHoverEquivalent(rows[1], true);
+	});
+	// A Filter line switched off: the product comments the line out.
+	stateScene(QStringLiteral("poweredoff"), QStringLiteral("# ") + filterLine,
+		[](QScrollArea&, FilterTable*, const QList<FilterCardRow*>&) {});
+	// A comment line of the user's own: the note, which has no power switch.
+	stateScene(QStringLiteral("comment"), QStringLiteral("# Living room preset - tuned by ear"),
+		[](QScrollArea&, FilterTable*, const QList<FilterCardRow*>&) {});
+	// A line whose filter could not be set up, injected as the setuperror
+	// scene injects it.
+	stateScene(QStringLiteral("loaderror"), QStringLiteral("VSTPlugin: Library missing.dll"),
+		[](QScrollArea&, FilterTable* table, const QList<FilterCardRow*>&) {
+			ConfigLoadTraceEntry setupError;
+			setupError.line = 2;
+			setupError.kind = ConfigLoadTraceEntry::Kind::SetupError;
+			setupError.error = true;
+			setupError.text = L"could not be set up (test), so the configuration was not applied";
+			table->setLoadTraceFacts({ setupError });
+		});
+	// A line dragged over the table, held over the upper half of the middle
+	// row: the table shows where it would land. Synthetic drag events, no
+	// pointer; the table reads the data only while it handles them.
+	stateScene(QStringLiteral("drop"), filterLine, [](QScrollArea&, FilterTable* table, const QList<FilterCardRow*>& rows) {
+		// The main window opens the table to drops (MainWindow.Device.cpp);
+		// without it Qt hands the drag events to the parent.
+		table->setAcceptDrops(true);
+		QMimeData mime;
+		mime.setText(QStringLiteral("Delay: 1 ms"));
+		const QPointF at(rows[1]->mapTo(table, QPoint(rows[1]->width() / 2, rows[1]->height() / 4)));
+		QDragEnterEvent enter(at, Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
+		QApplication::sendEvent(table, &enter);
+		QDragMoveEvent move(at, Qt::MoveAction, &mime, Qt::LeftButton, Qt::NoModifier);
+		QApplication::sendEvent(table, &move);
+	});
+}
+
+// View > Interface as MainWindow::setupRedesignActions builds it, rebuilt
+// here the way the other menu scenes rebuild theirs: the two checkable
+// parents with their submenus (Modern rows current), Legacy editor, Dark
+// theme and the entries after it. The skin names come from the main window's
+// own table. The checked entry of the open submenu is the first skin that
+// draws rows, so every skin shows how its sheet draws a checked entry with
+// its shortcut text there.
+void renderInterfaceMenuScene(SkinRenderContext& ctx)
+{
+	QMenu menu;
+	menu.setObjectName(QStringLiteral("GalleryMenu"));
+	QMenu* cards = menu.addMenu(QStringLiteral("Modern cards"));
+	QMenu* rows = menu.addMenu(QStringLiteral("Modern rows"));
+	for (QMenu* submenu : { cards, rows })
+	{
+		submenu->setObjectName(QStringLiteral("GalleryMenu"));
+		submenu->menuAction()->setCheckable(true);
+	}
+	rows->menuAction()->setChecked(true);
+	const QStringList ids = SkinThemeData::ids();
+	bool rowChecked = false;
+	for (int i = 0; i < ids.size(); i++)
+	{
+		const QString name = MainWindow::interfaceSkinName(ids[i]);
+		cards->addAction(name)->setCheckable(true);
+		if (!SkinManager::instance()->skinSupportsRows(ids[i]))
+			continue;
+		// The current presentation's entries show the skin shortcut after a
+		// tab (MainWindow::syncInterfaceMenu).
+		QAction* row = rows->addAction(name + QLatin1Char('\t')
+			+ QKeySequence(QStringLiteral("Ctrl+Alt+%1").arg(i + 1)).toString(QKeySequence::NativeText));
+		row->setCheckable(true);
+		row->setChecked(!rowChecked);
+		rowChecked = true;
+	}
+	menu.addAction(QStringLiteral("Legacy editor"))->setCheckable(true);
+	menu.addSeparator();
+	QAction* darkTheme = menu.addAction(QStringLiteral("Dark theme"));
+	darkTheme->setCheckable(true);
+	darkTheme->setChecked(SkinManager::instance()->isDark());
+	darkTheme->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+D")));
+	menu.addSeparator();
+	menu.addMenu(QStringLiteral("Knob gain range"));
+	QAction* fullscreen = menu.addAction(QStringLiteral("Fullscreen graph"));
+	fullscreen->setCheckable(true);
+	fullscreen->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+F")));
+	menu.addSeparator();
+	menu.addAction(QStringLiteral("Native title bar"))->setCheckable(true);
+	menu.addAction(QStringLiteral("Windows file dialog"))->setCheckable(true);
+
+	menu.popup(QPoint(0, 0));
+	QApplication::processEvents();
+	ctx.failures += saveGrab(&menu, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("interfacemenu"),
+		QStringLiteral("open")) ? 0 : 1;
+
+	// The submenu opens the way the keyboard opens it (Right on the active
+	// parent), so Qt places it. The entry the keyboard lands on is released
+	// again, so the checked entry is drawn at rest.
+	menu.setActiveAction(rows->menuAction());
+	QKeyEvent right(QEvent::KeyPress, Qt::Key_Right, Qt::NoModifier);
+	QApplication::sendEvent(&menu, &right);
+	QApplication::processEvents();
+	if (!rows->isVisible())
+	{
+		qWarning("SkinGallery: the Modern rows submenu did not open (%s %s)", qPrintable(ctx.skinId),
+			qPrintable(ctx.mode));
+		ctx.failures++;
+		menu.hide();
+		return;
+	}
+	rows->setActiveAction(nullptr);
+	QApplication::processEvents();
+	ctx.failures += saveWindowsGrab({ &menu, rows }, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("interfacemenu"),
+		QStringLiteral("submenu")) ? 0 : 1;
+	rows->hide();
+	menu.hide();
+	QApplication::processEvents();
+}
+
 int renderSkin(const QDir& outDir, const QString& skinId, const QString& configPath, bool dark)
 {
 	SkinManager::instance()->applySkin(skinId, dark);
@@ -2000,9 +2330,16 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 	renderVelvetScenes(ctx);
 	ctx.failures += renderReferenceCheckingScenes(outDir, skinId, mode, configPath);
 	renderFocusScenes(ctx);
+	// Scenes registered after the ones above, so adding them changes none of
+	// the earlier captures.
+	renderRowScenes(ctx);
+	renderInterfaceMenuScene(ctx);
 	// Keyboard focus lights a cap's outline on four sides, where the skin
-	// promises closed outlines (writes no capture).
+	// promises closed outlines (writes no capture); a skin that draws rows
+	// passes the same test once more in rows.
 	ctx.failures += checkFocusLightsOutlines(configPath, skinId, mode);
+	if (SkinManager::instance()->supportsRowMode())
+		ctx.failures += checkFocusLightsOutlines(configPath, skinId, mode, FilterTable::ModernRows);
 	return ctx.failures;
 }
 }
@@ -2129,21 +2466,30 @@ int run(const QStringList& arguments)
 	// the run even when every attempted grab succeeded. galleryRows() drives the
 	// row term, so adding a gallery row updates this expectation automatically
 	// and no external (build.yml) count needs to be touched.
+	// A skin that draws rows adds rowScenarios() in both modes.
 	const int extraShots = fixedScenarioShotCount();
 	const int perSkinMode = static_cast<int>(galleryRows().size()) * kStatesPerRow + extraShots;
-	const int expected = static_cast<int>(skinIds.size()) * 2 * perSkinMode;
+	const int rowShots = rowScenarioShotCount();
+	int rowSkins = 0;
+	for (const QString& skinId : skinIds)
+		rowSkins += SkinManager::instance()->skinSupportsRows(skinId.trimmed()) ? 1 : 0;
+	const int expected = static_cast<int>(skinIds.size()) * 2 * perSkinMode + rowSkins * 2 * rowShots;
 	const int actual = static_cast<int>(outDir.entryList(QStringList{QStringLiteral("*.png")}, QDir::Files).size());
 	if (actual != expected)
 	{
-		qWarning("SkinGallery: expected %d shots (%d skins x 2 modes x (%d rows x %d + %d extras)), wrote %d",
-			expected, static_cast<int>(skinIds.size()), static_cast<int>(galleryRows().size()), kStatesPerRow, extraShots, actual);
+		qWarning("SkinGallery: expected %d shots (%d skins x 2 modes x (%d rows x %d + %d extras) + %d row skins x 2 modes x %d), wrote %d",
+			expected, static_cast<int>(skinIds.size()), static_cast<int>(galleryRows().size()), kStatesPerRow, extraShots,
+			rowSkins, rowShots, actual);
 		failures++;
 	}
 	for (const QString& skinId : skinIds)
 	{
+		QList<GalleryScenario> scenarios = galleryScenarios();
+		if (SkinManager::instance()->skinSupportsRows(skinId.trimmed()))
+			scenarios.append(rowScenarios());
 		for (const QString& mode : { QStringLiteral("dark"), QStringLiteral("light") })
 		{
-			for (const GalleryScenario& scenario : galleryScenarios())
+			for (const GalleryScenario& scenario : scenarios)
 			{
 				for (const QString& state : scenario.states)
 				{

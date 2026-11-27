@@ -79,6 +79,11 @@ public:
 	// constants) and names this constant beside it.
 	static constexpr int analysisControlBarWidth = 280;
 
+	// The translated name the Interface menu shows for a skin id; a roster id
+	// with no name here is shown as its raw id. The skin gallery's replica of
+	// the Interface menu asks the same table.
+	static QString interfaceSkinName(const QString& id);
+
 	explicit MainWindow(QDir configDir, UpdateSession* updateSession, QWidget* parent = 0,
 		bool analysisLayoutTestMode = false);
 	~MainWindow();

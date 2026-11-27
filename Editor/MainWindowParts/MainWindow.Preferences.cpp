@@ -283,6 +283,22 @@ void MainWindow::updateRecentFiles()
 	}
 }
 
+QString MainWindow::interfaceSkinName(const QString& id)
+{
+	// Which skins exist and in what order comes from SkinThemeData::roster(); this
+	// only supplies the translated names. A roster id with no name here shows as
+	// its raw id - visible and reportable, unlike the old hand-written list, where
+	// a forgotten skin was simply absent from the menu.
+	const QHash<QString, QString> skinNames = {
+		{ QStringLiteral("studio"), tr("Studio Glass") },
+		{ QStringLiteral("minimal"), tr("Precision Minimal") },
+		{ QStringLiteral("flat"), tr("Stock Flat") },
+		{ QStringLiteral("rack"), tr("Hardware Rack") },
+		{ QStringLiteral("matrix"), tr("Signal Matrix") }
+	};
+	return skinNames.value(id, id);
+}
+
 void MainWindow::setupRedesignActions()
 {
 	QMenu* interfaceMenu = ui->menuView->addMenu(tr("Interface"));
@@ -300,17 +316,6 @@ void MainWindow::setupRedesignActions()
 		connect(menu, &QMenu::aboutToShow, this, &MainWindow::syncInterfaceMenu);
 	}
 	connect(interfaceMenu, &QMenu::aboutToShow, this, &MainWindow::syncInterfaceMenu);
-	// Which skins exist and in what order comes from SkinThemeData::roster(); this
-	// only supplies the translated names. A roster id with no name here shows as
-	// its raw id - visible and reportable, unlike the old hand-written list, where
-	// a forgotten skin was simply absent from the menu.
-	const QHash<QString, QString> skinNames = {
-		{ QStringLiteral("studio"), tr("Studio Glass") },
-		{ QStringLiteral("minimal"), tr("Precision Minimal") },
-		{ QStringLiteral("flat"), tr("Stock Flat") },
-		{ QStringLiteral("rack"), tr("Hardware Rack") },
-		{ QStringLiteral("matrix"), tr("Signal Matrix") }
-	};
 	for (const QString& id : SkinThemeData::ids())
 	{
 		for (FilterTable::RenderMode mode : { FilterTable::ModernCards, FilterTable::ModernRows })
@@ -318,7 +323,7 @@ void MainWindow::setupRedesignActions()
 			if (mode == FilterTable::ModernRows && !SkinManager::instance()->skinSupportsRows(id))
 				continue;
 			QMenu* menu = mode == FilterTable::ModernCards ? modernCardsMenu : modernRowsMenu;
-			QAction* action = menu->addAction(skinNames.value(id, id));
+			QAction* action = menu->addAction(interfaceSkinName(id));
 			action->setCheckable(true);
 			action->setData(QVariantMap{
 				{ QStringLiteral("mode"), static_cast<int>(mode) }, { QStringLiteral("skin"), id }
