@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.86.5 — 2026-11-27
+
 - **Editor: changing a control in zDolbi's panel no longer closes the
   Editor.** With the panel of zDolbi Surround Upmixer open, the Editor closed
   the moment a control was changed. Each time a plug-in reported an edit, the

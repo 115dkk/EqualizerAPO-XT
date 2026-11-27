@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.86.5 — 2026-11-27
+
 - **Editor: zDolbi 패널의 조작부를 바꿔도 편집기가 꺼지지 않습니다.** zDolbi
   Surround Upmixer의 패널을 열고 조작부를 바꾸면 편집기가 곧바로 꺼졌습니다.
   편집기는 플러그인이 값이 바뀌었다고 알릴 때마다 플러그인의 상태 전체를
