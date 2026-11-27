@@ -111,6 +111,65 @@ QSS can already target rows per command type without code: the card frame and
 header carry dynamic properties `filterKind` (lower-cased command),
 `filterEnabled`, `selected`, `focused`, `scopeDepth`.
 
+### Modern rows
+
+```cpp
+// Editor/skins/ISkin.h
+virtual bool supportsRowMode() const;  // default: false
+```
+
+The filter list has a second modern presentation, `FilterTable::ModernRows`
+(Interface > Modern rows, `--list-mode rows` for the headless checks): every
+line is one row, with no header strip over a body. A skin opts in with
+`supportsRowMode()`. Under a skin that returns false the table builds cards
+instead (`FilterTable::effectiveRenderMode`), and the Interface menu lists
+the skin under Modern cards only. Hardware Rack is the one skin that returns
+true today.
+
+There is no separate hook that builds a row. `FilterCardRow` builds it from
+the same widgets as a card, laid out across instead of down: the header
+becomes the row's left column (number, power cap, and the add, remove and
+raw-edit actions stacked in one column), and the title cell, the editor and
+the channel badges follow on the same line. The skin dresses it with the
+command-row hooks above, which see `CommandRowInfo::inlineRow == true`:
+`prepareCommandRow` sets the row's margins (Rack keeps its ears free there),
+and `cardFrameStyle` and `paintCardChrome` draw the unit, with `inlineRow`
+telling them that the unit has no header strip and no body below it.
+
+`inlineRow` is also a dynamic property set to true on two widgets, so a sheet
+can tell a row from a card without code: the `QFrame#FilterCardRow` frame and
+the `QWidget#FilterCardHeader` that is the row's left column. A rule written
+for rows starts with one of the two, for example
+`QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"]`,
+and a card never matches it.
+
+Before a skin returns true it provides:
+
+- the row layout, through `prepareCommandRow` with `inlineRow` (margins of the
+  frame and the left column, and whatever its chrome needs kept free);
+- the row block of both of its sheets, every rule scoped to `inlineRow`, so
+  the left column's controls and the editors fit one line (Rack trims the
+  knob boxes, the type selector and the stacked actions there);
+- if it declares a control contract, a passing contract in rows as well. The
+  stacked header actions are the one row part with an exception in the height
+  table of `GalleryOutlineCheck.cpp` (bare glyphs, 18 px with their
+  transparent border); the exception matches only a header that carries
+  `inlineRow`, so the same actions in a card are still 22 px caps.
+
+The gallery covers rows for every skin that returns true, without listing the
+skin: such a skin adds the row scenes of `rowScenarios()` in
+`Editor/gallery/GallerySkinShots.cpp` to its run in both finishes. They are
+every gallery row once more as a row (`rows-<row>_normal`), a short mixed
+document with a Copy row and an If/Else block as one table
+(`rows-table_normal`), and the row's own states, each on the middle line of a
+three-line table (`rows-states_selected`, `_focused`, `_hover`,
+`_poweredoff`, `_comment`, `_loaderror`, `_drop`). The scenes go through
+`saveGrab`, so the control contract, the horizontal-scrollbar check and the
+body-inside-card check measure them, and the run's count check expects them
+for exactly the skins that return true. The keyboard focus self test of the
+control contract runs a second pass in rows for such a skin (`SkinGallery:
+focus <skin> <finish> rows`).
+
 ## List-chrome hooks (add row, insertion seam)
 
 Legacy-cleanup round 3 replaced the green-icon `QToolBar` at the end of the
@@ -430,7 +489,9 @@ clear of the outline above and below, or the capture fails with
 the height of the text box). The VST fill block's painted caps are custom
 widgets; they are listed by class in the report with their exception. Each
 capture with list caps prints one `SkinGallery: list caps` line. Hardware
-Rack promises 22 px.
+Rack promises 22 px. In a Modern row the header's stacked actions are listed
+in the height exception table (see "Modern rows" above); its `continue` also
+skips their ink clearance check, as for every exception row.
 
 ## Routing renderer hook
 
@@ -517,7 +578,13 @@ meaningful ACL story). The filter picker is captured in three states
 `FilterPickerView::galleryShowcase` repeat their normal look), plus one shot
 each for the toolbar, title bar, menu bar and an open menu, three for the
 add-card row (`addrow` normal/hover/focused), one for the insertion seam's hover
-reveal (`seam`) and one for the update toast (`toast`). Keyboard focus has its
+reveal (`seam`) and one for the update toast (`toast`). The View > Interface
+menu has two shots (`interfacemenu_open`, and `interfacemenu_submenu` with the
+Modern rows submenu open beside it, both popups grabbed into one capture):
+its Modern cards and Modern rows parents are checkable entries that open
+submenus, so each draws a check mark and a submenu arrow on one line, and the
+scene rebuilds the menu as `MainWindow::setupRedesignActions` builds it, with
+the skin names from `MainWindow::interfaceSkinName`. Keyboard focus has its
 own shots, judged against shared article 8 of docs/skins/README.md: the metric
 switch in `segment_focused` and `segment_focushover` (and its two-option twin
 in `segment2_focused` and `segment2_focushover`), and the `focus` scene
@@ -532,8 +599,10 @@ pressed; for Hardware Rack it also presses each printed legend (found by
 grabbing the control with its two labels swapped). Up, Down, Left and Right
 are checked on the same controls. Output names are
 stable: `<skin>_<dark|light>_<row>_<state>.png`,
-5 × 2 × (41 × 3 + 60) = 1,830 PNGs
-for a full run (the 60 single shots include the five `segment2` states); the
+5 × 2 × (41 × 3 + 62) + 1 × 2 × (41 + 1 + 7) = 1,948 PNGs
+for a full run (the 62 single shots include the five `segment2` states and
+the two `interfacemenu` shots; the second term is the row scenes of the one
+skin that draws Modern rows, see "Modern rows" above); the
 run self-checks the count, so adding a gallery row needs
 no external count update. A row shot fails the render (non-zero exit) if a
 visible horizontal scrollbar is found inside the row — rows must fit the
