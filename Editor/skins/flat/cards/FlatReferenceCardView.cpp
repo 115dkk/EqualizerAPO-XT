@@ -14,6 +14,7 @@
 #include "FlatReferenceCardView.h"
 
 #include <QAbstractButton>
+#include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
@@ -75,13 +76,13 @@ FlatReferenceCardView::FlatReferenceCardView(const QString& kind, const SkinToke
 	// The identity column takes only the width of its text; the trailing
 	// stretch (added last) absorbs the rest, so the buttons sit right after
 	// the text they act on instead of at the far edge of a wide row.
-	QWidget* textColumn = new QWidget(page);
+	textColumn = new QWidget(page);
 	QVBoxLayout* textLayout = new QVBoxLayout(textColumn);
 	textLayout->setContentsMargins(0, 0, 0, 0);
 	textLayout->setSpacing(2);
 
 	QWidget* nameRow = new QWidget(textColumn);
-	QHBoxLayout* nameLayout = new QHBoxLayout(nameRow);
+	nameLayout = new QHBoxLayout(nameRow);
 	nameLayout->setContentsMargins(0, 0, 0, 0);
 	nameLayout->setSpacing(8);
 	// The state lamp leads the name, on the name's own line.
@@ -185,9 +186,82 @@ void FlatReferenceCardView::addLeadingWidget(QWidget* widget)
 
 void FlatReferenceCardView::placeBusStrip(QWidget* strip)
 {
-	// Mid-row between the identity column and the buttons.
+	busStrip = strip;
 	strip->setParent(contentWidget());
+	if (rowMode && wiringLayout != nullptr)
+	{
+		wiringLayout->insertWidget(wiringLayout->count() - 1, strip, 0, Qt::AlignVCenter);
+		return;
+	}
+	// Mid-row between the identity column and the buttons.
 	rootLayout->insertWidget(rootLayout->indexOf(actionLayout), strip, 0, Qt::AlignVCenter);
+}
+
+void FlatReferenceCardView::setInlineRow(bool inlineRow)
+{
+	if (!inlineRow || rowMode)
+		return;
+	rowMode = true;
+	keepNameCharacters();
+	if (cardKind != QStringLiteral("vst"))
+		return;
+
+	// Name, tag, path, bus strip and buttons on one line ran past a 960 px
+	// row (the readout and the name were cut). In a row the unit is two
+	// lines: what it is and its buttons, right after the name (rule 9), and
+	// under it where it points and how it is wired. The path is the one part
+	// that elides; the strip keeps its whole width.
+	QVBoxLayout* textLayout = qobject_cast<QVBoxLayout*>(textColumn->layout());
+	if (textLayout == nullptr || nameLayout == nullptr)
+		return;
+	rootLayout->removeItem(actionLayout);
+	nameLayout->insertLayout(nameLayout->count() - 1, actionLayout);
+
+	wiringLayout = new QHBoxLayout();
+	wiringLayout->setContentsMargins(0, 0, 0, 0);
+	wiringLayout->setSpacing(10);
+	textLayout->insertLayout(textLayout->indexOf(captionLabel) + 1, wiringLayout);
+	textLayout->removeWidget(captionLabel);
+	// The path takes its text width and is the first to give way; the strip
+	// follows it (rule 9) and the end of the line keeps what is left.
+	captionLabel->setSizePolicy(QSizePolicy::Preferred, captionLabel->sizePolicy().verticalPolicy());
+	wiringLayout->addWidget(captionLabel, 0, Qt::AlignVCenter);
+	if (busStrip != nullptr)
+	{
+		rootLayout->removeWidget(busStrip);
+		busStrip->setSizePolicy(QSizePolicy::Fixed, busStrip->sizePolicy().verticalPolicy());
+		wiringLayout->addWidget(busStrip, 0, Qt::AlignVCenter);
+	}
+	// A QBoxLayout skips this spacer while the rest of the line is hidden,
+	// so an empty second line takes no height.
+	wiringLayout->addStretch(1);
+
+	// The text column now holds the buttons, so it takes the row's width
+	// and the trailing stretch gives it up.
+	rootLayout->setStretchFactor(textColumn, 1);
+	for (int i = 0; i < rootLayout->count(); i++)
+	{
+		if (QSpacerItem* spacer = rootLayout->itemAt(i)->spacerItem())
+		{
+			spacer->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
+			rootLayout->setStretch(i, 0);
+		}
+	}
+	rootLayout->invalidate();
+}
+
+void FlatReferenceCardView::keepNameCharacters()
+{
+	// The display clause of a row: the name keeps its first 12 characters
+	// before it elides, and its whole text when that is shorter.
+	if (!rowMode)
+		return;
+	nameLabel->ensurePolished();
+	const QString name = nameLabel->property("flatFullName").toString();
+	const QFontMetrics metrics = nameLabel->fontMetrics();
+	const int whole = metrics.horizontalAdvance(name);
+	const int kept = metrics.horizontalAdvance(name.left(12) + QChar(0x2026));
+	nameLabel->setMinimumWidth(qMin(whole, kept) + 2);
 }
 
 void FlatReferenceCardView::applyState(const ReferenceCardState& state)
@@ -218,6 +292,8 @@ void FlatReferenceCardView::applyState(const ReferenceCardState& state)
 	tile->setLamp(lampColor, lamp);
 
 	nameLabel->setFullText(state.name);
+	nameLabel->setProperty("flatFullName", state.name);
+	keepNameCharacters();
 	if (!state.fullPath.isEmpty())
 		nameLabel->setToolTip(state.fullPath);
 	if (nameLabel->property("refChecking").toBool() != state.checking)
