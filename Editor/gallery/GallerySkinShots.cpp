@@ -77,6 +77,7 @@
 #include "Editor/skins/SkinThemeData.h"
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/AddCardRow.h"
+#include "Editor/widgets/ElidedLabel.h"
 #include "Editor/widgets/EqGraphView.h"
 #include "Editor/widgets/FilterCardRow.h"
 #include "Editor/widgets/FilterInsertSeam.h"
@@ -653,6 +654,52 @@ int assertButtonLabelsWhole(QWidget* row, const QString& skinId, const QString& 
 		failures++;
 	}
 	return failures;
+}
+
+// A row prints its whole name when the name can be broken to fit. The name
+// cell is narrow, so the row wraps a title at its spaces, inner capitals and
+// hyphens ("Hilbert-" over "Transformation" in German; before a hyphenated
+// word could break, the row printed "Hilbert-Transfor..."). A title falls
+// back to the eliding label only when one of its pieces is wider than the
+// cell. So a cut title whose pieces all fit is a failure of the wrapping, and
+// fails here. A piece that does not fit is a limit of the cell, and is named
+// in the log without failing: "Vorverstarkung" in the tracked capitals of two
+// skins is a few pixels wider than the cell.
+int assertRowTitleWhole(QWidget* row, const QString& skinId, const QString& mode,
+	const QString& rowName, const QString& state)
+{
+	const ElidedLabel* title = row->findChild<ElidedLabel*>(QStringLiteral("FilterCardTitle"));
+	if (title == nullptr || !title->isVisibleTo(row) || title->fullText().isEmpty())
+		return 0;
+	const QFontMetrics metrics = title->fontMetrics();
+	const int cell = title->contentsRect().width();
+	if (metrics.horizontalAdvance(title->fullText()) <= cell)
+		return 0;
+	int widestPiece = 0;
+	for (const QString& word : title->fullText().split(QLatin1Char(' '), Qt::SkipEmptyParts))
+	{
+		int pieceStart = 0;
+		for (int i = 2; i <= word.size(); i++)
+		{
+			if (i < word.size() && word.at(i - 1) != QLatin1Char('-'))
+				continue;
+			widestPiece = qMax(widestPiece, metrics.horizontalAdvance(word.mid(pieceStart, i - pieceStart)));
+			pieceStart = i;
+		}
+		if (word.size() < 2)
+			widestPiece = qMax(widestPiece, metrics.horizontalAdvance(word));
+	}
+	if (widestPiece > cell)
+	{
+		qWarning("SkinGallery: note: the title '%s' of row %s_%s_%s_%s is shortened: its widest piece needs %d px and the cell has %d",
+			qPrintable(title->fullText()), qPrintable(skinId), qPrintable(mode), qPrintable(rowName),
+			qPrintable(state), widestPiece, cell);
+		return 0;
+	}
+	qWarning("SkinGallery: the title '%s' of row %s_%s_%s_%s is cut although every piece fits its cell (widest %d px of %d)",
+		qPrintable(title->fullText()), qPrintable(skinId), qPrintable(mode), qPrintable(rowName),
+		qPrintable(state), widestPiece, cell);
+	return 1;
 }
 
 // Value gate: every spin box must show its text. Qt 6.12.0 collapsed the edit
@@ -2151,6 +2198,7 @@ void renderRowScenes(SkinRenderContext& ctx)
 			failures += assertBodyInsideCard(row, skinId, mode, name, state);
 			failures += assertEditorNotCut(row, skinId, mode, name, state);
 			failures += assertButtonLabelsWhole(row, skinId, mode, name, state);
+			failures += assertRowTitleWhole(row, skinId, mode, name, state);
 		}
 	};
 
