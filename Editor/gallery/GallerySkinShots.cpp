@@ -52,6 +52,7 @@
 #include <QPainter>
 #include <QPixmap>
 #include <QPointer>
+#include <QPushButton>
 #include <QRadioButton>
 #include <QScrollArea>
 #include <QScrollBar>
@@ -199,6 +200,7 @@ QList<GalleryScenario> rowScenarios()
 	for (const GalleryRow& row : galleryRows())
 		scenarios.append({ QStringLiteral("rows-") + row.name, { QStringLiteral("normal") } });
 	scenarios.append({ QStringLiteral("rows-table"), { QStringLiteral("normal") } });
+	scenarios.append({ QStringLiteral("rows-channels8"), { QStringLiteral("normal") } });
 	scenarios.append({ QStringLiteral("rows-states"), { QStringLiteral("selected"), QStringLiteral("focused"),
 		QStringLiteral("hover"), QStringLiteral("poweredoff"), QStringLiteral("comment"),
 		QStringLiteral("loaderror"), QStringLiteral("drop") } });
@@ -609,6 +611,45 @@ int assertEditorNotCut(QWidget* row, const QString& skinId, const QString& mode,
 		qWarning("SkinGallery: the editor of row %s_%s_%s_%s is cut: %s ends %d px below the %d px it shows",
 			qPrintable(skinId), qPrintable(mode), qPrintable(rowName), qPrintable(state),
 			qPrintable(worstName), worst, shown);
+		failures++;
+	}
+	return failures;
+}
+
+// A cap or a seat prints its whole label. Qt elides a button's text when the
+// button is narrower than the label needs, and a layout may squeeze a button
+// down to its sheet's min-width: the ALL seat of a Channel row on an
+// 8-channel device printed "..." in two skins, where the same line as a card
+// had room. The width a label needs is its advance plus the chrome the style
+// adds around any content (padding and border), read from the size the style
+// gives a content far wider than any min-width.
+int assertButtonLabelsWhole(QWidget* row, const QString& skinId, const QString& mode,
+	const QString& rowName, const QString& state)
+{
+	int failures = 0;
+	for (const QAbstractButton* button : row->findChildren<QAbstractButton*>())
+	{
+		const QToolButton* tool = qobject_cast<const QToolButton*>(button);
+		const bool push = qobject_cast<const QPushButton*>(button) != nullptr;
+		QString label = button->text();
+		label.remove(QLatin1Char('&'));
+		if ((tool == nullptr && !push) || label.isEmpty() || label.contains(QLatin1Char('\n'))
+			|| !button->isVisibleTo(row))
+			continue;
+		// A tool button with an icon prints no text unless it is told to.
+		if (tool != nullptr && !tool->icon().isNull() && tool->toolButtonStyle() == Qt::ToolButtonIconOnly)
+			continue;
+		QStyleOption option;
+		option.initFrom(button);
+		const int probe = 2000;
+		const int chrome = button->style()->sizeFromContents(tool != nullptr ? QStyle::CT_ToolButton : QStyle::CT_PushButton,
+			&option, QSize(probe, button->fontMetrics().height()), button).width() - probe;
+		const int needed = button->fontMetrics().horizontalAdvance(label) + qMax(0, chrome);
+		if (button->width() + 1 >= needed)
+			continue;
+		qWarning("SkinGallery: the label of %s '%s' in row %s_%s_%s_%s is cut: it needs %d px and has %d",
+			qPrintable(button->objectName()), qPrintable(label), qPrintable(skinId), qPrintable(mode),
+			qPrintable(rowName), qPrintable(state), needed, button->width());
 		failures++;
 	}
 	return failures;
@@ -2109,6 +2150,7 @@ void renderRowScenes(SkinRenderContext& ctx)
 			failures += assertSpinBoxTextVisible(row, skinId, mode, name, state);
 			failures += assertBodyInsideCard(row, skinId, mode, name, state);
 			failures += assertEditorNotCut(row, skinId, mode, name, state);
+			failures += assertButtonLabelsWhole(row, skinId, mode, name, state);
 		}
 	};
 
@@ -2183,6 +2225,37 @@ void renderRowScenes(SkinRenderContext& ctx)
 			QApplication::processEvents();
 			checkRowLayout(rows, QStringLiteral("rows-table"), QStringLiteral("normal"));
 			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("rows-table"), QStringLiteral("normal")) ? 0 : 1;
+		}
+	}
+
+	// The narrowest lines a row has to hold: the ten seats and the add field
+	// of a Channel line on an 8-channel device with one virtual channel (ALL,
+	// the eight speakers and VC, which the Copy line above it makes), a
+	// Filter line indented under it (its editor loses the indent and the room
+	// of two channel badges), and the same seats with ALL written. A card
+	// has room for them; a row's editor is some 240 px narrower. Without the
+	// virtual channel the line has nine seats and fits in every skin.
+	{
+		auto surround = std::make_shared<GalleryAPOInfo>(L"Speakers", L"Example Audio 7.1", false, true, 8, 0x63F);
+		QScrollArea scrollArea;
+		scrollArea.resize(960, 720);
+		const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
+			QStringLiteral("Copy: VC=0.5*L+0.5*R"),
+			QStringLiteral("Channel: L R"),
+			QStringLiteral("Filter 1: ON PK Fc 4000 Hz Gain -3 dB Q 4.5"),
+			QStringLiteral("Channel: all")
+		}, surround, 0x63F, FilterTable::ModernRows);
+		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
+		if (table == nullptr || rows.size() != 4)
+		{
+			qWarning("SkinGallery: rows channels8 scene could not build its table (%s %s)", qPrintable(skinId), qPrintable(mode));
+			failures++;
+		}
+		else
+		{
+			QApplication::processEvents();
+			checkRowLayout(rows, QStringLiteral("rows-channels8"), QStringLiteral("normal"));
+			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("rows-channels8"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
 
