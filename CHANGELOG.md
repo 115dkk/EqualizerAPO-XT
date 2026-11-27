@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.86.4 — 2026-11-27
+
 - **Editor, Stock Flat: a switched-off card dims its channel mapping too.**
   Switching off a MultiConvolution, Copy or Send card dimmed its header and
   selectors but left the channel mapping under them at full strength, so the

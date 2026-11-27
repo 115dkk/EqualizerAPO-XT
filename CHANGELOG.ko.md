@@ -8,6 +8,8 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+## v2.86.4 — 2026-11-27
+
 - **Editor, Stock Flat: 꺼진 카드의 채널 매핑도 흐려집니다.** MultiConvolution,
   Copy, Send 카드를 끄면 머리 부분과 선택 칸만 흐려지고 그 아래 채널 매핑은
   켜진 것처럼 진하게 남았습니다. 이제 카드의 나머지와 함께 흐려집니다.
