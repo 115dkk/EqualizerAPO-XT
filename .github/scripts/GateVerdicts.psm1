@@ -122,5 +122,29 @@ function Get-PanelGateVerdict($Checks) {
     [pscustomobject]@{ Passed = $reasons.Count -eq 0; Reasons = $reasons }
 }
 
+# The line a row run of the Editor ends with: "ListMode: rows in a, b; cards
+# in c", with "no skin" for an empty side. The run passes when exactly the
+# expected skins drew rows and none fell back to cards: a skin that stops
+# drawing rows would otherwise go on passing the same checks in cards.
+function Get-RowCoverageVerdict([string] $Line, [string[]] $ExpectedSkins) {
+    $reasons = @()
+    $match = [regex]::Match([string]$Line, '^ListMode: rows in (?<rows>.+); cards in (?<cards>.+)$')
+    if (-not $match.Success) {
+        $reasons += 'the run did not report which skins drew rows'
+    } else {
+        $rows = @($match.Groups['rows'].Value -split ',\s*' | Where-Object { $_ -and $_ -ne 'no skin' })
+        $cards = @($match.Groups['cards'].Value -split ',\s*' | Where-Object { $_ -and $_ -ne 'no skin' })
+        foreach ($skin in $cards) { $reasons += "$skin fell back to cards" }
+        foreach ($skin in @($ExpectedSkins)) {
+            if ($rows -notcontains $skin -and $cards -notcontains $skin) { $reasons += "$skin did not run" }
+        }
+        foreach ($skin in $rows) {
+            if (@($ExpectedSkins) -notcontains $skin) { $reasons += "$skin drew rows but the gate does not name it" }
+        }
+    }
+    Get-CaptureGateVerdict $reasons
+}
+
 Export-ModuleMember -Function Get-CaptureGateVerdict, Get-GateFileVerdict, Get-CaptureMeasurementVerdict,
-    Get-PluginLoadReuseVerdict, Get-PanelMeasurementVerdict, Get-PanelSettleVerdict, Get-PanelStateVerdict, Get-PanelGateVerdict
+    Get-PluginLoadReuseVerdict, Get-PanelMeasurementVerdict, Get-PanelSettleVerdict, Get-PanelStateVerdict, Get-PanelGateVerdict,
+    Get-RowCoverageVerdict
