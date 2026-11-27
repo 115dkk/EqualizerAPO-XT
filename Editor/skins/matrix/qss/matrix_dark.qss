@@ -487,6 +487,10 @@ QComboBox QAbstractItemView::item:selected {
 
 /* Parameter-mode selectors: genuine selects in caption ink. The arrow
    stays so the affordance is honest; the cell takes no rule at rest. */
+/* The caption cell keeps 22 px for its caret (the combo's 28 px left 6 px
+   of air past it): with the wider box a Filter card indented under a
+   Channel scope scrolled sideways at 960 px, its Q cell 4 px past the
+   card's edge. */
 QComboBox[paramSelector="true"] {
     background: transparent;
     color: @MUTED@;
@@ -494,6 +498,7 @@ QComboBox[paramSelector="true"] {
     font-weight: 600;
     text-transform: uppercase;
     border: 1px solid transparent;
+    padding-right: 22px;
 }
 QComboBox[paramSelector="true"]::drop-down,
 QComboBox[filterSelector="true"]::drop-down {
