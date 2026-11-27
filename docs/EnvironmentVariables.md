@@ -139,8 +139,11 @@ Both are kill switches for the field and the control arms of the
   while it loads `TestVst2Plugin`: `zip-clock` makes the fixture hand out its
   state as a ZIP archive whose file times move on every read, as the
   Kilohearts plug-ins do (#459), and `zip-clock-automate` also makes it call
-  the host's automate while its state is being written. Unset, the state is
-  the plain 16-byte blob. Not meant to be set by hand.
+  the host's automate while its state is being written.
+  `zip-clock-automate-on-read` makes it call automate while its state is
+  being read instead, as zDolbi Surround Upmixer announces its parameters from
+  inside the host's state read (#554). Unset, the state is the plain 16-byte
+  blob. Not meant to be set by hand.
 - `EAPO_XT_TEST_IMPORT_DIR` / `EAPO_XT_TEST_INCLUDE_DIR` — set by
   `EditorLogicTests` (`ConfigImportTests.cpp`) and `EngineOrchestrationTests`
   (`ConfigLoadTests.cpp`) themselves, so a test config can write

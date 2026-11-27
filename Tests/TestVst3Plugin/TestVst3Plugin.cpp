@@ -81,6 +81,7 @@ bool fullNameMode = false;
 bool spuriousDirtyMode = false;
 bool readOnlyMeterMode = false;
 bool volatileStateMode = false;
+bool editInGetStateMode = false;
 bool floatOnlyMode = false;
 bool surround41Mode = false;
 bool surround41CineOnlyMode = false;
@@ -107,6 +108,8 @@ std::atomic<unsigned long long> surround41AcceptedOutputArrangement{
 std::atomic<bool> idleFlushInProgress{false};
 // Every parameter change the processor received, over all process calls.
 std::atomic<int> receivedParameterChangeCount{0};
+std::atomic<int> editsRaisedInsideGetState{0};
+std::atomic<int> processCallsInsideGetState{0};
 std::atomic<unsigned long long> volatileStateReadCount{0};
 std::atomic<int> readOnlyMeterAttachCount{0};
 // RetainHandler.vst3 mode: the component handler kept past the host's
@@ -594,6 +597,20 @@ public:
 	}
 	tresult PLUGIN_API getState(IBStream* stream) override
 	{
+		struct StateReadScope
+		{
+			StateReadScope(std::atomic<int>& depth) : depth(depth) { ++depth; }
+			~StateReadScope() { --depth; }
+			std::atomic<int>& depth;
+		} readScope(getStateDepth);
+		if (editInGetStateMode && componentHandler != nullptr)
+		{
+			for (int edit = 0; edit < 3; ++edit)
+			{
+				++editsRaisedInsideGetState;
+				componentHandler->performEdit(gainParamId, getParamNormalized(gainParamId));
+			}
+		}
 		if (componentStateUnavailable)
 			return kNotImplemented;
 		if (volatileStateMode || spuriousDirtyMode)
@@ -655,6 +672,8 @@ public:
 	}
 	tresult PLUGIN_API process(ProcessData& data) override
 	{
+		if (editInGetStateMode && getStateDepth.load() != 0)
+			++processCallsInsideGetState;
 		if (faultProcessMode)
 			RaiseException(EXCEPTION_ACCESS_VIOLATION, 0, 0, nullptr);
 		if (fpStateProcessMode)
@@ -794,6 +813,9 @@ public:
 	}
 	tresult PLUGIN_API setComponentHandler(IComponentHandler* handler) override
 	{
+		// The delegate owns the handler reference for the combined component.
+		if (editInGetStateMode)
+			componentHandler = handler;
 		return controllerDelegate->setComponentHandler(handler);
 	}
 	IPlugView* PLUGIN_API createView(FIDString name) override
@@ -821,6 +843,8 @@ private:
 	bool supportsDouble = true;
 	bool doubleInitialized = false;
 	IEditController* controllerDelegate = nullptr;
+	IComponentHandler* componentHandler = nullptr;
+	std::atomic<int> getStateDepth{0};
 	bool initialized = false;
 	bool stateRestored = false;
 	std::atomic<bool> active{false};
@@ -1451,7 +1475,9 @@ public:
 					ComponentScenario::combinedDouble,
 					ComponentScenario::splitFloat
 				};
-				instance = static_cast<IComponent*>(new TestComponent(floatOnlyMode ? ComponentScenario::splitFloat : scenarios[componentInstanceCount++ % 3]));
+				const ComponentScenario scenario = editInGetStateMode ? ComponentScenario::combinedDouble
+					: floatOnlyMode ? ComponentScenario::splitFloat : scenarios[componentInstanceCount++ % 3];
+				instance = static_cast<IComponent*>(new TestComponent(scenario));
 			}
 		}
 		else if (FUnknownPrivate::iidEqual(cid, controllerCid))
@@ -1554,6 +1580,7 @@ extern "C" __declspec(dllexport) bool InitDll()
 	spuriousDirtyMode = wcsstr(moduleName, testvst3::mode::spuriousDirty) != nullptr;
 	readOnlyMeterMode = wcsstr(moduleName, testvst3::mode::readOnlyMeter) != nullptr;
 	volatileStateMode = wcsstr(moduleName, testvst3::mode::volatileState) != nullptr;
+	editInGetStateMode = wcsstr(moduleName, testvst3::mode::editInGetState) != nullptr;
 	floatOnlyMode = wcsstr(moduleName, testvst3::mode::floatOnly) != nullptr;
 	if (wcsstr(moduleName, testvst3::mode::rejectInit) != nullptr)
 		return false;
@@ -1585,6 +1612,8 @@ extern "C" __declspec(dllexport) bool InitDll()
 		&& wcscmp(hostContextMode, L"notimpl") == 0;
 	ignoreParameterFlushMode = wcsstr(moduleName, testvst3::mode::ignoreParameterFlush) != nullptr;
 	volatileStateReadCount.store(0);
+	editsRaisedInsideGetState.store(0);
+	processCallsInsideGetState.store(0);
 	readOnlyMeterAttachCount.store(0);
 	upmixerProcessCount.store(0);
 	surround41AcceptedOutputArrangement.store(
@@ -1620,6 +1649,7 @@ extern "C" __declspec(dllexport) bool ExitDll()
 	spuriousDirtyMode = false;
 	readOnlyMeterMode = false;
 	volatileStateMode = false;
+	editInGetStateMode = false;
 	hostContextNotImplementedMode = false;
 	ignoreParameterFlushMode = false;
 	return true;
@@ -1665,6 +1695,18 @@ extern "C" __declspec(dllexport) unsigned long long GetSurround41AcceptedOutputA
 extern "C" __declspec(dllexport) int GetReceivedParameterChangeCount()
 {
 	return receivedParameterChangeCount.load();
+}
+
+// In-process test hook: how many unchanged edits getState raised.
+extern "C" __declspec(dllexport) int GetEditsRaisedInsideGetState()
+{
+	return editsRaisedInsideGetState.load();
+}
+
+// In-process test hook: how many process calls arrived inside getState.
+extern "C" __declspec(dllexport) int GetProcessCallsInsideGetState()
+{
+	return processCallsInsideGetState.load();
 }
 
 // In-process test hooks for RetainHandler.vst3 mode. The first calls the

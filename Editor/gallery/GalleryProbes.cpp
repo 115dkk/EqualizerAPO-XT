@@ -1858,6 +1858,7 @@ enum class VstUntouchedAction
 	LoadedOnly,
 	EmbeddedUntouched,
 	DialogUntouched,
+	DialogMovedThenRejected,
 	EmbeddedMovedSilently,
 	EmbeddedMovedAutomate
 };
@@ -2057,6 +2058,20 @@ int SkinGallery::runVstUntouchedTest()
 		{ "dialog-untouched", "zip-clock-automate", VstUntouchedAction::DialogUntouched, 0, false },
 		{ "embedded-moved-silently", "zip-clock", VstUntouchedAction::EmbeddedMovedSilently, 1, true },
 		{ "embedded-moved-automate", "zip-clock-automate", VstUntouchedAction::EmbeddedMovedAutomate, 1, true },
+		// A plug-in that calls automate from inside the state read (zDolbi
+		// announces its parameters there). The session used to read the state
+		// from inside that call, which called the read again until the stack
+		// ran out; the Editor closed on the first read. Untouched, the panel
+		// must store nothing, and a real change must still be stored once.
+		{ "embedded-untouched-automate-on-read", "zip-clock-automate-on-read",
+			VstUntouchedAction::EmbeddedUntouched, 0, false },
+		{ "embedded-moved-automate-on-read", "zip-clock-automate-on-read",
+			VstUntouchedAction::EmbeddedMovedAutomate, 1, true },
+		// The read an automate call asks for waits for the session's idle
+		// turn. A dialog closed before that turn must not take the edit with
+		// it: auto apply is on, so the edit was the user's to keep.
+		{ "dialog-moved-then-rejected", "zip-clock-automate",
+			VstUntouchedAction::DialogMovedThenRejected, 1, true },
 	};
 
 	int failures = 0;
@@ -2096,16 +2111,23 @@ int SkinGallery::runVstUntouchedTest()
 					idleFor(3300);
 					break;
 				case VstUntouchedAction::DialogUntouched:
+				case VstUntouchedAction::DialogMovedThenRejected:
 				{
+					// The moved case changes the gain with an automate call and
+					// closes the dialog in the same turn, before the session's
+					// idle read can run: auto apply must still keep the edit.
+					const bool moveFirst = testCase.action == VstUntouchedAction::DialogMovedThenRejected;
 					bool dialogSeen = false;
 					QString modalProblem;
 					QTimer closeDialog;
 					closeDialog.setSingleShot(true);
-					QObject::connect(&closeDialog, &QTimer::timeout, [&dialogSeen, &modalProblem]() {
+					QObject::connect(&closeDialog, &QTimer::timeout, [&dialogSeen, &modalProblem, moveFirst, moveGain]() {
 						QWidget* modal = QApplication::activeModalWidget();
 						if (QDialog* dialog = qobject_cast<QDialog*>(modal))
 						{
 							dialogSeen = true;
+							if (moveFirst)
+								moveGain(0.25f, 1);
 							dialog->reject();
 						}
 						else

@@ -52,6 +52,9 @@ constexpr wchar_t fullName[] = L"FullName.vst3";
 constexpr wchar_t spuriousDirty[] = L"SpuriousDirty.vst3";
 constexpr wchar_t readOnlyMeter[] = L"ReadOnlyMeter.vst3";
 constexpr wchar_t volatileState[] = L"VolatileState.vst3";
+// getState raises three performEdit calls with the unchanged gain, as a
+// JUCE-built upmixer does when it re-announces parameters from inside getState.
+constexpr wchar_t editInGetState[] = L"EditInGetState.vst3";
 }
 
 #pragma pack(push, 1)
