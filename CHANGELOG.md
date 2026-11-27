@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.86.2 — 2026-11-27
+
 - **Editor, French: a filter card no longer scrolls sideways.** In French
   the card of a parametric filter was wider than the filter list in every
   skin, because the names of the filter types were much longer than in the
