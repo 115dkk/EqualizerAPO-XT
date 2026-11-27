@@ -373,6 +373,56 @@ void setHoverEquivalent(QWidget* root, bool on)
 // horizontal scrollbar inside the row is the overflow defect this guards;
 // failing the render makes CI keep the broken shot as evidence instead of
 // shipping it silently.
+// A powered-down card's routing board must not look live. The row disables
+// its editor, and each skin's routing view paints itself, so a view that
+// never asks whether it is enabled draws the same board on and off: Stock
+// Flat's did, and a switched-off MultiConvolution, Copy or Send card kept
+// its channel mapping at full ink under a dimmed header. The check paints
+// the board as it is and once more with its disabled ancestor enabled; two
+// identical pictures fail. Three skins draw the same board on and off today
+// and are named in the log instead of failing; see the list below.
+int assertRoutingViewShowsDisabled(QWidget* row, const QString& skinId, const QString& mode,
+	const QString& rowName)
+{
+	// Not judged yet. Precision Minimal says off with '#' and a ground one
+	// step down, and Signal Matrix with the dashed rule, the hollow lamp and
+	// the struck title while "the row stays on the board"; neither design
+	// document says what the routing board itself does. Hardware Rack's
+	// rule 5 says a powered-down unit's LEDs go dark, and its patch points
+	// stay lit, which may be a fault of its own. Taking a skin off this list
+	// is how its board gets held to the check.
+	static const QStringList keepsTheBoard = { QStringLiteral("minimal"), QStringLiteral("matrix"), QStringLiteral("rack") };
+	const bool keeps = keepsTheBoard.contains(skinId);
+	int failures = 0;
+	for (RoutingView* view : row->findChildren<RoutingView*>())
+	{
+		if (!view->isVisibleTo(row) || view->isEnabled() || view->width() <= 0 || view->height() <= 0)
+			continue;
+		QWidget* disabledRoot = view;
+		while (disabledRoot->parentWidget() != nullptr && disabledRoot->parentWidget() != row
+			&& !disabledRoot->parentWidget()->isEnabled())
+			disabledRoot = disabledRoot->parentWidget();
+		const QImage off = view->grab().toImage();
+		disabledRoot->setEnabled(true);
+		QApplication::processEvents();
+		const QImage on = view->grab().toImage();
+		disabledRoot->setEnabled(false);
+		QApplication::processEvents();
+		if (off != on)
+			continue;
+		if (keeps)
+		{
+			qWarning("SkinGallery: note: the routing board of powered-down row %s_%s_%s is drawn as when it is on (not judged for this skin)",
+				qPrintable(skinId), qPrintable(mode), qPrintable(rowName));
+			continue;
+		}
+		qWarning("SkinGallery: the routing board of powered-down row %s_%s_%s looks the same as when it is on",
+			qPrintable(skinId), qPrintable(mode), qPrintable(rowName));
+		failures++;
+	}
+	return failures;
+}
+
 int assertNoHorizontalScrollBar(QWidget* row, const QString& skinId, const QString& mode,
 	const QString& rowName, const QString& state)
 {
@@ -608,6 +658,7 @@ int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
 			// toggle off, body editor disabled, muted chrome.
 			failures += assertNoHorizontalScrollBar(row, skinId, mode, rows[i].name, QStringLiteral("disabled"));
 			failures += saveGrab(row, outDir, skinId, mode, rows[i].name, QStringLiteral("disabled")) ? 0 : 1;
+			failures += assertRoutingViewShowsDisabled(row, skinId, mode, rows[i].name);
 			continue;
 		}
 
