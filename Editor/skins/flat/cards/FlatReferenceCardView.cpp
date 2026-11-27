@@ -162,9 +162,13 @@ FlatReferenceCardView::FlatReferenceCardView(const QString& kind, const SkinToke
 		" padding: 0px 14px; min-height: 24px; max-height: 24px; font-weight: 600; }"
 		"QToolButton:hover { background: %3; border-color: %3; }"
 		"QToolButton:pressed { background: %4; border-color: %4; }"
+		// Keyboard focus: the pill's own line, one pixel heavier, in the
+		// emphasis colour taken toward the ink on it (it showed no focus).
+		"QToolButton:focus { border: 2px solid %7; padding: 0px 13px; }"
 		"QToolButton:disabled { background: transparent; color: %5; border: 1px solid %6; }")
 		.arg(t.accent, t.onAccent, cssColor(mixColor(accent, onAccent, 0.16)),
-			cssColor(mixColor(accent, onAccent, 0.28)), t.mutedText, t.borderStrong);
+			cssColor(mixColor(accent, onAccent, 0.28)), t.mutedText, t.borderStrong,
+			cssColor(mixColor(accent, onAccent, 0.45)));
 }
 
 void FlatReferenceCardView::placeActionButton(ActionRole role, QAbstractButton* button)

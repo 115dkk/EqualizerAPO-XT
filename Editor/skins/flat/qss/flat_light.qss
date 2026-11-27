@@ -341,8 +341,10 @@ QToolButton#FilterCardIconButton {
     border: 1px solid transparent; border-radius: 6px;
     min-width: 28px; min-height: 28px; padding: 2px 4px; font-weight: 600;
 }
-QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; }
-QToolButton#FilterCardIconButton:pressed { background: @CARD_SELECTED@; }
+/* A lit action is its whole box: the fill and the button line on four
+   sides, not a fill alone (it showed no edge against the card). */
+QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color: @BORDER_STRONG@; }
+QToolButton#FilterCardIconButton:pressed { background: @CARD_SELECTED@; border-color: @BORDER_STRONG@; }
 QToolButton#FilterCardIconButton:checked { background: @CARD_SELECTED@; border-color: @BORDER_STRONG@; }
 QToolButton#FilterCardIconButton:focus { border-color: @FOCUS@; }
 QToolButton#FilterCardIconButton:disabled { color: rgba(@MUTED_RGB@, 0.55); }
@@ -360,7 +362,10 @@ QToolButton#FilterCardIconButton[powerToggle="true"]:pressed { background: @CARD
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked { background: @ACCENT@; border-color: @ACCENT@; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked:hover { background: @ACCENT@; border-color: @TEXT@; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:focus { border-color: @FOCUS@; }
-QToolButton#FilterCardIconButton[powerToggle="true"]:checked:focus { border-color: @TEXT@; }
+/* On the filled track the focus line is the emphasis colour taken toward
+   the card under it: in the light finish the body ink is the emphasis
+   colour itself, and a body-ink line did not show. */
+QToolButton#FilterCardIconButton[powerToggle="true"]:checked:focus { border-color: rgba(@ACCENT_RGB@, 0.5); background-clip: padding; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:disabled { background: @CARD@; border-color: @BORDER_STRONG@; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked:disabled { background: rgba(@ACCENT_RGB@, 0.45); border-color: transparent; }
 
@@ -627,8 +632,9 @@ QToolButton#DeviceChip:checked, QToolButton#ChannelChip:checked, QToolButton#Sta
     background: @ACCENT@; color: @ON_ACCENT@;
     border: 1px solid @ACCENT@; font-weight: 600;
 }
+/* The same focus line as the filled switch, for the same reason. */
 QToolButton#DeviceChip:checked:focus, QToolButton#ChannelChip:checked:focus, QToolButton#StageChip:checked:focus {
-    border-color: @TEXT@;
+    border-color: rgba(@ACCENT_RGB@, 0.5); background-clip: padding;
 }
 /* Not there yet: the dashed line. Chosen, it is filled like any other and
    keeps its dashes in the ink that sits on the fill. */
@@ -783,6 +789,12 @@ QToolButton#VelvetAdvancedToggle {
 }
 QToolButton#VelvetAdvancedToggle:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
 QToolButton#VelvetAdvancedToggle:checked { background: @CARD_SELECTED@; border-color: @EDGE@; }
+QToolButton#VelvetAdvancedToggle:focus { border-color: @FOCUS@; }
+/* Regenerate rests as the generic tool button; lit, it shows its whole
+   box like every other cap. */
+QToolButton#VelvetRegenerate:hover { border-color: @BORDER_STRONG@; }
+QToolButton#VelvetRegenerate:pressed { border-color: @BORDER_STRONG@; }
+QToolButton#VelvetRegenerate:focus { border-color: @FOCUS@; }
 
 /* A checked box carries a real check glyph. The stylesheet engine replaces
    the native indicator drawing wholesale, so without an image the checked
