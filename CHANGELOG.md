@@ -14,6 +14,24 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: Modern rows, a third way to show the filter list.** View >
+  Interface now offers Modern cards, Modern rows and Legacy editor. In Modern
+  rows every line is one row: its number, power switch, add, remove and
+  edit-as-text stand at the left and its controls beside them, with no header
+  strip above. A filter that takes about 140 px as a card takes 84 px as a
+  row, and a 32-line test configuration is 3,628 px tall instead of 4,960.
+  Hardware Rack is the first skin that draws rows; the other four follow.
+  Modern cards and Modern rows each open a submenu of the skins they can
+  draw, so choosing a skin chooses the presentation with it. Ctrl+Alt+1 to 5
+  switch skin within the current presentation; from rows, a skin that has no
+  rows yet opens as cards. Nothing changes until you choose rows: the Editor
+  keeps the presentation you had.
+  ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550))
+- **Editor, French: the Send row fits the list.** The label of the Send
+  card's delay option is shorter (Retarder pour synchroniser), because it
+  made the Send row scroll sideways in Modern rows.
+  ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550))
+
 ## v2.86.3 — 2026-11-27
 
 - **Editor: a line you did not change keeps its text.** Clicking into a text
