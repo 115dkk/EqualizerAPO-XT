@@ -120,10 +120,10 @@ Current work areas:
     ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)), and all five skins draw Modern rows
     ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550)): a filter line is 84 px, and a 32-line test
     configuration is 3,501 to 3,628 px tall as rows where it is 4,291 to
-    4,778 px as cards. A new installation opens in Modern rows. What is left:
-    a Channel line with more seats than a narrow window holds shortens its
-    add field instead of wrapping, and a few card readouts are still cut in
-    French and German.
+    4,778 px as cards. A new installation opens in Modern rows. What is left
+    is listed in #550: a Channel line with more seats than a narrow window
+    holds shortens its add field instead of wrapping, three German row names
+    are shortened, and a few card readouts are still cut.
 
 ## Features
 
