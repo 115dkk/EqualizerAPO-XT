@@ -231,7 +231,10 @@ void SendCardEditor::modeChosen(int index)
 
 void SendCardEditor::latencyEdited()
 {
-	if (updating)
+	// The initial setText can finish on focus-out even without a user edit.
+	// Serializing then rewrites the line's spelling (or rounds its latency)
+	// after the close decision has already found the document unchanged.
+	if (updating || !latencyEdit->isModified())
 		return;
 	if (!model.setLatencyText(latencyEdit->text()))
 	{
