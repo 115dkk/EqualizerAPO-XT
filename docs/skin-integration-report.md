@@ -97,9 +97,17 @@ It also applies to `--card-move-test`, `--card-selection-test`,
 `--power-toggle-test`, `--routing-edit-test`, `--close-save-test`,
 `--close-save-sweep`, and `--skin-switch-test`. Without it these checks use
 cards, regardless of the saved preference. With `rows`, a skin without row
-support uses cards and logs that fallback once. Unknown values exit non-zero
-with a usage line. `--interface-menu-test` checks the Interface menu's mode,
-skin, restart and shortcut behavior offscreen without writing preferences.
+support uses cards and logs that fallback once; the run ends with one line
+naming the skins that drew rows and the skins that fell back, and exits
+non-zero when no skin drew rows. Unknown values exit non-zero with a usage
+line. `--close-save-test` and `--close-save-sweep` open one Editor window,
+which keeps the skin saved on the machine; `--window-skin <id>` names that
+window's skin instead (its light finish), so the run does not depend on the
+machine. A runner has no skin saved and opens the default one, which is why
+CI names Rack for the row runs of these two. Given to a check that opens no
+such window, `--window-skin` exits non-zero. `--interface-menu-test` checks
+the Interface menu's mode, skin, restart and shortcut behavior offscreen
+without writing preferences.
 
 ## Interaction-layer wishes (follow-up candidates)
 

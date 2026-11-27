@@ -417,7 +417,7 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 
 FilterTable::RenderMode gateRenderMode()
 {
-	EditorGates::reportListModeFallback(SkinManager::instance()->currentSkinId());
+	EditorGates::noteListModeSkin(SkinManager::instance()->currentSkinId());
 	return EditorGates::headlessListMode() == EditorSettings::ListMode::Rows
 		? FilterTable::ModernRows : FilterTable::ModernCards;
 }

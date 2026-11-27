@@ -26,12 +26,65 @@
 #include "Editor/diagnostics/SkinSwitchStorm.h"
 #include "Editor/helpers/CrashHandler.h"
 #include "Editor/import/LegacyMigration.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "services/logging/Logging.h"
 
 namespace
 {
 std::optional<EditorSettings::ListMode> activeListMode;
-QSet<QString> reportedFallbackSkins;
+std::optional<QString> activeWindowSkin;
+bool windowSkinAsked = false;
+// Skins this run built a list for: the ones that drew rows, and the ones that
+// fell back to cards because they have no rows.
+QSet<QString> rowSkins;
+QSet<QString> fallbackSkins;
+
+const char kUsage[] = "Usage: Editor <headless-check> [--list-mode <cards|rows>] [--window-skin <id>]";
+
+// The value of a "--name value" or "--name=value" option; engaged when the
+// option is present, empty when its value is missing.
+std::optional<QString> optionWord(const QStringList& arguments, const QString& name)
+{
+	for (int i = 1; i < arguments.size(); i++)
+	{
+		if (arguments[i] == name)
+			return arguments.value(i + 1);
+		if (arguments[i].startsWith(name + QLatin1Char('=')))
+			return arguments[i].mid(name.size() + 1);
+	}
+	return std::nullopt;
+}
+
+QString sortedList(const QSet<QString>& ids)
+{
+	QStringList list(ids.begin(), ids.end());
+	list.sort();
+	return list.join(QStringLiteral(", "));
+}
+
+// What the run's options came to, on top of the check's own verdict. Rows
+// that no skin drew and a window skin that no window took both mean the run
+// did not test what its command line says, so neither may exit 0.
+int listModeVerdict(int code)
+{
+	if (activeWindowSkin.has_value() && !windowSkinAsked)
+	{
+		qWarning("ListMode: FAIL --window-skin %s was given, and this check opens no Editor window that takes it",
+			qPrintable(*activeWindowSkin));
+		code = code != 0 ? code : 1;
+	}
+	if (activeListMode != EditorSettings::ListMode::Rows)
+		return code;
+	qWarning("ListMode: rows in %s; cards in %s",
+		rowSkins.isEmpty() ? "no skin" : qPrintable(sortedList(rowSkins)),
+		fallbackSkins.isEmpty() ? "no skin" : qPrintable(sortedList(fallbackSkins)));
+	if (rowSkins.isEmpty())
+	{
+		qWarning("ListMode: FAIL rows were requested, and no skin of this run drew them");
+		code = code != 0 ? code : 1;
+	}
+	return code;
+}
 
 FILE* openHeadlessLog()
 {
@@ -343,6 +396,14 @@ static const GateEntry kGates[] = {
 		nullptr
 	},
 	{
+		"--window-skin",
+		Stage::Headless,
+		"id",
+		false,
+		nullptr,
+		nullptr
+	},
+	{
 		"--skin-gallery-skins",
 		Stage::Headless,
 		"ids",
@@ -557,13 +618,24 @@ std::optional<EditorSettings::ListMode> EditorGates::headlessListMode()
 	return activeListMode;
 }
 
-void EditorGates::reportListModeFallback(const QString& skinId)
+std::optional<QString> EditorGates::headlessWindowSkin()
 {
-	if (activeListMode == EditorSettings::ListMode::Rows
-		&& !SkinManager::instance()->skinSupportsRows(skinId)
-		&& !reportedFallbackSkins.contains(skinId))
+	windowSkinAsked = true;
+	return activeWindowSkin;
+}
+
+void EditorGates::noteListModeSkin(const QString& skinId)
+{
+	if (activeListMode != EditorSettings::ListMode::Rows)
+		return;
+	if (SkinManager::instance()->skinSupportsRows(skinId))
 	{
-		reportedFallbackSkins.insert(skinId);
+		rowSkins.insert(skinId);
+		return;
+	}
+	if (!fallbackSkins.contains(skinId))
+	{
+		fallbackSkins.insert(skinId);
 		qWarning("ListMode: %s does not support rows; using cards (not row coverage)", qPrintable(skinId));
 	}
 }
@@ -571,22 +643,24 @@ void EditorGates::reportListModeFallback(const QString& skinId)
 std::optional<int> EditorGates::runHeadless(const QStringList& arguments)
 {
 	EditorSettings::ListMode requestedMode = EditorSettings::ListMode::Cards;
-	bool listModeSpecified = false;
-	for (int i = 1; i < arguments.size(); i++)
+	const std::optional<QString> modeWord = optionWord(arguments, QStringLiteral("--list-mode"));
+	if (modeWord.has_value())
 	{
-		const QString argument = arguments[i];
-		if (argument != QLatin1String("--list-mode") && !argument.startsWith(QLatin1String("--list-mode=")))
-			continue;
-		const QString word = argument == QLatin1String("--list-mode")
-			? arguments.value(++i) : argument.mid(12);
-		const auto mode = EditorSettings::listModeFromWord(word);
+		const auto mode = EditorSettings::listModeFromWord(*modeWord);
 		if (!mode.has_value() || *mode == EditorSettings::ListMode::LegacyEditor)
 		{
-			qWarning("Usage: Editor <headless-check> [--list-mode <cards|rows>]");
+			qWarning("%s", kUsage);
 			return 2;
 		}
 		requestedMode = *mode;
-		listModeSpecified = true;
+	}
+	const std::optional<QString> windowSkin = optionWord(arguments, QStringLiteral("--window-skin"));
+	if (windowSkin.has_value() && !SkinThemeData::ids().contains(*windowSkin))
+	{
+		qWarning("%s", kUsage);
+		qWarning("--window-skin: unknown skin '%s' (known: %s)", qPrintable(*windowSkin),
+			qPrintable(SkinThemeData::ids().join(QStringLiteral(", "))));
+		return 2;
 	}
 	for (const GateEntry& entry : kGates)
 	{
@@ -595,14 +669,20 @@ std::optional<int> EditorGates::runHeadless(const QStringList& arguments)
 		{
 			redirectHeadlessLog();
 			activeListMode = requestedMode;
-			reportedFallbackSkins.clear();
-			const auto reset = qScopeGuard([] { activeListMode.reset(); });
-			return entry.runHeadless(arguments);
+			activeWindowSkin = windowSkin;
+			windowSkinAsked = false;
+			rowSkins.clear();
+			fallbackSkins.clear();
+			const auto reset = qScopeGuard([] {
+				activeListMode.reset();
+				activeWindowSkin.reset();
+			});
+			return listModeVerdict(entry.runHeadless(arguments));
 		}
 	}
-	if (listModeSpecified)
+	if (modeWord.has_value() || windowSkin.has_value())
 	{
-		qWarning("Usage: Editor <headless-check> [--list-mode <cards|rows>]");
+		qWarning("%s", kUsage);
 		return 2;
 	}
 	return std::nullopt;

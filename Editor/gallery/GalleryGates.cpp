@@ -376,7 +376,7 @@ void runOneSwitch(SwitchRun& run, ISkin* skin, bool dark, int round)
 		table->clearRows();
 		clearMs = timer.restart();
 		SkinManager::instance()->applySkin(skin->id(), dark);
-		EditorGates::reportListModeFallback(skin->id());
+		EditorGates::noteListModeSkin(skin->id());
 		applyMs = timer.restart();
 		table->updateGuis();
 		VSTPluginSession::waitForPendingLoads(30000);
@@ -626,7 +626,7 @@ int runCardMoveTest(const QStringList& arguments)
 		// before the stylesheet swap, rebuild after).
 		table->clearRows();
 		SkinManager::instance()->applySkin(skin->id(), dark);
-		EditorGates::reportListModeFallback(skin->id());
+		EditorGates::noteListModeSkin(skin->id());
 		table->updateGuis();
 		VSTPluginSession::waitForPendingLoads(30000);
 		QApplication::processEvents();

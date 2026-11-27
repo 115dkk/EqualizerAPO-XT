@@ -116,9 +116,21 @@ void MainWindow::loadPreferences()
 	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(savedSettings, GUIHelper::isSystemDarkMode());
 	skinId = choice.id;
 	skinDark = choice.dark;
+	if (headlessMode.has_value())
+	{
+		// A check that names its window's skin does not depend on what this
+		// machine has saved. A runner has nothing saved and opens the default
+		// skin, so a check of rows would run in cards there unless it says
+		// which skin it means.
+		if (const auto windowSkin = EditorGates::headlessWindowSkin(); windowSkin.has_value())
+		{
+			skinId = *windowSkin;
+			skinDark = false;
+		}
+	}
 	currentRenderMode = renderModeForListMode(headlessMode.has_value() ? *headlessMode : EditorSettings::readListMode(settings));
 	if (headlessMode.has_value())
-		EditorGates::reportListModeFallback(skinId);
+		EditorGates::noteListModeSkin(skinId);
 	// The layout probe starts from a clean, deterministic right dock without
 	// reading or mutating the user's saved window arrangement.
 	graphDockPosition = analysisLayoutTestMode ? 2
