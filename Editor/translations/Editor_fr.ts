@@ -3483,7 +3483,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     <message>
         <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
         <source>Delay this device to match</source>
-        <translation>Retarder ce périphérique pour le synchroniser</translation>
+        <translation>Retarder pour synchroniser</translation>
     </message>
     <message>
         <location filename="../widgets/cards/SendCardEditor.cpp" line="100"/>
