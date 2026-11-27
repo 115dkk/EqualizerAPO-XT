@@ -2097,4 +2097,10 @@ QToolButton#DeviceChipMore:hover {
    as a dark slab under the mapping board. */
 QFrame#FilterCardRow[inlineRow="true"] QWidget#MultiConvolutionMappingArea {
     background: transparent;
+}/* The Add channel fields kept their dashed underline under the accent rule
+   on hover: three solid sides and a dashed fourth. Pre-lit, the field is
+   ruled solid on four sides, like the focused field. */
+QLineEdit#ChannelChipAdd:hover,
+QLineEdit#NewChannelAdd:hover {
+    border: 1px solid @ACCENT@;
 }
