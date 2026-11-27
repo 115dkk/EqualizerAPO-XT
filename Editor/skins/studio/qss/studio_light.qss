@@ -693,18 +693,33 @@ QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 600;
     text-transform: uppercase; letter-spacing: 1px; font-size: 10pt;
 }
+/* Every value field in the list is the same part: the sunken glass well
+   of the value boxes (valueScrub, X1), with its shaded top edge, 8 px
+   round, mono at the body weight, set from the left. The knob cards'
+   readouts (Preamp, Delay, All-pass) used to be grey plates in bold,
+   centred, and stood out from every other field in the list. The height
+   is the value box's 35 px. */
 QLabel#EditableValue {
-    background: rgba(0, 0, 0, 0.04); color: @TEXT@;
-    border: 1px solid @BORDER@; border-top-color: rgba(0, 0, 0, 0.10);
-    border-radius: 6px;
-    padding: 6px 10px;
-    font-family: @MONO_STACK@; font-weight: 700;
+    background: rgba(232, 238, 248, 0.70); color: @TEXT@;
+    border: 1px solid @BORDER@; border-top-color: rgba(0, 0, 0, 0.14);
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-height: 25px;
+    font-family: @MONO_STACK@; font-weight: 500;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+}
+QLabel#EditableValue:hover {
+    border-color: rgba(47, 107, 255, 0.50);
+    background: @CARD@;
 }
 
+/* Typing into a readout is the focused well. */
 QLineEdit#EditableValueEditor {
-    background: @CARD_HOVER@; border: 1px solid @ACCENT@;
-    border-radius: 6px; padding: 6px 10px;
-    font-family: @MONO_STACK@; font-weight: 700;
+    background: @CARD@; border: 1px solid @ACCENT@;
+    border-radius: 8px; padding: 4px 8px;
+    min-height: 25px;
+    font-family: @MONO_STACK@; font-weight: 500;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
 }
 
 /* ===== Reference cards (Include / Conv / MultiConv / VST bodies) =====
@@ -1430,7 +1445,18 @@ QToolButton#NewChannelChip[invalid="true"]:hover {
 QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 
 /* Send card: the field captions read like the MultiConvolution mapping
-   caption; a latency the card cannot read takes the danger colour. */
+   caption; a latency the card cannot read takes the danger colour. The
+   latency is a value field like the value boxes: the same well, mono, the
+   same height and the same light under the pointer. */
+QLineEdit#SendLatencyEdit {
+    background: rgba(232, 238, 248, 0.70);
+    min-height: 25px;
+    font-family: @MONO_STACK@;
+}
+QLineEdit#SendLatencyEdit:hover {
+    border-color: rgba(47, 107, 255, 0.50);
+    background: @CARD@;
+}
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
 
 /* ===== Modern rows =====

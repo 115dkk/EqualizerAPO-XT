@@ -1038,24 +1038,39 @@ QLabel#PreampCardCaption {
     letter-spacing: 1px;
     font-size: 10pt;
 }
+/* Every value field in the list is the same part: the sunken glass well
+   of the value boxes (valueScrub, X1), with its dark top edge, 8 px round,
+   mono at the body weight, set from the left. The knob cards' readouts
+   (Preamp, Delay, All-pass) used to be raised light plates in bold,
+   centred, and stood out from every other field in the list. The height
+   is the value box's 35 px. */
 QLabel#EditableValue {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(6, 9, 20, 0.62);
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-top-color: rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    padding: 6px 10px;
+    border-top-color: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-height: 25px;
     font-family: @MONO_STACK@;
-    font-weight: 700;
+    font-weight: 500;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+}
+QLabel#EditableValue:hover {
+    border-color: rgba(91, 140, 255, 0.45);
+    background: #090910;
 }
 
+/* Typing into a readout is the focused well. */
 QLineEdit#EditableValueEditor {
-    background: #05050A;
+    background: #090910;
     border: 1px solid @ACCENT@;
-    border-radius: 6px;
-    padding: 6px 10px;
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-height: 25px;
     font-family: @MONO_STACK@;
-    font-weight: 700;
+    font-weight: 500;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
 }
 
 /* ===== Reference cards (Include / Conv / MultiConv / VST bodies) =====
@@ -1832,7 +1847,18 @@ QToolButton#NewChannelChip[invalid="true"]:hover {
 QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 
 /* Send card: the field captions read like the MultiConvolution mapping
-   caption; a latency the card cannot read takes the danger colour. */
+   caption; a latency the card cannot read takes the danger colour. The
+   latency is a value field like the value boxes: the same well, mono, the
+   same height and the same light under the pointer. */
+QLineEdit#SendLatencyEdit {
+    background: rgba(6, 9, 20, 0.62);
+    min-height: 25px;
+    font-family: @MONO_STACK@;
+}
+QLineEdit#SendLatencyEdit:hover {
+    border-color: rgba(91, 140, 255, 0.45);
+    background: #090910;
+}
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
 
 /* ===== Modern rows =====
