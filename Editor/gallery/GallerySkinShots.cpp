@@ -565,6 +565,55 @@ int assertBodyInsideCard(QWidget* row, const QString& skinId, const QString& mod
 	return 1;
 }
 
+// The other half of the same contract: the scroll wrapper is as tall as its
+// content needs, or the content is cut inside the row. A comment line in a
+// Modern row of a table shorter than the window kept the height its note
+// field had before the skin's sheet was applied (26 px for a 35 px field),
+// and the field lost its lower edge; the rows of a longer table were put
+// right only because the vertical bar's arrival resized them. Measured on
+// the geometry that is drawn, without asking any layout to recompute: a
+// control that ends below its editor's lower edge is cut there.
+int assertEditorNotCut(QWidget* row, const QString& skinId, const QString& mode,
+	const QString& rowName, const QString& state)
+{
+	int failures = 0;
+	for (const QScrollArea* body : row->findChildren<QScrollArea*>(QStringLiteral("FilterCardEditorScroll")))
+	{
+		const QWidget* content = body->widget();
+		if (content == nullptr || !body->isVisible() || body->verticalScrollBarPolicy() != Qt::ScrollBarAlwaysOff)
+			continue;
+		const int shown = qMin(content->height(), body->viewport()->height());
+		int worst = 0;
+		QString worstName;
+		for (const QWidget* control : content->findChildren<QWidget*>())
+		{
+			if (!control->isVisibleTo(content))
+				continue;
+			// What scrolls inside a board or a list of its own is not cut by
+			// this editor.
+			bool scrollsInside = false;
+			for (const QWidget* up = control->parentWidget(); up != nullptr && up != content; up = up->parentWidget())
+				scrollsInside = scrollsInside || qobject_cast<const QAbstractScrollArea*>(up) != nullptr;
+			if (scrollsInside)
+				continue;
+			const int over = control->mapTo(content, QPoint(0, control->height())).y() - shown;
+			if (over > worst)
+			{
+				worst = over;
+				worstName = control->objectName().isEmpty()
+					? QString::fromLatin1(control->metaObject()->className()) : control->objectName();
+			}
+		}
+		if (worst <= 0)
+			continue;
+		qWarning("SkinGallery: the editor of row %s_%s_%s_%s is cut: %s ends %d px below the %d px it shows",
+			qPrintable(skinId), qPrintable(mode), qPrintable(rowName), qPrintable(state),
+			qPrintable(worstName), worst, shown);
+		failures++;
+	}
+	return failures;
+}
+
 // Value gate: every spin box must show its text. Qt 6.12.0 collapsed the edit
 // field of a button-less spin box to 1px and started a buttoned one at x = 0
 // under the frame (QTBUG-151308, worked around in SpinBoxEditFieldFix); every
@@ -2059,6 +2108,7 @@ void renderRowScenes(SkinRenderContext& ctx)
 			failures += assertNoHorizontalScrollBar(row, skinId, mode, name, state);
 			failures += assertSpinBoxTextVisible(row, skinId, mode, name, state);
 			failures += assertBodyInsideCard(row, skinId, mode, name, state);
+			failures += assertEditorNotCut(row, skinId, mode, name, state);
 		}
 	};
 

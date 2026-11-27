@@ -775,6 +775,22 @@ void FilterCardRow::syncEditorScrollHeight(QScrollArea* scroll)
 			layout()->invalidate();
 		updateGeometry();
 	}
+
+	// The scroll area resizes the content to its viewport, and the content's
+	// own layout does not always follow: a row built before its window is
+	// shown had its content taken from 48 px to the 36 px it needs without a
+	// resize event reaching it, and the layout then answered the layout
+	// request as already active. The note field of a comment line stayed
+	// where the 48 px pass had put it and lost its lower edge inside the 36
+	// px that are shown (a Modern row of Stock Flat; any table too short to
+	// get a vertical bar, whose arrival would have resized the row). Where
+	// the height is settled, the layout takes the rect the content has.
+	if (QLayout* inner = content->layout())
+	{
+		const QRect rect = content->testAttribute(Qt::WA_LayoutOnEntireRect) ? content->rect() : content->contentsRect();
+		if (inner->geometry() != rect)
+			inner->setGeometry(rect);
+	}
 }
 
 bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
