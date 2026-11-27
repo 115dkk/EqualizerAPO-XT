@@ -499,6 +499,18 @@ enum class KnobGesture
 	VerticalDrag
 };
 
+// What a skin promises about its controls. The gallery checks it on every
+// capture; a skin that promises nothing is not checked.
+struct SkinControlContract
+{
+	// Every cap, chip, combo, field and check-box frame shows its outline on
+	// all four sides, and a lit outline has one colour on four sides.
+	bool closedOutlines = false;
+	// Height in px, outline included, of every cap inside the filter list.
+	// 0 = no promise.
+	int listCapHeight = 0;
+};
+
 class ISkin
 {
 public:
@@ -625,6 +637,11 @@ public:
 	// the loaded format is still on the row (the reference card's format
 	// badge) and a problem is still reported by the card's status line.
 	virtual bool showsUnusableVstBusStrip() const;
+
+	// The skin's promise about its controls (SkinControlContract). The
+	// gallery measures it on every capture it saves, so a promise made here
+	// is checked on rendered pixels. Default: no promise, nothing checked.
+	virtual SkinControlContract controlContract() const { return {}; }
 
 	// The persistent "add card" row at the end of the filter list (shared
 	// insertion contract, docs/skins/README.md). The AddCardRow widget owns

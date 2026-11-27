@@ -43,6 +43,10 @@ public:
 		const SkinTokens& tokens) const override;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info,
 		const SkinTokens& tokens) const override;
+	// Rule 12 of docs/skins/rack.md: every cap, chip, combo and field shows
+	// its outline on four sides, and a lit outline has one colour on four.
+	// Every cap in the card list is one 22 px module with its outline.
+	SkinControlContract controlContract() const override { return { true, 22 }; }
 
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,
 		const SkinTokens& tokens) const override;

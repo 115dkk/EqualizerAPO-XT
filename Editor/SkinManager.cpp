@@ -234,6 +234,11 @@ bool SkinManager::showsUnusableVstBusStrip() const
 	return activeSkin->showsUnusableVstBusStrip();
 }
 
+SkinControlContract SkinManager::controlContract() const
+{
+	return activeSkin->controlContract();
+}
+
 void SkinManager::paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state) const
 {
 	activeSkin->paintAddRow(painter, rect, state, currentTokens);

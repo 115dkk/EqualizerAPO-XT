@@ -104,8 +104,9 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
     있게 했습니다([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). 세 번째 인터페이스인 Modern rows를 넣고
     있습니다. 필터 하나를 스킨의 모습 그대로 한 줄에 표시하는 모드입니다. 첫
     단계로 원본의 행 배치를 Legacy editor로 이름을 바꿨습니다
-    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)). 다음은 Hardware Rack 카드의 캡을 낮추고 윤곽을 닫는
-    일, 그 스킨의 Modern rows, 나머지 네 스킨 순서입니다.
+    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)). Hardware Rack 카드의 단추를 낮추고 윤곽선이 네 면에
+    모두 나오게 했습니다([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)). 다음은 그 스킨의 Modern rows,
+    나머지 네 스킨 순서입니다.
 
 ## 주요 기능
 

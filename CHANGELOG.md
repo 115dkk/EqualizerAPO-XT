@@ -14,6 +14,18 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: the Hardware Rack skin's buttons show all four edges, and they
+  are lower.** In the dark finish the outline of buttons, selectors and
+  fields was almost the colour of the panel, so most of their edges did not
+  show; in both finishes the buttons of the routing matrix were faint and a
+  selected channel key lit only its bottom edge. Outlines now show on every
+  side, also on the toolbar, in dialogs and in Device Selector, and a
+  selected or focused button lights all four sides. Buttons inside the
+  filter list are 22 px tall instead of 28 to 36 px, which makes every card
+  a little shorter (a Send card by about 60 px). Moving through the list
+  with the Tab key now shows which button has the focus.
+  ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547))
+
 ## v2.86.0 — 2026-11-26
 
 - **Editor: the Legacy rows interface is now called Legacy editor.** View >
