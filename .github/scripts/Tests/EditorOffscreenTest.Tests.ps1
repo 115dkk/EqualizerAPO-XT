@@ -55,6 +55,40 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
         $plan.PostChecks | Should -Contain "gallery-not-empty"
     }
 
+    It "runs the gallery in the shipped translations with the same fixtures, each with its own output and log" {
+        $languages = @((PlanFor "skin-gallery").TranslatedGalleryLanguages)
+        $languages | Should -Be @("fr", "de", "ko")
+        foreach ($language in $languages) {
+            $plan = PlanFor "skin-gallery-$language"
+            $plan.Arguments | Should -Be @("--skin-gallery", "C:\ws\skin-gallery-$language")
+            $plan.ExtraEnv["EAPO_GALLERY_LANG"] | Should -Be $language
+            $plan.ExtraEnv["EAPO_GALLERY_VST3_PLUGIN"] |
+                Should -Be "C:\ws\Tests\TestVst3Plugin\x64\Release\TestVst3Plugin.vst3"
+            $plan.ExtraEnv["EAPO_GALLERY_VST2_PLUGIN"] |
+                Should -Be "C:\ws\Tests\TestVst2Plugin\x64\Release\TestVst2Plugin.dll"
+            $plan.LogPath | Should -Be "C:\ws\skin-gallery-$language.log"
+            $plan.PostChecks | Should -Contain "gallery-not-empty"
+            $plan.QtPlatform | Should -Be "offscreen"
+        }
+    }
+
+    It "has the workflow run exactly the translated galleries the script defines" {
+        $workflow = Get-Content -LiteralPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml") -Raw
+        $loop = [regex]::Match($workflow, 'foreach \(\$language in @\((?<list>[^)]*)\)\) \{\s*&[^\r\n]*Invoke-EditorOffscreenTest\.ps1')
+        $loop.Success | Should -BeTrue
+        $inWorkflow = @($loop.Groups["list"].Value -split "," | ForEach-Object { $_.Trim().Trim('"') })
+        $inWorkflow | Should -Be @((PlanFor "skin-gallery").TranslatedGalleryLanguages)
+        $workflow | Should -Match '-Gate "skin-gallery-\$language"'
+    }
+
+    It "keeps a log for every gallery run, because the findings are qWarning lines" {
+        foreach ($gate in @("skin-gallery", "skin-gallery-fr", "skin-gallery-de", "skin-gallery-ko")) {
+            $plan = PlanFor $gate
+            $plan.LogPath | Should -Not -BeNullOrEmpty
+            $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
+        }
+    }
+
     It "keeps the switch and move latency budgets" {
         $switch = PlanFor "skin-switch"
         $switch.ExtraEnv["EAPO_SWITCH_WARN_MS"] | Should -Be "2500"

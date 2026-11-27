@@ -515,6 +515,21 @@ jobs:
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
           -WorkspaceRoot "${{ github.workspace }}" -Gate skin-gallery -Platform "${{ matrix.platform }}"
 
+    # The same gallery in the shipped translations a headless runner can
+    # draw. Its layout checks depend on the length of the translated strings
+    # (in French the filter card was wider than the list in all five skins,
+    # and only a French run could see it). The list of languages is the
+    # gate script's; a Pester test keeps this loop equal to it.
+    - name: Run skin gallery in the shipped translations (offscreen)
+      if: matrix.primary == true
+      timeout-minutes: 20
+      shell: pwsh
+      run: |
+        foreach ($language in @("fr", "de", "ko")) {
+          & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+            -WorkspaceRoot "${{ github.workspace }}" -Gate "skin-gallery-$language" -Platform "${{ matrix.platform }}"
+        }
+
     - name: Run skin switch test (offscreen)
       if: matrix.primary == true
       timeout-minutes: 10
