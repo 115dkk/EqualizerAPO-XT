@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.86.3 — 2026-11-27
+
 - **Editor: a line you did not change keeps its text.** Clicking into a text
   field of a card and leaving it, or pressing Enter in it, could rewrite the
   whole line in the Editor's own spelling although nothing was edited. A Send
