@@ -1914,3 +1914,37 @@ QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
 QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
     min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
 }
+
+/* ===== One cap height in the list =====
+   Every cap in the filter list (power cap, the header's actions in a card,
+   icon and text caps, framed selectors, chips and the fields on a chip
+   line) is 26 px with its outline, in cards and rows alike. The caps were
+   33 to 38 px with about 10 px clear above and below an 11 to 14 px
+   legend; that air is halved to about 5 px. Parameter selectors are
+   engraved legends, not caps, and keep their own size; the value fields
+   keep the value boxes' 35 px. The row's stacked header actions stay bare
+   18 px glyphs (Modern rows block). */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd {
+    min-height: 24px; max-height: 24px; padding-top: 0px; padding-bottom: 0px;
+}
+/* The painted pick-one controls (All-pass order, Hilbert direction, Velvet
+   mode) are framed selectors on the same lines; the skin paints them in
+   the rect they get, so the list gives them the cap height too. */
+QFrame#FilterCardRow SegmentedControl {
+    min-height: 26px; max-height: 26px;
+}
