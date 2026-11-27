@@ -113,6 +113,15 @@ $gates = @{
         LogPath    = Join-Path $WorkspaceRoot "card-selection\card-selection-test.log"
         PostChecks = @("card-selection-shots")
     }
+    # View > Interface: the two modern presentations with a skin each, the
+    # Legacy editor entry and its restart, the Ctrl+Alt+1..5 shortcuts, and
+    # that a choice made in the check never reaches the saved preferences.
+    "interface-menu" = [pscustomobject]@{
+        Arguments  = @("--interface-menu-test")
+        ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
+        LogPath    = Join-Path $WorkspaceRoot "interface-menu-test.log"
+        PostChecks = @()
+    }
     "power-toggle" = [pscustomobject]@{
         Arguments  = @("--power-toggle-test")
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
@@ -188,6 +197,46 @@ foreach ($language in $translatedGalleryLanguages) {
     $gates["skin-gallery-$language"] = $translated
 }
 
+# The list checks again in Modern rows. A row and a card hold the same editors
+# in a different layout, and a check that passes in one can fail in the other:
+# the save sweep found a Send line rewritten without an edit only in rows,
+# where one of its steps reached a control that a card does not expose.
+#
+# - A check that walks every skin runs rows in the skins that draw them and
+#   cards in the rest, so its row run widens by itself as skins gain rows.
+# - A check that opens one Editor window takes the skin saved on the machine,
+#   and a runner has none saved: it would open the default skin, which may
+#   have no rows, and pass in cards. Those checks name their window's skin.
+# - Either way the Editor prints which skins drew rows and exits non-zero
+#   when none did; rows-coverage below reads that line from the log, so a
+#   check that ends the process on a path of its own cannot pass without it.
+#
+# Each row run has its own log and output folder, so it never replaces the
+# card run's proof before the upload.
+$rowListGates = @("power-toggle", "routing-edit", "close-save", "close-save-sweep", "skin-switch", "card-move", "card-selection")
+$rowWindowGates = @("close-save", "close-save-sweep")
+$rowWindowSkin = "rack"
+foreach ($name in $rowListGates) {
+    $base = $gates[$name]
+    $outDir = Join-Path $WorkspaceRoot $name
+    $arguments = @($base.Arguments | ForEach-Object { if ($_ -eq $outDir) { "$outDir-rows" } else { $_ } })
+    $arguments += @("--list-mode", "rows")
+    if ($rowWindowGates -contains $name) {
+        $arguments += @("--window-skin", $rowWindowSkin)
+    }
+    $logPath = if ($base.LogPath.StartsWith("$outDir\")) {
+        Join-Path "$outDir-rows" (Split-Path $base.LogPath -Leaf)
+    } else {
+        $base.LogPath -replace '\.log$', '-rows.log'
+    }
+    $gates["$name-rows"] = [pscustomobject]@{
+        Arguments  = $arguments
+        ExtraEnv   = $base.ExtraEnv
+        LogPath    = $logPath
+        PostChecks = @($base.PostChecks) + @("rows-coverage")
+    }
+}
+
 if (-not $gates.ContainsKey($Gate)) {
     $validGates = @($gates.Keys | Sort-Object)
     throw "Unknown Editor offscreen gate '$Gate'. Valid gates: $($validGates -join ', ')"
@@ -204,6 +253,9 @@ $plan = [pscustomobject]@{
     PostChecks = @($spec.PostChecks)
     QtPlatform = if ($spec.PSObject.Properties["QtPlatform"]) { $spec.QtPlatform } else { "offscreen" }
     TranslatedGalleryLanguages = @($translatedGalleryLanguages)
+    RowListGates = @($rowListGates)
+    RowWindowGates = @($rowWindowGates)
+    RowWindowSkin = $rowWindowSkin
     # The import lib embeds the SONAME velopack_libc.dll (see Package-
     # Artifacts); the gates run from the build dir, so the renamed DLL must
     # sit next to Editor.exe. Idempotent, so every gate does it.
@@ -313,6 +365,17 @@ foreach ($check in $plan.PostChecks) {
             if (-not (Test-Path $shot)) {
                 throw "Analysis dock layout test produced no screenshot"
             }
+        }
+        "rows-coverage" {
+            $coverage = @(Get-Content $spec.LogPath | Where-Object { $_ -match '^ListMode: rows in ' }) |
+                Select-Object -Last 1
+            if (-not $coverage) {
+                throw "Gate '$Gate' did not report which skins drew rows"
+            }
+            if ($coverage -match '^ListMode: rows in no skin') {
+                throw "Gate '$Gate' ran without a skin that draws rows: $coverage"
+            }
+            Write-Host "Row coverage: $coverage"
         }
         "card-selection-shots" {
             # Audit #422 TD-41: the gate exits 0 after its own checks, but an

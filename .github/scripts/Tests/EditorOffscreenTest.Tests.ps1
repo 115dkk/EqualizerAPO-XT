@@ -20,9 +20,14 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
                 ForEach-Object { $_.Groups["gate"].Value }
         )
         $gateNames.Count | Should -BeGreaterThan 0
+        # The row runs are generated from the table, so the pattern above
+        # does not see them; their names come from the plan's own list.
+        $gateNames += @((PlanFor "power-toggle").RowListGates | ForEach-Object { "$_-rows" })
         $scriptFlags = @(
             $gateNames | ForEach-Object { (PlanFor $_).EditorFlags } | Sort-Object -Unique
         )
+        $scriptFlags | Should -Contain "--list-mode"
+        $scriptFlags | Should -Contain "--window-skin"
 
         $gateSource = Get-Content -LiteralPath $editorGatesSource -Raw
         $declaredFlags = @(
@@ -87,6 +92,64 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
             $plan.LogPath | Should -Not -BeNullOrEmpty
             $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
         }
+    }
+
+    It "runs each list check again in Modern rows, with its own log and output folder" {
+        $rowGates = @((PlanFor "power-toggle").RowListGates)
+        $rowGates | Should -Be @("power-toggle", "routing-edit", "close-save", "close-save-sweep", "skin-switch", "card-move", "card-selection")
+        foreach ($gate in $rowGates) {
+            $cards = PlanFor $gate
+            $rows = PlanFor "$gate-rows"
+            $rows.EditorFlags | Should -Contain $cards.EditorFlags[0]
+            ($rows.Arguments -join " ") | Should -Match '--list-mode rows'
+            $rows.LogPath | Should -Not -Be $cards.LogPath
+            $rows.LogPath | Should -Match 'rows'
+            $rows.PostChecks | Should -Contain "rows-coverage"
+            foreach ($check in $cards.PostChecks) {
+                $rows.PostChecks | Should -Contain $check
+            }
+            foreach ($name in $cards.ExtraEnv.Keys) {
+                $rows.ExtraEnv[$name] | Should -Be $cards.ExtraEnv[$name]
+            }
+            $rows.QtPlatform | Should -Be "offscreen"
+        }
+        (PlanFor "card-selection-rows").Arguments[1] | Should -Be "C:\ws\card-selection-rows"
+        (PlanFor "card-selection-rows").LogPath | Should -Be "C:\ws\card-selection-rows\card-selection-test.log"
+        (PlanFor "close-save-sweep-rows").LogPath | Should -Be "C:\ws\close-save-sweep-rows.log"
+    }
+
+    It "names the window's skin for the row runs that open one Editor window" {
+        # A runner has no saved skin; without the name these checks open the
+        # default skin and, where it has no rows, pass in cards.
+        $plan = PlanFor "power-toggle"
+        $plan.RowWindowGates | Should -Be @("close-save", "close-save-sweep")
+        $plan.RowWindowSkin | Should -Not -BeNullOrEmpty
+        foreach ($gate in $plan.RowListGates) {
+            $arguments = (PlanFor "$gate-rows").Arguments -join " "
+            if ($plan.RowWindowGates -contains $gate) {
+                $arguments | Should -Match "--window-skin $($plan.RowWindowSkin)$"
+            } else {
+                # A check that walks every skin fails when handed a window skin.
+                $arguments | Should -Not -Match '--window-skin'
+            }
+        }
+    }
+
+    It "has the workflow run exactly the row checks the script defines" {
+        $workflow = Get-Content -LiteralPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml") -Raw
+        $loop = [regex]::Match($workflow, 'foreach \(\$check in @\((?<list>[^)]*)\)\) \{\s*&[^\r\n]*Invoke-EditorOffscreenTest\.ps1')
+        $loop.Success | Should -BeTrue
+        $inWorkflow = @($loop.Groups["list"].Value -split "," | ForEach-Object { $_.Trim().Trim('"') })
+        $inWorkflow | Should -Be @((PlanFor "power-toggle").RowListGates)
+        $workflow | Should -Match '-Gate "\$check-rows"'
+        $workflow | Should -Match '-Gate interface-menu'
+    }
+
+    It "runs the Interface menu check with a log" {
+        $plan = PlanFor "interface-menu"
+        $plan.Arguments | Should -Be @("--interface-menu-test")
+        $plan.LogPath | Should -Be "C:\ws\interface-menu-test.log"
+        $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
     }
 
     It "keeps the switch and move latency budgets" {
