@@ -525,16 +525,28 @@ QLabel#PreampCardCaption {
     color: @MUTED@; font-weight: 700;
     text-transform: uppercase; letter-spacing: 2px; font-size: 10pt;
 }
+/* Every value field in the list is the same part: the Filter line's
+   figure (valueScrub, above) - the brightest ink, bold, set from the left,
+   printed on the paper with no box at rest, one value step down on the paper in a hairline
+   box under the pointer, the input ground and the accent hairline while
+   typed into. The knob cards' readouts (Preamp, Delay, All-pass) were
+   boxed input fields in body ink, centred, and stood out from every other
+   number in the list. Same 35 px as the figure: 25 px of text, 4 px of
+   padding and the hairline above and below. */
 QLabel#EditableValue {
-    background: #E0E0E0; color: @TEXT@;
-    border: 1px solid @BORDER@; border-radius: 0;
-    padding: 4px 8px;
+    background: transparent; color: #000000;
+    border: 1px solid transparent; border-radius: 0;
+    padding: 4px 2px; min-height: 25px;
     font-family: @MONO_STACK@; font-weight: 700;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
 }
+QLabel#EditableValue:hover { background: @CARD_HOVER@; border-color: @BORDER@; }
+QLabel#EditableValue:disabled { background: transparent; color: @MUTED@; }
 
 QLineEdit#EditableValueEditor {
-    background: #E0E0E0; border: 1px solid @ACCENT@;
-    border-radius: 0; padding: 4px 8px;
+    background: #E0E0E0; color: #000000;
+    border: 1px solid @ACCENT@; border-radius: 0;
+    padding: 4px 2px; min-height: 25px;
     font-family: @MONO_STACK@; font-weight: 700;
 }
 /* ===== Reference line (Include / Convolution / MultiConvolution / VST
@@ -998,6 +1010,16 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 
 /* Send card: the field captions read like the MultiConvolution mapping
    caption; a latency the card cannot read takes the danger colour. */
+/* The Send latency is a value field like the figures: no box at rest, the
+   same hover step and the accent hairline over the input ground while
+   typed into (the generic field focus rule), bold in the brightest ink. */
+QLineEdit#SendLatencyEdit {
+    background: transparent; color: #000000;
+    border: 1px solid transparent; border-radius: 0;
+    padding: 4px 2px; min-height: 25px; font-weight: 700;
+}
+QLineEdit#SendLatencyEdit:hover { background: @CARD_HOVER@; border-color: @BORDER@; }
+QLineEdit#SendLatencyEdit:focus { background: #E0E0E0; border-color: @ACCENT@; }
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
 
 /* ===== Modern rows =====
@@ -1067,6 +1089,8 @@ QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
    toast's step past cardHover). A pressed, checked, focused or dead part keeps its
    own state rule. */
 QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"]:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QLabel#EditableValue:hover:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#SendLatencyEdit:hover:!focus:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]:hover:!pressed:!checked:!focus:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]:hover:!pressed:!checked:!focus:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QComboBox[minimalRefSelector="true"]:hover:!pressed:!checked:!focus:!disabled,

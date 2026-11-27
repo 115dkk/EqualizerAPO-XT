@@ -164,6 +164,21 @@ void MinimalSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, Q
 					grid->invalidate();
 				}
 			}
+			// A knob card's caption or unit selector stands 6 px above its
+			// value field. The field is the Filter figure's 35 px, so with a
+			// 28 px unit selector above it the block outgrew the row's band
+			// (Delay and All-pass lines were 87 px); 3 px keeps the block at
+			// the drum's 66 px and the line at 84 px.
+			for (QWidget* block : body->findChildren<QWidget*>())
+			{
+				const QString name = block->objectName();
+				if (name == QStringLiteral("PreampCardValueBlock") || name == QStringLiteral("DelayCardValueBlock")
+					|| name == QStringLiteral("AllPassCardValueBlock"))
+				{
+					if (QLayout* stack = block->layout())
+						stack->setSpacing(3);
+				}
+			}
 			// The Send line's device name is a data column: across one row
 			// it gives way first (shared article 4). The combo sizes itself to
 			// the longest endpoint name, which pushed the delay check box
