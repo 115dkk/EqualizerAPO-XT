@@ -77,8 +77,7 @@ QString RackSkin::cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) cons
 
 bool RackSkin::supportsRowMode() const
 {
-	// Experiment (the table asks only while EAPO_MODERN_ROWS is set): every
-	// unit can be bolted in as one unit with its controls at the left ear
+	// Modern rows put each unit's controls at the left ear
 	// instead of a header strip over a body.
 	return true;
 }

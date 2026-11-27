@@ -680,7 +680,7 @@ FilterTable::RenderMode FilterTable::effectiveRenderMode() const
 {
 	if (renderMode == LegacyEditor)
 		return LegacyEditor;
-	const bool rowsWanted = renderMode == ModernRows || qEnvironmentVariableIsSet("EAPO_MODERN_ROWS");
+	const bool rowsWanted = renderMode == ModernRows;
 	return rowsWanted && SkinManager::instance()->supportsRowMode() ? ModernRows : ModernCards;
 }
 

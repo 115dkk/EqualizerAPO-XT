@@ -80,7 +80,7 @@ public:
 	{
 		ModernCards,
 		LegacyEditor,
-		// Experiment (EAPO_MODERN_ROWS): the same card editors and decisions
+		// Modern rows use the same card editors and decisions
 		// as ModernCards, but every line is built as one row with its header
 		// controls at its left, never mixed with cards in one list. Only a
 		// skin that supports it (ISkin::supportsRowMode) gets it; elsewhere
@@ -214,9 +214,8 @@ public:
 	void updateAnalysis();
 	void setRenderMode(RenderMode mode);
 	RenderMode getRenderMode() const;
-	// The mode rows are built in: ModernCards becomes ModernRows while
-	// EAPO_MODERN_ROWS is set and the active skin supports rows, and
-	// ModernRows falls back to ModernCards under a skin that does not.
+	// The mode rows are built in: ModernRows falls back to ModernCards
+	// under a skin that does not support rows.
 	// Asked when rows are built; a skin switch rebuilds every row.
 	RenderMode effectiveRenderMode() const;
 	// True for both modes that build FilterCardRow widgets.
