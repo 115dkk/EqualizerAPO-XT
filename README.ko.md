@@ -105,10 +105,12 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
     필터 하나를 스킨의 모습 그대로 한 줄에 표시합니다. 원본의 행 배치는
     Legacy editor로 이름을 바꿨고([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)), Hardware Rack 카드의 단추를
     낮추고 윤곽선이 네 면에 모두 나오게 했으며
-    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)), Hardware Rack에서 Modern rows를 쓸 수 있게
-    했습니다([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550)). 32줄짜리 시험 설정의 높이가 4,960px에서
-    3,628px로 줄었습니다. 다음은 나머지 네 스킨의 행이고, Studio Glass가
-    먼저입니다.
+    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)), 다섯 스킨 모두에서 Modern rows를 쓸 수 있게
+    했습니다([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550)). 필터 한 줄은 84px이고, 32줄짜리 시험
+    설정의 높이는 카드에서 4,291~4,778px, 행에서 3,501~3,628px입니다. 새로
+    설치하면 Modern rows로 열립니다. 남은 것은 두 가지입니다. 좁은 창에서
+    좌석이 많은 Channel 줄은 줄바꿈하지 않고 추가 칸을 줄이며, 프랑스어와
+    독일어에서 카드의 판독 몇 개가 아직 잘립니다.
 
 ## 주요 기능
 

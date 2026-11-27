@@ -18,14 +18,31 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   Interface now offers Modern cards, Modern rows and Legacy editor. In Modern
   rows every line is one row: its number, power switch, add, remove and
   edit-as-text stand at the left and its controls beside them, with no header
-  strip above. A filter that takes about 140 px as a card takes 84 px as a
-  row, and a 32-line test configuration is 3,628 px tall instead of 4,960.
-  Hardware Rack is the first skin that draws rows; the other four follow.
-  Modern cards and Modern rows each open a submenu of the skins they can
-  draw, so choosing a skin chooses the presentation with it. Ctrl+Alt+1 to 5
-  switch skin within the current presentation; from rows, a skin that has no
-  rows yet opens as cards. Nothing changes until you choose rows: the Editor
-  keeps the presentation you had.
+  strip above. All five skins draw rows. A filter that takes 131 to 143 px as
+  a card takes 84 px as a row, and a 32-line test configuration is 3,501 to
+  3,628 px tall as rows where it is 4,291 to 4,778 px as cards, depending on
+  the skin. Modern cards and Modern rows each open a submenu of the skins, so
+  choosing a skin chooses the presentation with it. Ctrl+Alt+1 to 5 switch
+  skin within the current presentation.
+  ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550))
+- **Editor: a new installation opens in Modern rows with Studio Glass.** If
+  you have run an earlier EqualizerAPO-XT Editor on this account, nothing
+  changes: the Editor keeps Modern cards, or Legacy editor if that was your
+  choice, until you choose rows in View > Interface.
+  ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550))
+- **Editor: lower buttons with an outline on all four sides, in every skin.**
+  What Hardware Rack got in v2.86.1 now holds for the other four skins, in
+  cards and rows: the buttons, selectors and chips of the filter list are
+  26 px high in Studio Glass and Stock Flat and 24 px in Precision Minimal
+  and Signal Matrix, with about half the room above and below their text,
+  and an outline shows on all four sides in one colour, at rest where the
+  skin gives the part an outline and under the pointer, when open and when
+  focused. The number readouts of the Preamp, Delay and all-pass cards and
+  the Send card's delay field look like the parametric filter's number
+  field instead of standing out from it.
+  ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550))
+- **Editor, Signal Matrix: a filter card under a Channel line fits a 960 px
+  window.** It scrolled sideways by a few pixels.
   ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550))
 - **Editor, French: the Send row fits the list.** The label of the Send
   card's delay option is shorter (Retarder pour synchroniser), because it

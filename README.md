@@ -117,9 +117,13 @@ Current work areas:
     per filter in the skin's own look. The original row layout is now called
     Legacy editor ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)), the Hardware Rack cards have lower buttons
     whose outlines show on all four sides
-    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)), and Hardware Rack draws Modern rows
-    ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550)): a 32-line test configuration went from 4,960 px
-    to 3,628 px. Next come rows for the other four skins, Studio Glass first.
+    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)), and all five skins draw Modern rows
+    ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550)): a filter line is 84 px, and a 32-line test
+    configuration is 3,501 to 3,628 px tall as rows where it is 4,291 to
+    4,778 px as cards. A new installation opens in Modern rows. What is left:
+    a Channel line with more seats than a narrow window holds shortens its
+    add field instead of wrapping, and a few card readouts are still cut in
+    French and German.
 
 ## Features
 
