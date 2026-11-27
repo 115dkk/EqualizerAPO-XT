@@ -47,7 +47,14 @@ CommentCardEditor::CommentCardEditor(const QString& line, QWidget* parent)
 	textEdit = new QLineEdit(text, this);
 	textEdit->setObjectName(QStringLiteral("CommentCardText"));
 	textEdit->setPlaceholderText(tr("Write a note"));
-	connect(textEdit, SIGNAL(editingFinished()), this, SIGNAL(updateModel()));
+	connect(textEdit, &QLineEdit::editingFinished, this, [this]() {
+		// Enter can finish an untouched note. Only a typed edit may replace
+		// its original spacing or announce an unsaved change.
+		if (!textEdit->isModified())
+			return;
+		textEdit->setModified(false);
+		emit updateModel();
+	});
 	layout->addWidget(textEdit, 1);
 }
 

@@ -469,7 +469,11 @@ jobs:
     # offers (knob, spin box, combo, check, line edit, value field, a field
     # left focused while the knob turns), saved through the close prompt and
     # through Ctrl+S. It found #459's open value field only on three cards,
-    # and a crash in the Hilbert card's add-channel field.
+    # and a crash in the Hilbert card's add-channel field. Every text field
+    # is also only focused, left, or given Enter without an edit: the line
+    # must stay exactly as written. That found a Send line rewritten after
+    # the close decision, and comment, reference path and parametric filter
+    # fields that stored a line nobody had changed.
     - name: Run close and save sweep (offscreen)
       if: matrix.primary == true
       timeout-minutes: 25

@@ -178,9 +178,14 @@ void ReferenceCardView::editCommitted()
 	if (committing || stack->currentWidget() != pathEdit)
 		return;
 	committing = true;
+	// Opening the path seeds the field with setText, not a user edit.
+	// Leave edit mode normally, but do not reload or rewrite that reference.
+	const bool edited = pathEdit->isModified();
+	pathEdit->setModified(false);
 	const QString text = pathEdit->text();
 	leaveEditMode();
-	emit pathCommitted(text);
+	if (edited)
+		emit pathCommitted(text);
 	committing = false;
 }
 
