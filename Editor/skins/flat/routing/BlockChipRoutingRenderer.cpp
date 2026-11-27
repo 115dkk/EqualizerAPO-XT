@@ -83,6 +83,11 @@ void BlockChipView::paintEvent(QPaintEvent*)
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
 	p.setRenderHint(QPainter::TextAntialiasing, true);
+	// A powered-down card disables its editor, and this board with it. What
+	// is off only fades (rule 6): the whole equation, its boxes and the
+	// control row, like every other part of the card.
+	if (!isEnabled())
+		p.setOpacity(FlatPaint::disabledOpacity);
 
 	const QColor text(t.text), muted(t.mutedText);
 	const QFont nameFont = FlatPaint::bodyFont(t, 13);
