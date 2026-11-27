@@ -162,9 +162,13 @@ public:
 
 	// Called by RackSkin::prepareCommandRow when the unit sits in a Modern
 	// row (CommandRowInfo::inlineRow). One-way: a skin or mode switch
-	// rebuilds the row, so a view never goes back to the card layout. Only
-	// the VST unit rearranges (identity and actions on the first line, path
-	// and bus strip on the second); the other kinds keep their face.
+	// rebuilds the row, so a view never goes back to the card layout. Two
+	// units rearrange (identity and actions on the first line, where the
+	// unit points and how it is wired or set on the second): the VST unit
+	// (path and bus strip) and the Subwoofer Routing unit (path and
+	// readout). Convolution and MultiConvolution keep their one line, and
+	// Include keeps its face. In every row unit an LCD readout keeps its
+	// whole text and the name keeps 12 characters; the path elides first.
 	void setInlineRow(bool inlineRow);
 
 protected:
@@ -179,10 +183,16 @@ private:
 	void updateRowArrangement();
 
 	const SkinTokens skinTokens;
+	// ReferenceCardState::kind the view was built for ("vst", "subwoofer",
+	// ...): the row arrangement depends on it.
+	const QString unitKind;
 	bool rowMode = false;
+	// updateRowArrangement is running (it reparents the path).
+	bool arranging = false;
 	QWidget* labelArea = nullptr;
 	QWidget* busStrip = nullptr;
-	// Row mode only: the second line (path, bus strip).
+	// Row mode only: the second line (path, then the bus strip or the
+	// readout).
 	QHBoxLayout* wiringLayout = nullptr;
 	// The stretch that ends line 1 (after the caps).
 	QSpacerItem* trailingStretch = nullptr;

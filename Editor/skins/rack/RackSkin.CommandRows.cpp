@@ -97,9 +97,10 @@ void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 		if (body != nullptr)
 		{
 			body->setContentsMargins(0, 0, 0, 0);
-			// The reference unit lays itself out for the row (the VST unit
-			// takes two lines); the editor is mounted in the body by now,
-			// and its own construction-time call never sees inlineRow.
+			// The reference unit lays itself out for the row (the VST and
+			// Subwoofer Routing units take two lines); the editor is
+			// mounted in the body by now, and its own construction-time
+			// call never sees inlineRow.
 			for (RackReferenceCardView* view : body->findChildren<RackReferenceCardView*>())
 				view->setInlineRow(true);
 		}
