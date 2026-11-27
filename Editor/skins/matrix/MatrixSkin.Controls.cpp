@@ -332,7 +332,12 @@ void MatrixSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 		// The strip's outer rule; a cancelled control cancels it with a dash
 		// at full ink (the dash itself is never dimmed).
 		painter.setOpacity(1.0);
-		painter.setPen(QPen(borderInk, 1, state.enabled ? Qt::SolidLine : Qt::DashLine));
+		// The border token nearly vanishes on the light board's sunken ground
+		// (about 4 dE), so the light board rules the strip in the muted ink
+		// that its resting figures already use; the dark board keeps the border
+		// rule, which reads there.
+		const QColor outerInk = skinIsDark(tokens) ? borderInk : mutedInk;
+		painter.setPen(QPen(outerInk, 1, state.enabled ? Qt::SolidLine : Qt::DashLine));
 		painter.setBrush(Qt::NoBrush);
 		painter.drawRect(frame.adjusted(0, 0, -1, -1));
 

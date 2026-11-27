@@ -39,7 +39,7 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	: ReferenceCardView(parent), cardKind(kind)
 {
 	QWidget* page = contentWidget();
-	QVBoxLayout* root = new QVBoxLayout(page);
+	root = new QVBoxLayout(page);
 	root->setContentsMargins(0, 0, 0, 0);
 	root->setSpacing(4);
 
@@ -47,7 +47,7 @@ MatrixReferenceCardView::MatrixReferenceCardView(const QString& kind, QWidget* p
 	// colour rationing - the ports are muted ink, never accent.
 	if (cardKind == QStringLiteral("vst"))
 	{
-		QWidget* portStrip = new QWidget(page);
+		portStrip = new QWidget(page);
 		portStrip->setObjectName(QStringLiteral("MatrixRefPortStrip"));
 		portStrip->setAttribute(Qt::WA_StyledBackground, true);
 		QHBoxLayout* stripLayout = new QHBoxLayout(portStrip);
@@ -151,7 +151,55 @@ void MatrixReferenceCardView::placeBusStrip(QWidget* strip)
 	// stays marker, place, payload, codes, then the port formats, then the
 	// action cells; the stretch owns the tail of the line.
 	strip->setParent(contentWidget());
-	feedLayout->insertWidget(feedLayout->indexOf(formatCell) + 1, strip, 0, Qt::AlignVCenter);
+	busStrip = strip;
+	if (wiringLayout != nullptr)
+		wiringLayout->insertWidget(wiringLayout->count() - 1, strip, 0, Qt::AlignVCenter);
+	else
+		feedLayout->insertWidget(feedLayout->indexOf(formatCell) + 1, strip, 0, Qt::AlignVCenter);
+}
+
+void MatrixReferenceCardView::setInlineRow(bool inlineRow)
+{
+	if (!inlineRow || rowMode)
+		return;
+	rowMode = true;
+	// The payload name keeps at least 12 characters before it elides; the
+	// location readout ahead of it gives way first.
+	nameCell->ensurePolished();
+	nameCell->setMinimumWidth(nameCell->fontMetrics().horizontalAdvance(QString(12, QLatin1Char('M'))));
+
+	if (portStrip == nullptr || deviceLabel == nullptr)
+		return;
+	// A VST row is narrower than its card, and the port strip, the feed line
+	// and the bus strip on it overflowed the row (a loaded plug-in scrolled
+	// sideways with the name cut to a few characters). The row says the unit
+	// in two lines. Line 1 is identity and actions: the feed marker, the
+	// payload name, the action cells and, at the line's end, the device
+	// engraving that posts the loaded format (shown whole, never elided).
+	// Line 2 is where the unit points and how it is wired: the location
+	// readout, which elides first, and the bus strip. The port strip's
+	// IN/OUT furniture has no line of its own left in a row.
+	portStrip->setVisible(false);
+	if (QLayout* stripLayout = portStrip->layout())
+		stripLayout->removeWidget(deviceLabel);
+	deviceLabel->setParent(feedLayout->parentWidget());
+	feedLayout->addWidget(deviceLabel, 0, Qt::AlignVCenter);
+	deviceLabel->show();
+
+	wiringLayout = new QHBoxLayout();
+	wiringLayout->setContentsMargins(0, 0, 0, 0);
+	wiringLayout->setSpacing(feedLayout->spacing());
+	root->insertLayout(root->indexOf(feedLayout->parentWidget()) + 1, wiringLayout);
+	feedLayout->removeWidget(locationCell);
+	wiringLayout->addWidget(locationCell, 0, Qt::AlignVCenter);
+	if (busStrip != nullptr)
+	{
+		feedLayout->removeWidget(busStrip);
+		wiringLayout->addWidget(busStrip, 0, Qt::AlignVCenter);
+	}
+	// QBoxLayout skips this spacer while everything else on the line is
+	// hidden, so an empty line 2 takes no height.
+	wiringLayout->addStretch(1);
 }
 
 void MatrixReferenceCardView::addLeadingWidget(QWidget* widget)

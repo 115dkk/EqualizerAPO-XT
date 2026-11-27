@@ -19,6 +19,7 @@
 
 class ElidedLabel;
 class QHBoxLayout;
+class QVBoxLayout;
 class QLabel;
 
 class MatrixReferenceCardView : public ReferenceCardView
@@ -30,6 +31,10 @@ public:
 
 	void addLeadingWidget(QWidget* widget) override;
 	void placeBusStrip(QWidget* strip) override;
+	// Told by MatrixSkin::prepareCommandRow that this view is the editor of
+	// a Modern row (CommandRowInfo::inlineRow). One-way: a skin or mode
+	// switch rebuilds the row.
+	void setInlineRow(bool inlineRow);
 
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
@@ -37,7 +42,13 @@ protected:
 
 private:
 	QString cardKind;
+	bool rowMode = false;
+	QVBoxLayout* root = nullptr;
 	QHBoxLayout* feedLayout = nullptr;
+	// A row's second line (setInlineRow): the location and the bus strip.
+	QHBoxLayout* wiringLayout = nullptr;
+	QWidget* portStrip = nullptr;
+	QWidget* busStrip = nullptr;
 	QHBoxLayout* actionLayout = nullptr;
 	QHBoxLayout* readoutLayout = nullptr;
 	QWidget* readoutStrip = nullptr;

@@ -6,6 +6,7 @@
 
 #include "MatrixSkin.h"
 
+#include <QBoxLayout>
 #include <QFontMetrics>
 #include <QLabel>
 #include <QPainter>
@@ -19,6 +20,9 @@
 #include "Editor/skins/shared/SkinSupport.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "MatrixSkinDetail.h"
+#include "Editor/skins/matrix/cards/MatrixReferenceCardView.h"
+
+static void paintEvalReadout(QPainter& painter, const QRect& headerBand, const CommandRowInfo& info, const SkinTokens& tokens);
 
 namespace
 {
@@ -60,7 +64,98 @@ QString matrixBusLetter(const QString& type)
 	return QStringLiteral("R");
 }
 
+// Status lamp in the left gutter: solid green = active, hollow amber =
+// bypassed. Gate rows post the engine's branch decision in the same lamp
+// grammar, and a swallowed line un-lights its lamp. The analysis facts are
+// advisory and only read here, at paint time. A remark gets no lamp (the
+// caller decides).
+void paintStatusLamp(QPainter& painter, const QRect& lampRect, const CommandRowInfo& info, const SkinTokens& tokens)
+{
+	const auto solidLamp = [&](const QColor& ink)
+	{
+		painter.fillRect(lampRect, ink);
+	};
+	const auto hollowLamp = [&](const QColor& ink)
+	{
+		painter.setPen(QPen(ink, 1));
+		painter.setBrush(Qt::NoBrush);
+		painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
+	};
+	if (!info.enabled)
+	{
+		hollowLamp(QColor(tokens.warning));
+	}
+	else if (info.kind() == FilterCardKind::If)
+	{
+		// Gate lamp: taken = solid success, condition false = hollow
+		// success, evaluation fault = solid danger, unreached or not
+		// yet analysed = hollow muted (no decision posted).
+		if (info.branchState == 1)
+			solidLamp(QColor(tokens.success));
+		else if (info.branchState == 3)
+			solidLamp(QColor(tokens.danger));
+		else if (info.branchState == 0)
+			hollowLamp(QColor(tokens.success));
+		else
+			hollowLamp(QColor(tokens.mutedText));
+	}
+	else if (info.lineSkipped)
+	{
+		// Cancelled departure: live source behind a closed gate keeps
+		// its running lamp, unlit.
+		hollowLamp(QColor(tokens.success));
+	}
+	else
+	{
+		solidLamp(QColor(tokens.success));
+	}
+}
 
+// A Modern row is one cell of the board: one surface from the rail to the
+// right rule. The card's header band (a lighter strip with the column grid)
+// and its flooded body are two surfaces; across one line the left column
+// kept the strip's plate, the editor stood on the body's ground and the
+// name cell fell in the seam between them. The whole row takes the ground
+// the editors already stand on, so their panels and the name cell share
+// it. Like the card body, the row is an opaque panel, so the column grid
+// stays on the board between the rows (invariant rule 3).
+void paintRowChrome(QPainter& painter, const QRect& content, const CommandRowInfo& info, const SkinTokens& tokens)
+{
+	// A selected row is engaged the way a selected card's header band is:
+	// the raised surface, over the whole row since the row has no band.
+	painter.fillRect(content, QColor(info.selected ? tokens.surfaceRaised : tokens.background));
+
+	const bool remark = info.kind() == FilterCardKind::Comment;
+	const int band = qMin(MatrixMetrics::rowBandHeight, content.height());
+
+	// Crosspoint hover: the row band is the whole row and the coordinate
+	// column band runs down the left column; their intersection is the
+	// crosspoint (invariant rule 6, the card's alphas).
+	if (info.hovered && (info.enabled || remark))
+	{
+		QColor rowBand(tokens.accent);
+		rowBand.setAlpha(22);
+		painter.fillRect(content, rowBand);
+		QColor crosspoint(tokens.accent);
+		crosspoint.setAlpha(14);
+		painter.fillRect(QRect(content.left(), content.top(),
+			qMin(MatrixMetrics::coordinateBandWidth, content.width()), content.height()), crosspoint);
+	}
+
+	// The lamp stands level with the coordinate cell and the power key: on the
+	// top band's centre line, or on the row's own centre where the row centres
+	// its left column (Copy, GraphicEQ, IIR). headerCenterY is in the row
+	// widget's coordinates, the frame sits cardMarginTop below its top.
+	if (!remark)
+	{
+		const int lampCentre = info.headerCenterY > 0
+			? qRound(info.headerCenterY) - CommandRowInfo::cardMarginTop
+			: content.top() + band / 2;
+		paintStatusLamp(painter, QRect(content.left() + 1, lampCentre - 3, 5, 5), info, tokens);
+	}
+
+	paintEvalReadout(painter, QRect(content.left(), content.top(), content.width(), band), info, tokens);
+}
 
 }
 
@@ -72,6 +167,22 @@ QString MatrixSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 	const QString borderColor = info.focused ? tokens.focusRing : (info.selected ? tokens.accent : tokens.border);
 	const QString backgroundColor = info.selected ? tokens.cardSelected : tokens.card;
 	const QString borderStyle = ((info.enabled && !cancelled) || remark) ? QStringLiteral("solid") : QStringLiteral("dashed");
+	if (info.inlineRow)
+	{
+		// A Modern row is one cell on the board, and a lit cell is ruled in one
+		// colour on all four sides: the rail takes the lit colour too while the
+		// row is selected, focused or under the pointer (the status lamp keeps
+		// posting the running state). At rest the rail keeps its signal colour.
+		const bool lit = info.focused || info.selected;
+		const QString litColor = info.focused ? tokens.focusRing : tokens.accent;
+		QString rowStyle = QStringLiteral(
+			"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
+			.arg(backgroundColor, borderStyle, lit ? litColor : tokens.border, lit ? litColor : railColor);
+		rowStyle += QStringLiteral(
+			" QFrame#FilterCardRow:hover { border: 1px %1 %2; border-left: 3px solid %2; }")
+			.arg(borderStyle, tokens.accent);
+		return rowStyle;
+	}
 	QString style = QStringLiteral(
 		"QFrame#FilterCardRow { background: %1; border: 1px %2 %3; border-left: 3px solid %4; border-radius: 0px; }")
 		.arg(backgroundColor, borderStyle, borderColor, railColor);
@@ -88,6 +199,11 @@ QString MatrixSkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens
 	Q_UNUSED(info);
 	Q_UNUSED(tokens);
 	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; border-radius: 0px; }");
+}
+
+bool MatrixSkin::supportsRowMode() const
+{
+	return true;
 }
 
 BadgeTreatment MatrixSkin::badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
@@ -109,6 +225,27 @@ void MatrixSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QW
 {
 	if (info.legacyRow)
 		return;
+
+	// A Modern row: the left column keeps the gutter lamp clear on its left
+	// and gives the rest of the line to the editor; the editor or the channel
+	// badges after it keep a small gap from the row's right rule.
+	if (info.inlineRow && card != nullptr && card->layout() != nullptr)
+	{
+		card->layout()->setContentsMargins(0, 0, 4, 0);
+		if (QBoxLayout* column = header != nullptr ? qobject_cast<QBoxLayout*>(header->layout()) : nullptr)
+		{
+			column->setContentsMargins(8, 0, 2, 0);
+			column->setSpacing(4);
+		}
+		if (body != nullptr)
+		{
+			body->setContentsMargins(0, 0, 0, 0);
+			// The reference view lays itself out for the row; its own
+			// construction-time consultation never sees inlineRow.
+			for (MatrixReferenceCardView* view : body->findChildren<MatrixReferenceCardView*>())
+				view->setInlineRow(true);
+		}
+	}
 
 	// The plain line number becomes a board coordinate: the type's bus
 	// letter ahead of the stable line position ("B3"). Spacer rows are
@@ -162,6 +299,11 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		const QRect content = rect.adjusted(MatrixMetrics::railInset, 1, -1, -1);
 		if (content.width() <= 0 || content.height() <= 0)
 			return;
+		if (info.inlineRow)
+		{
+			paintRowChrome(painter, content, info, tokens);
+			return;
+		}
 		const int headerHeight = qMin(tokens.rowHeight, content.height());
 		const QRect headerBand(content.left(), content.top(), content.width(), headerHeight);
 
@@ -225,48 +367,13 @@ void MatrixSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// un-lights its lamp. The analysis facts are advisory and only read
 		// here, at paint time.
 		if (!remark)
-		{
-			const QRect lampRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5);
-			const auto solidLamp = [&](const QColor& ink)
-			{
-				painter.fillRect(lampRect, ink);
-			};
-			const auto hollowLamp = [&](const QColor& ink)
-			{
-				painter.setPen(QPen(ink, 1));
-				painter.setBrush(Qt::NoBrush);
-				painter.drawRect(lampRect.adjusted(0, 0, -1, -1));
-			};
-			if (!info.enabled)
-			{
-				hollowLamp(QColor(tokens.warning));
-			}
-			else if (info.kind() == FilterCardKind::If)
-			{
-				// Gate lamp: taken = solid success, condition false = hollow
-				// success, evaluation fault = solid danger, unreached or not
-				// yet analysed = hollow muted (no decision posted).
-				if (info.branchState == 1)
-					solidLamp(QColor(tokens.success));
-				else if (info.branchState == 3)
-					solidLamp(QColor(tokens.danger));
-				else if (info.branchState == 0)
-					hollowLamp(QColor(tokens.success));
-				else
-					hollowLamp(QColor(tokens.mutedText));
-			}
-			else if (info.lineSkipped)
-			{
-				// Cancelled departure: live source behind a closed gate keeps
-				// its running lamp, unlit.
-				hollowLamp(QColor(tokens.success));
-			}
-			else
-			{
-				solidLamp(QColor(tokens.success));
-			}
-		}
+			paintStatusLamp(painter, QRect(content.left() + 1, content.top() + headerHeight / 2 - 3, 5, 5), info, tokens);
 
+		paintEvalReadout(painter, headerBand, info, tokens);
+	}
+
+static void paintEvalReadout(QPainter& painter, const QRect& headerBand, const CommandRowInfo& info, const SkinTokens& tokens)
+	{
 		// Computed-value readout: the engine's Eval result or the substituted
 		// inline-expression text in a boxed sunken mono cell, right-aligned
 		// in the header. Body ink; a parser fault posts in danger. Paint-time

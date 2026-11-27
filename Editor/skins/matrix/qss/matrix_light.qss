@@ -487,6 +487,10 @@ QComboBox QAbstractItemView::item:selected {
 
 /* Parameter-mode selectors: genuine selects in caption ink. The arrow
    stays so the affordance is honest; the cell takes no rule at rest. */
+/* The caption cell keeps 22 px for its caret (the combo's 28 px left 6 px
+   of air past it): with the wider box a Filter card indented under a
+   Channel scope scrolled sideways at 960 px, its Q cell 4 px past the
+   card's edge. */
 QComboBox[paramSelector="true"] {
     background: transparent;
     color: @MUTED@;
@@ -494,6 +498,7 @@ QComboBox[paramSelector="true"] {
     font-weight: 600;
     text-transform: uppercase;
     border: 1px solid transparent;
+    padding-right: 22px;
 }
 QComboBox[paramSelector="true"]::drop-down,
 QComboBox[filterSelector="true"]::drop-down {
@@ -1138,23 +1143,59 @@ QLabel#PreampCardCaption {
     letter-spacing: 1px;
     font-size: 10pt;
 }
+/* The knob cards' readouts (Preamp, Delay, all-pass) are value cells like
+   the parametric filter's: the same sunken fill, no rule at rest, the same
+   padding, 10pt bold mono, left-aligned (rule 5). They were a taller cell
+   with more padding, a larger face, centred text and, in the light finish,
+   a grey fill of their own, so the Preamp's number stood out from every
+   other field on the board. */
 QLabel#EditableValue {
-    background: #EBEBEB;
+    background: @GRAPH@;
     color: @TEXT@;
     border: 1px solid transparent;
     border-radius: 0;
-    padding: 6px 10px;
+    padding: 2px 6px;
     font-family: @MONO_STACK@;
+    font-size: 10pt;
     font-weight: 700;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+    min-height: 22px; max-height: 22px;
 }
 
+/* Typing into a readout is the value cell's input state: accent rule and
+   the focused cell's fill, at the cell's own size. */
 QLineEdit#EditableValueEditor {
     background: #EBEBEB;
     border: 1px solid @ACCENT@;
     border-radius: 0;
-    padding: 6px 10px;
+    padding: 2px 6px;
     font-family: @MONO_STACK@;
+    font-size: 10pt;
     font-weight: 700;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+    min-height: 22px; max-height: 22px;
+}
+/* The Send latency field is a value cell too: sunken fill without a rest
+   rule, bold mono, the accent rule on hover and while typing. */
+QLineEdit#SendLatencyEdit {
+    background: @GRAPH@;
+    border: 1px solid transparent;
+    padding: 2px 6px;
+    font-family: @MONO_STACK@;
+    font-size: 10pt;
+    font-weight: 700;
+}
+QLineEdit#SendLatencyEdit:hover {
+    border-color: @ACCENT@;
+}
+QLineEdit#SendLatencyEdit:focus {
+    border: 1px solid @ACCENT@;
+    background: #EBEBEB;
+}
+QLineEdit#SendLatencyEdit:disabled {
+    color: #9DB4BD;
+    background: #DDE7EA;
+    border: 1px solid transparent;
 }
 /* ===== GraphicEQ card =====
    The response plot is painted whole by MatrixSkin::paintGraphicEqPlot;
@@ -1875,3 +1916,229 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 /* Send card: the field captions read like the MultiConvolution mapping
    caption; a latency the card cannot read takes the danger colour. */
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
+
+/* ===== Modern rows =====
+   A row is one board cell: MatrixSkin::paintCardChrome paints one ground
+   from the rail to the right rule, and every rule below is scoped to
+   inlineRow so a card never matches it. The name cell and a body-less
+   row's summary stand in the frame itself, not in the header, so the
+   cancelled-departure grammar of the header title is restated here. */
+QFrame#FilterCardRow[inlineRow="true"][filterEnabled="false"] QLabel#FilterCardTitle {
+    color: @MUTED@;
+    text-decoration: line-through;
+}
+QFrame#FilterCardRow[inlineRow="true"][filterEnabled="false"] QLabel#FilterCardSummary {
+    color: #9DB4BD;
+}
+QFrame#FilterCardRow[inlineRow="true"][lineSkipped="true"] QLabel#FilterCardTitle {
+    color: rgba(16, 36, 47, 0.45);
+}
+QFrame#FilterCardRow[inlineRow="true"][lineSkipped="true"] QLabel#FilterCardSummary {
+    color: rgba(95, 119, 130, 0.60);
+}
+QFrame#FilterCardRow[inlineRow="true"][filterKind="#"] QLabel#FilterCardTitle {
+    color: @MUTED@;
+    text-decoration: none;
+}
+QFrame#FilterCardRow[inlineRow="true"][filterKind="#"] QLabel#FilterCardSummary {
+    color: @MUTED@;
+}
+/* The three actions stack in one column after the power key: each bare
+   glyph takes a slimmer cell so the column stays inside the row's band. */
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
+    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
+}
+/* The biquad knobs are 84 px boxes around a 56 px LED ring; on one line the
+   width goes to the value cells, so the box is trimmed to 60 px: the ring
+   keeps a 50 px face inside the 5 px inset paintKnob leaves, nothing is cut,
+   and an indented Filter row keeps its last value cell inside 960 px. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
+    min-width: 60px; max-width: 60px;
+}
+/* The Preamp, Delay and all-pass encoders are 74 px in their cards; in a
+   row they take the biquad encoders' 66 px, so those rows are as tall as
+   a Filter row. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
+    min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
+}
+/* The coordinate cell is one grid pitch high on the band's centre line,
+   level with the power key; stretched to the band it stood as a tall
+   empty box beside the row. It is wide enough for a three-character
+   coordinate ("C10"), so the power key, the actions and the name cell keep
+   one axis down the list. */
+QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
+    min-height: 22px; max-height: 22px; min-width: 28px;
+}
+/* On one line the width goes to the value cells: the mode selectors and
+   the template select keep less air around their legend and caret. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"] {
+    min-height: 18px; padding: 2px 14px 2px 4px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
+    padding-left: 4px; padding-right: 18px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"] {
+    padding-left: 4px; padding-right: 4px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]::drop-down,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down {
+    width: 12px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]::down-arrow,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::down-arrow {
+    margin-right: 2px;
+}
+/* The row is one ground, and the crosspoint hover washes the whole row
+   (MatrixSkin::paintCardChrome). The editor's scroll wrapper, its viewport
+   and the editor root took the window ground from the generic scroll-area
+   and widget rules, so under the pointer the wash showed round the left
+   column and the name cell but not under the editor. Clear, they let the
+   row's own ground and wash through. */
+QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll,
+QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll > QWidget,
+QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll > QWidget > QWidget {
+    background: transparent;
+}
+/* The Send row's two selectors keep less air before their text and less
+   room around the caret, so the row's first line (target, mode and the
+   latency switch) stays inside a 960 px window in French and German too. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendTargetCombo,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendModeCombo {
+    padding-left: 6px; padding-right: 22px;
+}
+
+/* ===== One cap height in the list =====
+   Every cap in the filter list (the power key, the header's actions in a
+   card, icon and text caps, framed selectors, chips, the fields on a chip
+   line, the pick-one strips) is 24 px with its rule, one grid pitch (rule
+   3), in cards and rows alike. The caps were 28 to 38 px, with 7 to 10 px
+   clear above and below the legend; that air is about halved. The Send
+   latency field stands on its selectors' line and takes their height; the
+   other value cells keep theirs. The parameter mode selectors are caption
+   cells, not caps, and keep their own size; the row's stacked actions stay
+   bare 18 px glyphs (Modern rows block). */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit {
+    min-height: 22px; max-height: 22px; padding-top: 0px; padding-bottom: 0px;
+}
+/* The painted pick-one strips (All-pass order, Hilbert direction, Velvet
+   mode) are framed selectors on the same lines; the skin paints them in the
+   rect they get. */
+QFrame#FilterCardRow SegmentedControl {
+    min-height: 24px; max-height: 24px;
+}
+/* In a row the coordinate cell takes the same pitch, level with the key. */
+QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
+    min-height: 20px; max-height: 20px;
+}/* The Velvet value cells asked for 30 px in code; they are value cells like
+   the others on the board and take the same height. */
+QFrame#FilterCardRow QAbstractSpinBox#VelvetValue {
+    min-height: 22px; max-height: 22px;
+}
+/* ===== Lit outlines: one colour on four sides =====
+   Shared article 8 and the edge-line rule: a lit control is ruled on all
+   four sides in one colour. The template select kept the transparent rule
+   of its resting cell under hover, while open and while focused (its own
+   rule outranked the combo's lit rules), and the Velvet Advanced toggle
+   lit nothing while open. No cap or chip in the list showed keyboard
+   focus at all; focus now engages the rule the cell already has in the
+   accent (rule 9's state rule, no second box). */
+QComboBox[filterSelector="true"]:hover,
+QComboBox[filterSelector="true"]:on,
+QComboBox[filterSelector="true"]:focus {
+    border: 1px solid @ACCENT@;
+}
+QToolButton#VelvetAdvancedToggle:checked {
+    color: @TEXT@;
+    background: rgba(@ACCENT_RGB@, 0.22);
+    border: 1px solid @ACCENT@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:focus,
+QFrame#FilterCardRow QToolButton#ChannelChip:focus,
+QFrame#FilterCardRow QToolButton#NewChannelChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:focus,
+QFrame#FilterCardRow QToolButton#StageChip:focus {
+    border-color: @ACCENT@;
+}/* A checked chip is already ruled in the accent, so focus on it takes the
+   body ink instead: the same one rule, a colour the unfocused chip does
+   not have. */
+QFrame#FilterCardRow QToolButton#ChannelChip:checked:focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:checked:focus,
+QFrame#FilterCardRow QToolButton#StageChip:checked:focus {
+    border-color: @TEXT@;
+}
+/* The pre-light of the GraphicEQ buttons, the Stage chips and the reveal
+   cell was the border token, which nearly vanishes on the light board; the
+   hover pre-light is the accent rule like every other cell's. */
+QToolButton#GraphicEQActionButton:hover,
+QToolButton#StageChip:hover,
+QToolButton#DeviceChipMore:hover {
+    border-color: @ACCENT@;
+}/* The MultiConvolution mapping area is a plain widget that took the window
+   ground: on the row's raised selection and under its hover wash it stood
+   as a dark slab under the mapping board. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#MultiConvolutionMappingArea {
+    background: transparent;
+}/* The Add channel fields kept their dashed underline under the accent rule
+   on hover: three solid sides and a dashed fourth. Pre-lit, the field is
+   ruled solid on four sides, like the focused field. */
+QLineEdit#ChannelChipAdd:hover,
+QLineEdit#NewChannelAdd:hover {
+    border: 1px solid @ACCENT@;
+}
+/* ===== Resting outlines that read on the light board =====
+   A part that has a rule at rest shows it on four sides in a colour that
+   can be told from the board. On the light board the border token sits
+   about 4 dE off the card ground and the rule all but vanished: the
+   coordinate cell (rule 9's one boxed cell per card) and the Send
+   selectors. They take the muted coordinate ink on the light board; the
+   dark board's border rule already reads (about 20 dE). Every other cell
+   in a card keeps rule 9's rule-less rest. */
+QLabel#FilterCardNumber {
+    border-color: @MUTED@;
+}
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo {
+    border-color: @MUTED@;
+}
+QFrame#FilterCardRow QComboBox#SendTargetCombo:hover,
+QFrame#FilterCardRow QComboBox#SendModeCombo:hover,
+QFrame#FilterCardRow QComboBox#SendTargetCombo:focus,
+QFrame#FilterCardRow QComboBox#SendModeCombo:focus,
+QFrame#FilterCardRow QComboBox#SendTargetCombo:on,
+QFrame#FilterCardRow QComboBox#SendModeCombo:on {
+    border-color: @ACCENT@;
+}/* A Channel row lays every seat of the layout and the add field on its one
+   line. With the card's 8 px side padding the line was wider than the row,
+   and the layout squeezed the ALL seat (whose sheet minimum, 24 px, is
+   narrower than its legend) down to an ellipsis. In a row a seat keeps
+   3 px of air on each side and is never narrower than a three-letter
+   legend (LFE, ALL), so every seat prints its whole name and the add field
+   takes what is left. */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip {
+    padding-left: 3px; padding-right: 3px; min-width: 28px;
+}
