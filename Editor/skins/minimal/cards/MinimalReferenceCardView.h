@@ -34,6 +34,13 @@ public:
 
 	void addLeadingWidget(QWidget* widget) override;
 	void placeBusStrip(QWidget* strip) override;
+	// Told by MinimalSkin::prepareCommandRow when the line is a Modern row:
+	// the payload keeps a floor of 12 characters there (the whole name when
+	// it is shorter), so the location prefix elides first, and a loaded VST
+	// unit with its bus expression prints on two lines, with the status
+	// sentence whole on a line of its own. A card keeps its present
+	// arrangement.
+	void setInlineRow(bool inlineRow);
 
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
@@ -42,6 +49,24 @@ protected:
 
 private:
 	void restateCommandFloors();
+	void restateNameFloor();
+	void updateRowArrangement();
+	void restateStatus();
+
+	bool inRow = false;
+	bool twoLines = false;
+	QHBoxLayout* pathLayout = nullptr;
+	// The second printed line of a loaded VST unit in a row: where the unit
+	// points (the location prefix) and how it is wired (the bus expression
+	// and the measured readout). Empty, it takes no height.
+	QHBoxLayout* wiringLayout = nullptr;
+	QWidget* busStrip = nullptr;
+	// In a row the status sentence prints whole on a line of its own under
+	// the wiring line, wrapping at word boundaries; the one-line label stays
+	// the card's. The text and its severity are kept for that swap.
+	QLabel* rowStatusLabel = nullptr;
+	QString statusLine;
+	QString statusSeverity;
 
 	// The reference kind, kept for the command words: placeActionButton runs
 	// before the first setState, so the state's kind is not there yet.

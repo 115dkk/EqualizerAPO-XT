@@ -6,15 +6,21 @@
 
 #include "MinimalSkin.h"
 
+#include <QComboBox>
+#include <QEvent>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPainter>
+#include <QSpacerItem>
+#include <QToolButton>
 #include <QWidget>
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/minimal/MinimalChannelInk.h"
+#include "Editor/skins/minimal/cards/MinimalReferenceCardView.h"
 #include "Editor/widgets/FilterCardModel.h"
 
 namespace
@@ -47,6 +53,50 @@ QString minimalTypeGlyph(const QString& type)
 	// /utf-8 flag is set for MSVC).
 	return QString(QChar(0x00B7));
 }
+
+// A chip never elides its label. The sheet's 14 px floor (one-letter seats
+// must not collapse into slivers) let a crowded Channel row squeeze the ALL
+// chip to an ellipsis, so in a row each chip's floor is its whole word. The
+// add-a-seat prompt gives way instead, down to its first word and an
+// ellipsis. The editor rebuilds its chips when the channels in scope change,
+// so the floors are restated whenever it lays itself out again.
+class RowChipFloor final : public QObject
+{
+public:
+	using QObject::QObject;
+
+	bool eventFilter(QObject* watched, QEvent* event) override
+	{
+		if (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)
+		{
+			if (QWidget* editor = qobject_cast<QWidget*>(watched))
+				restate(editor);
+		}
+		return QObject::eventFilter(watched, event);
+	}
+
+	static void restate(QWidget* editor)
+	{
+		for (QToolButton* chip : editor->findChildren<QToolButton*>(QStringLiteral("ChannelChip")))
+		{
+			chip->ensurePolished();
+			const int word = chip->sizeHint().width();
+			if (chip->minimumWidth() != word)
+				chip->setMinimumWidth(word);
+		}
+		// The prompt's floor: its first word and an ellipsis, the 6 px
+		// padding on each side, the hairline and the line edit's own 2 px
+		// text margins.
+		if (QLineEdit* add = editor->findChild<QLineEdit*>(QStringLiteral("ChannelChipAdd")))
+		{
+			add->ensurePolished();
+			const QString word = add->placeholderText().section(QLatin1Char(' '), 0, 0);
+			const int floor = add->fontMetrics().horizontalAdvance(word + QChar(0x2026)) + 12 + 2 + 4 + 1;
+			if (add->minimumWidth() != floor)
+				add->setMinimumWidth(floor);
+		}
+	}
+};
 }
 
 QString MinimalSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
@@ -114,10 +164,96 @@ bool MinimalSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const 
 	}
 	return true;
 }
+bool MinimalSkin::supportsRowMode() const
+{
+	// Modern rows: every command is one printed line, the header's parts
+	// in its left column and the editor beside them.
+	return true;
+}
+
 void MinimalSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 	const SkinTokens& tokens) const
 {
-	Q_UNUSED(card);
+	// A Modern row is one printed line: the left column gives up the card
+	// header's side margins (its width is what an indented Filter row needs
+	// to keep its last field inside a 960 px window), and the editor runs to
+	// a 4 px margin before the frame's right hairline. Cards keep their
+	// layout; this runs only for the row widget's own call.
+	if (info.inlineRow && card != nullptr && card->layout() != nullptr)
+	{
+		card->layout()->setContentsMargins(0, 0, 4, 0);
+		if (QBoxLayout* column = header != nullptr ? qobject_cast<QBoxLayout*>(header->layout()) : nullptr)
+		{
+			column->setContentsMargins(2, 2, 0, 2);
+			column->setSpacing(2);
+		}
+		if (body != nullptr)
+		{
+			// The reference line lays itself out for the row (a loaded VST
+			// unit takes two lines). The editor is mounted in the body by
+			// now, and its own construction-time call never sees inlineRow.
+			for (MinimalReferenceCardView* view : body->findChildren<MinimalReferenceCardView*>())
+				view->setInlineRow(true);
+			// The Filter editor separates its type selector and its three
+			// parameter columns with 8 px spacers. The drums already carry
+			// their own clear margin around the rims, so on one line the
+			// spacers shrink to a 2 px hair and the width goes to the last
+			// column, which an indented line under a Channel scope needs.
+			if (QWidget* biquad = body->findChild<QWidget*>(QStringLiteral("BiQuadFilterGUI")))
+			{
+				if (QLayout* grid = biquad->layout())
+				{
+					for (int i = 0; i < grid->count(); i++)
+					{
+						if (QSpacerItem* spacer = grid->itemAt(i)->spacerItem())
+							spacer->changeSize(2, spacer->sizeHint().height(), QSizePolicy::Fixed, QSizePolicy::Minimum);
+					}
+					grid->invalidate();
+				}
+			}
+			// A knob card's caption or unit selector stands 6 px above its
+			// value field. The field is the Filter figure's 35 px, so with a
+			// 28 px unit selector above it the block outgrew the row's band
+			// (Delay and All-pass lines were 87 px); 3 px keeps the block at
+			// the drum's 66 px and the line at 84 px.
+			for (QWidget* block : body->findChildren<QWidget*>())
+			{
+				const QString name = block->objectName();
+				if (name == QStringLiteral("PreampCardValueBlock") || name == QStringLiteral("DelayCardValueBlock")
+					|| name == QStringLiteral("AllPassCardValueBlock"))
+				{
+					if (QLayout* stack = block->layout())
+						stack->setSpacing(3);
+				}
+			}
+			if (QWidget* channels = body->findChild<QWidget*>(QStringLiteral("ChannelCardEditor")))
+			{
+				// The seats stand 4 px apart instead of 6 in a row.
+				if (QBoxLayout* line = qobject_cast<QBoxLayout*>(channels->layout()))
+				{
+					line->setSpacing(4);
+					for (int i = 0; i < line->count(); i++)
+					{
+						if (QLayout* seats = line->itemAt(i)->layout())
+							seats->setSpacing(4);
+					}
+				}
+				channels->installEventFilter(new RowChipFloor(channels));
+				RowChipFloor::restate(channels);
+			}
+			// The Send line's device name is a data column: across one row
+			// it gives way first (shared article 4). The combo sizes itself to
+			// the longest endpoint name, which pushed the delay check box
+			// out of the row in the longer languages; in a row its floor is
+			// 10 characters plus the field's padding and caret (28 px right,
+			// 10 px left, the hairline), and the name elides inside it.
+			if (QComboBox* target = body->findChild<QComboBox*>(QStringLiteral("SendTargetCombo")))
+			{
+				target->ensurePolished();
+				target->setMinimumWidth(10 * target->fontMetrics().horizontalAdvance(QLatin1Char('X')) + 40);
+			}
+		}
+	}
 	// A raw line (a bare note, or a programmatic command like If/EndIf
 	// the editor does not model) is printed bare on the body strip: no
 	// box, no input ground. The shared raw card lays its chrome inline,
@@ -215,8 +351,14 @@ void MinimalSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Co
 	// ground. The If/Eval summaries are empty by model contract, so the
 	// column prints on empty line space; a cramped card drops the
 	// readout rather than colliding with the line head.
+	// In a Modern row the title stands in the row's top band (or on the
+	// whole row, for a row that centres its markers), not in a header strip
+	// of rowHeight, so the column centres on the same line as the title.
 	const int headerHeight = qMin(tokens.rowHeight, rect.height());
-	const QRect column(rect.left() + 8, rect.top(), rect.width() - 24, headerHeight);
+	const int headerTop = info.inlineRow
+		? qRound(info.headerCenterY) - CommandRowInfo::cardMarginTop - headerHeight / 2
+		: rect.top();
+	const QRect column(rect.left() + 8, headerTop, rect.width() - 24, headerHeight);
 	if (column.width() < 60)
 		return;
 
