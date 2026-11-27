@@ -7,6 +7,7 @@
 #include "StudioSkin.h"
 #include "StudioBandColor.h"
 
+#include <QBoxLayout>
 #include <QComboBox>
 #include <QDial>
 #include <QFontMetricsF>
@@ -103,6 +104,12 @@ QString StudioSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens&
 QString StudioSkin::cardHeaderStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
 {
 	const bool dark = skinIsDark(tokens);
+	// A row has no header strip: the header widget is the row's left column,
+	// and a sheen of its own made it a second plate beside the editor, with
+	// the name cell left in the darker gap between them. The row is one pane
+	// of glass, so the column is clear and the pane's own gloss covers it.
+	if (info.inlineRow)
+		return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 	if (!info.enabled)
 	{
 		// Disabled: the sheen is off, the header melts into the glass.
@@ -224,7 +231,15 @@ void StudioSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Com
 		// Signal lamp in the row's band colour, blooming on hover.
 		const QColor light = studioBandPaintColor(painter, tokens);
 		const double segment = 18.0;
-		const double y0 = rect.top() + (tokens.rowHeight - segment) / 2.0;
+		// The lamp sits at the height of the header's middle. A row has no
+		// strip; its left column stands in a top band (or in the middle of a
+		// row whose editor is the whole row), and the row widget reports
+		// that middle in its own coordinates, which start cardMarginTop above
+		// this frame.
+		const double centre = info.inlineRow
+			? info.headerCenterY - CommandRowInfo::cardMarginTop
+			: tokens.rowHeight / 2.0;
+		const double y0 = rect.top() + centre - segment / 2.0;
 		QColor mid = light;
 		mid.setAlpha(info.hovered ? 255 : 195);
 		QColor fade = light;
@@ -410,11 +425,33 @@ BadgeTreatment StudioSkin::badgeTreatment(const CommandRowInfo& info, const QStr
 	return { style, ink };
 }
 
+bool StudioSkin::supportsRowMode() const
+{
+	// Modern rows: one pane of glass per line, the header's parts in its
+	// left column and the editor beside them.
+	return true;
+}
+
 void StudioSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 	const SkinTokens& tokens) const
 {
 	if (body == nullptr)
 		return;
+
+	// A row's editor runs to the pane's right edge and its channel badges
+	// close the line there; the right margin keeps that last field off the
+	// edge. The left column gives up the card header's side margins: across
+	// one line its width is what an indented Filter row (a Channel scope's
+	// member) needs to keep its Q field inside a 960 px window.
+	if (info.inlineRow && card != nullptr && card->layout() != nullptr)
+	{
+		card->layout()->setContentsMargins(0, 0, 4, 0);
+		if (QBoxLayout* column = header != nullptr ? qobject_cast<QBoxLayout*>(header->layout()) : nullptr)
+		{
+			column->setContentsMargins(2, 2, 0, 2);
+			column->setSpacing(4);
+		}
+	}
 
 	if (FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine))
 	{

@@ -1432,3 +1432,57 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 /* Send card: the field captions read like the MultiConvolution mapping
    caption; a latency the card cannot read takes the danger colour. */
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
+
+/* ===== Modern rows =====
+   A row is one pane of glass. In a card the body is a second, whiter
+   pane under the header strip; across one line that pane started at the
+   editor and left the name cell in a darker gap between it and the left
+   column (StudioSkin::cardHeaderStyle clears the column). Clear, the
+   editor, the name and the column all stand on the row's own glass. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#FilterCardBody,
+QFrame#FilterCardRow[inlineRow="true"] QWidget#FilterCardEditor {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+/* The three actions stack in one column beside the editor: each bare
+   glyph takes a slimmer cap so the column stays inside the top band. */
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
+    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
+}
+/* The biquad knobs are 84 px wide boxes around a 66 px high instrument;
+   on one line the width goes to the value fields. The track keeps its
+   inset, so the arc's widest glow stroke stays inside the box. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
+    min-width: 66px; max-width: 66px;
+}
+/* The same trade for the type selector: a little less air around its
+   text and arrow keeps the whole editor beside the left column, also on
+   an indented line under a Channel scope. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
+    padding-left: 8px; padding-right: 22px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down { width: 18px; }
+/* Each parameter column is as wide as its value field or its mode
+   selector; two pixels less air on each side of both keeps the third
+   column of an indented Filter row inside the window. */
+QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"] {
+    padding-left: 6px; padding-right: 6px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"] {
+    padding-left: 6px; padding-right: 12px;
+}
+/* A Channel row lays every seat of the layout on its one line; with the
+   card's side padding the last seats and the add field ran off the row. */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip {
+    padding-left: 6px; padding-right: 6px;
+}
+/* The Preamp, Delay and all-pass knobs are 74 px in their cards; in a row
+   they take the biquad knobs' 66 px, so those rows are as tall as a
+   Filter row. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
+    min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
+}
