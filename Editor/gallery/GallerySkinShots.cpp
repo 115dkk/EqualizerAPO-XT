@@ -41,6 +41,7 @@
 #include <QGridLayout>
 #include <QHBoxLayout>
 #include <QKeyEvent>
+#include <QKeySequence>
 #include <QLabel>
 #include <QLineEdit>
 #include <QMenu>
@@ -48,6 +49,7 @@
 #include <QMenuBar>
 #include <QMimeData>
 #include <QMouseEvent>
+#include <QPainter>
 #include <QPixmap>
 #include <QPointer>
 #include <QRadioButton>
@@ -71,6 +73,7 @@
 #include "Editor/helpers/FileDialogShellMenu.h"
 #include "Editor/helpers/GUIHelper.h"
 #include "Editor/skins/ISkin.h"
+#include "Editor/skins/SkinThemeData.h"
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/AddCardRow.h"
 #include "Editor/widgets/EqGraphView.h"
@@ -163,7 +166,13 @@ const QList<GalleryScenario>& galleryScenarios()
 		{ QStringLiteral("include"), { QStringLiteral("checking") } },
 		{ QStringLiteral("convolution"), { QStringLiteral("checking") } },
 		{ QStringLiteral("multiconvolution"), { QStringLiteral("checking") } },
-		{ QStringLiteral("vst"), { QStringLiteral("checking") } }
+		{ QStringLiteral("vst"), { QStringLiteral("checking") } },
+		// View > Interface as the main window builds it, with Modern rows the
+		// current presentation (renderInterfaceMenuScene): the menu open, and
+		// the menu with the Modern rows submenu open beside it. Its two parent
+		// entries are checkable and open submenus, so each draws a check mark
+		// and a submenu arrow on one line.
+		{ QStringLiteral("interfacemenu"), { QStringLiteral("open"), QStringLiteral("submenu") } }
 	};
 	return scenarios;
 }
@@ -607,6 +616,48 @@ bool saveGrab(QWidget* row, const QDir& outDir, const QString& skinId, const QSt
 	const bool named = checkButtonNames(row, fileName) == 0;
 	const bool contractKept = checkControlOutlines(row, pixmap.toImage(), skinId, mode, rowName, state) == 0;
 	return named && contractKept;
+}
+
+// saveGrab for a scene made of several top-level windows, such as a menu and
+// the submenu it opened: each window is grabbed and painted where it stands
+// on the screen, over the skin's window background, into one capture, and
+// each is checked on its own grab the way saveGrab checks one widget.
+bool saveWindowsGrab(const QList<QWidget*>& windows, const QDir& outDir, const QString& skinId,
+	const QString& mode, const QString& sceneName, const QString& state)
+{
+	const QString fileName = QStringLiteral("%1_%2_%3_%4.png").arg(skinId, mode, sceneName, state);
+	QRect bounds;
+	for (const QWidget* window : windows)
+		bounds = bounds.united(window->geometry());
+	if (windows.isEmpty() || bounds.isEmpty())
+	{
+		qWarning("SkinGallery: nothing to grab for %s", qPrintable(fileName));
+		return false;
+	}
+	QImage composite(bounds.size(), QImage::Format_RGB32);
+	composite.fill(QColor(SkinManager::instance()->tokens().background));
+	QPainter painter(&composite);
+	bool kept = true;
+	for (QWidget* window : windows)
+	{
+		const QPixmap pixmap = window->grab();
+		if (pixmap.isNull())
+		{
+			qWarning("SkinGallery: grab failed for %s", qPrintable(fileName));
+			kept = false;
+			continue;
+		}
+		painter.drawPixmap(window->geometry().topLeft() - bounds.topLeft(), pixmap);
+		kept = checkButtonNames(window, fileName) == 0 && kept;
+		kept = checkControlOutlines(window, pixmap.toImage(), skinId, mode, sceneName, state) == 0 && kept;
+	}
+	painter.end();
+	if (!composite.save(outDir.filePath(fileName), "PNG"))
+	{
+		qWarning("SkinGallery: could not write %s", qPrintable(fileName));
+		return false;
+	}
+	return kept;
 }
 
 int renderStates(const QDir& outDir, const QString& skinId, const QString& mode,
@@ -2149,6 +2200,85 @@ void renderRowScenes(SkinRenderContext& ctx)
 	});
 }
 
+// View > Interface as MainWindow::setupRedesignActions builds it, rebuilt
+// here the way the other menu scenes rebuild theirs: the two checkable
+// parents with their submenus (Modern rows current), Legacy editor, Dark
+// theme and the entries after it. The skin names come from the main window's
+// own table. The checked entry of the open submenu is the first skin that
+// draws rows, so every skin shows how its sheet draws a checked entry with
+// its shortcut text there.
+void renderInterfaceMenuScene(SkinRenderContext& ctx)
+{
+	QMenu menu;
+	menu.setObjectName(QStringLiteral("GalleryMenu"));
+	QMenu* cards = menu.addMenu(QStringLiteral("Modern cards"));
+	QMenu* rows = menu.addMenu(QStringLiteral("Modern rows"));
+	for (QMenu* submenu : { cards, rows })
+	{
+		submenu->setObjectName(QStringLiteral("GalleryMenu"));
+		submenu->menuAction()->setCheckable(true);
+	}
+	rows->menuAction()->setChecked(true);
+	const QStringList ids = SkinThemeData::ids();
+	bool rowChecked = false;
+	for (int i = 0; i < ids.size(); i++)
+	{
+		const QString name = MainWindow::interfaceSkinName(ids[i]);
+		cards->addAction(name)->setCheckable(true);
+		if (!SkinManager::instance()->skinSupportsRows(ids[i]))
+			continue;
+		// The current presentation's entries show the skin shortcut after a
+		// tab (MainWindow::syncInterfaceMenu).
+		QAction* row = rows->addAction(name + QLatin1Char('\t')
+			+ QKeySequence(QStringLiteral("Ctrl+Alt+%1").arg(i + 1)).toString(QKeySequence::NativeText));
+		row->setCheckable(true);
+		row->setChecked(!rowChecked);
+		rowChecked = true;
+	}
+	menu.addAction(QStringLiteral("Legacy editor"))->setCheckable(true);
+	menu.addSeparator();
+	QAction* darkTheme = menu.addAction(QStringLiteral("Dark theme"));
+	darkTheme->setCheckable(true);
+	darkTheme->setChecked(SkinManager::instance()->isDark());
+	darkTheme->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+D")));
+	menu.addSeparator();
+	menu.addMenu(QStringLiteral("Knob gain range"));
+	QAction* fullscreen = menu.addAction(QStringLiteral("Fullscreen graph"));
+	fullscreen->setCheckable(true);
+	fullscreen->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+F")));
+	menu.addSeparator();
+	menu.addAction(QStringLiteral("Native title bar"))->setCheckable(true);
+	menu.addAction(QStringLiteral("Windows file dialog"))->setCheckable(true);
+
+	menu.popup(QPoint(0, 0));
+	QApplication::processEvents();
+	ctx.failures += saveGrab(&menu, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("interfacemenu"),
+		QStringLiteral("open")) ? 0 : 1;
+
+	// The submenu opens the way the keyboard opens it (Right on the active
+	// parent), so Qt places it. The entry the keyboard lands on is released
+	// again, so the checked entry is drawn at rest.
+	menu.setActiveAction(rows->menuAction());
+	QKeyEvent right(QEvent::KeyPress, Qt::Key_Right, Qt::NoModifier);
+	QApplication::sendEvent(&menu, &right);
+	QApplication::processEvents();
+	if (!rows->isVisible())
+	{
+		qWarning("SkinGallery: the Modern rows submenu did not open (%s %s)", qPrintable(ctx.skinId),
+			qPrintable(ctx.mode));
+		ctx.failures++;
+		menu.hide();
+		return;
+	}
+	rows->setActiveAction(nullptr);
+	QApplication::processEvents();
+	ctx.failures += saveWindowsGrab({ &menu, rows }, ctx.outDir, ctx.skinId, ctx.mode, QStringLiteral("interfacemenu"),
+		QStringLiteral("submenu")) ? 0 : 1;
+	rows->hide();
+	menu.hide();
+	QApplication::processEvents();
+}
+
 int renderSkin(const QDir& outDir, const QString& skinId, const QString& configPath, bool dark)
 {
 	SkinManager::instance()->applySkin(skinId, dark);
@@ -2192,6 +2322,7 @@ int renderSkin(const QDir& outDir, const QString& skinId, const QString& configP
 	// Scenes registered after the ones above, so adding them changes none of
 	// the earlier captures.
 	renderRowScenes(ctx);
+	renderInterfaceMenuScene(ctx);
 	// Keyboard focus lights a cap's outline on four sides, where the skin
 	// promises closed outlines (writes no capture); a skin that draws rows
 	// passes the same test once more in rows.
