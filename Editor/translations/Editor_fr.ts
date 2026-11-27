@@ -84,47 +84,47 @@
         <location filename="../guis/BiQuadFilterGUI.cpp" line="63"/>
         <source>Peaking filter</source>
         <translatorcomment>I think it&apos;s better to let the english word in parentheses, because it talks much more to lots of french users who have always used english interfaces. No problem if you prefer to delete it :-)</translatorcomment>
-        <translation>Filtre de crête (peak)</translation>
+        <translation>Crête</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="64"/>
         <source>Low-pass filter</source>
-        <translation>Filtre passe-bas</translation>
+        <translation>Passe-bas</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="65"/>
         <source>High-pass filter</source>
-        <translation>Filtre passe-haut</translation>
+        <translation>Passe-haut</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="66"/>
         <source>Band-pass filter</source>
-        <translation>Filtre passe-bande</translation>
+        <translation>Passe-bande</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="67"/>
         <source>Low-shelf filter</source>
-        <translation>Filtre en plateau bas</translation>
+        <translation>Plateau bas</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="68"/>
         <source>High-shelf filter</source>
-        <translation>Filtre en plateau haut</translation>
+        <translation>Plateau haut</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="69"/>
         <source>Notch filter</source>
-        <translation>Filtre coupe-bande (notch)</translation>
+        <translation>Coupe-bande</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="70"/>
         <source>All-pass filter</source>
-        <translation>Filtre passe-tout (all-pass)</translation>
+        <translation>Passe-tout</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
         <source>Center frequency</source>
-        <translation>Fréquence centrale</translation>
+        <translation>Fréq. centrale</translation>
     </message>
     <message>
         <location filename="../guis/BiQuadFilterGUI.cpp" line="228"/>
@@ -179,37 +179,37 @@
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="199"/>
         <source>Peaking filter</source>
-        <translation>Filtre de crête (peak)</translation>
+        <translation>Crête</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="202"/>
         <source>Low-pass filter</source>
-        <translation>Filtre passe-bas</translation>
+        <translation>Passe-bas</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="205"/>
         <source>High-pass filter</source>
-        <translation>Filtre passe-haut</translation>
+        <translation>Passe-haut</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="208"/>
         <source>Band-pass filter</source>
-        <translation>Filtre passe-bande</translation>
+        <translation>Passe-bande</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="211"/>
         <source>Low-shelf filter</source>
-        <translation>Filtre en plateau bas</translation>
+        <translation>Plateau bas</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="214"/>
         <source>High-shelf filter</source>
-        <translation>Filtre en plateau haut</translation>
+        <translation>Plateau haut</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="217"/>
         <source>Notch filter</source>
-        <translation>Filtre coupe-bande (notch)</translation>
+        <translation>Coupe-bande</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCommandCatalog.cpp" line="225"/>
@@ -1146,42 +1146,42 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="68"/>
         <source>Peaking</source>
-        <translation>Filtre de crête (peak)</translation>
+        <translation>Crête</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="70"/>
         <source>Low-pass</source>
-        <translation>Filtre passe-bas</translation>
+        <translation>Passe-bas</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="72"/>
         <source>High-pass</source>
-        <translation>Filtre passe-haut</translation>
+        <translation>Passe-haut</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="74"/>
         <source>Band-pass</source>
-        <translation>Filtre passe-bande</translation>
+        <translation>Passe-bande</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="76"/>
         <source>Low-shelf</source>
-        <translation>Filtre en plateau bas</translation>
+        <translation>Plateau bas</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="78"/>
         <source>High-shelf</source>
-        <translation>Filtre en plateau haut</translation>
+        <translation>Plateau haut</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="80"/>
         <source>Notch</source>
-        <translation>Filtre coupe-bande (notch)</translation>
+        <translation>Coupe-bande</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="82"/>
         <source>All-pass</source>
-        <translation>Filtre passe-tout (all-pass)</translation>
+        <translation>Passe-tout</translation>
     </message>
     <message>
         <location filename="../widgets/FilterCardModel.cpp" line="83"/>

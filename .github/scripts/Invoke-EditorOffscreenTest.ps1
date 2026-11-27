@@ -57,8 +57,11 @@ $gates = @{
         ExtraEnv   = @{
             EAPO_GALLERY_VST3_PLUGIN  = Join-Path $WorkspaceRoot "Tests\TestVst3Plugin\$Platform\Release\TestVst3Plugin.vst3"
             EAPO_GALLERY_VST2_PLUGIN  = Join-Path $WorkspaceRoot "Tests\TestVst2Plugin\$Platform\Release\TestVst2Plugin.dll"
+            QT_FORCE_STDERR_LOGGING   = "1"
         }
-        LogPath    = $null
+        # The gallery reports its findings as qWarning lines; without a log a
+        # failing run says only its exit code.
+        LogPath    = Join-Path $WorkspaceRoot "skin-gallery.log"
         PostChecks = @("gallery-not-empty")
     }
     "skin-switch" = [pscustomobject]@{
@@ -163,6 +166,28 @@ $gates = @{
     }
 }
 
+# The gallery again in each shipped translation a headless runner can draw.
+# Its layout checks (a card wider than the list, a legend that does not fit
+# its cap) depend on how long the translated strings are, and the English run
+# cannot see that: the French filter card was wider than the list in all five
+# skins and nothing reported it. Simplified Chinese is left out because the
+# offscreen platform has no CJK face and draws every character as a box.
+$translatedGalleryLanguages = @("fr", "de", "ko")
+foreach ($language in $translatedGalleryLanguages) {
+    $translated = [pscustomobject]@{
+        Arguments  = @("--skin-gallery", (Join-Path $WorkspaceRoot "skin-gallery-$language"))
+        ExtraEnv   = @{
+            EAPO_GALLERY_VST3_PLUGIN  = $gates["skin-gallery"].ExtraEnv["EAPO_GALLERY_VST3_PLUGIN"]
+            EAPO_GALLERY_VST2_PLUGIN  = $gates["skin-gallery"].ExtraEnv["EAPO_GALLERY_VST2_PLUGIN"]
+            EAPO_GALLERY_LANG         = $language
+            QT_FORCE_STDERR_LOGGING   = "1"
+        }
+        LogPath    = Join-Path $WorkspaceRoot "skin-gallery-$language.log"
+        PostChecks = @("gallery-not-empty")
+    }
+    $gates["skin-gallery-$language"] = $translated
+}
+
 if (-not $gates.ContainsKey($Gate)) {
     $validGates = @($gates.Keys | Sort-Object)
     throw "Unknown Editor offscreen gate '$Gate'. Valid gates: $($validGates -join ', ')"
@@ -178,6 +203,7 @@ $plan = [pscustomobject]@{
     LogPath    = $spec.LogPath
     PostChecks = @($spec.PostChecks)
     QtPlatform = if ($spec.PSObject.Properties["QtPlatform"]) { $spec.QtPlatform } else { "offscreen" }
+    TranslatedGalleryLanguages = @($translatedGalleryLanguages)
     # The import lib embeds the SONAME velopack_libc.dll (see Package-
     # Artifacts); the gates run from the build dir, so the renamed DLL must
     # sit next to Editor.exe. Idempotent, so every gate does it.
@@ -229,7 +255,7 @@ foreach ($name in $spec.ExtraEnv.Keys) {
     Set-Item -Path "env:$name" -Value $spec.ExtraEnv[$name]
 }
 
-if ($Gate -eq "skin-gallery") {
+if ($Gate -like "skin-gallery*") {
     foreach ($fixture in @($env:EAPO_GALLERY_VST3_PLUGIN, $env:EAPO_GALLERY_VST2_PLUGIN)) {
         if (-not (Test-Path $fixture)) {
             throw "VST gallery fixture not found: $fixture"
