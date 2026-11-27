@@ -67,6 +67,7 @@ inline constexpr char RecentFiles[] = "recentFiles";
 enum class ListMode
 {
 	Cards,        // "cards"
+	Rows,         // "rows"
 	LegacyEditor  // "legacy"
 };
 
@@ -77,6 +78,8 @@ inline QString listModeWord(ListMode mode)
 	{
 	case ListMode::Cards:
 		return QStringLiteral("cards");
+	case ListMode::Rows:
+		return QStringLiteral("rows");
 	case ListMode::LegacyEditor:
 		return QStringLiteral("legacy");
 	}
@@ -87,6 +90,8 @@ inline std::optional<ListMode> listModeFromWord(const QString& word)
 {
 	if (word == QLatin1String("cards"))
 		return ListMode::Cards;
+	if (word == QLatin1String("rows"))
+		return ListMode::Rows;
 	if (word == QLatin1String("legacy"))
 		return ListMode::LegacyEditor;
 	return std::nullopt;

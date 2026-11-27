@@ -88,7 +88,11 @@ TEST_CASE(EditorLogicTests, testListModeWordsRoundTrip)
 		EditorSettings::listModeFromWord(EditorSettings::listModeWord(EditorSettings::ListMode::LegacyEditor));
 	expectTrue(legacy.has_value() && *legacy == EditorSettings::ListMode::LegacyEditor,
 		QStringLiteral("the legacy editor word round trips"));
-	expectFalse(EditorSettings::listModeFromWord(QStringLiteral("rows")).has_value(),
+	const auto rows = EditorSettings::listModeFromWord(QStringLiteral("rows"));
+	expectTrue(rows.has_value(), QStringLiteral("rows is a known list-mode word"));
+	if (rows.has_value())
+		expectEqual(EditorSettings::listModeWord(*rows), QStringLiteral("rows"), "the rows word round trips");
+	expectFalse(EditorSettings::listModeFromWord(QStringLiteral("future-mode")).has_value(),
 		QStringLiteral("an unknown list-mode word is rejected"));
 	expectFalse(EditorSettings::listModeFromWord(QString()).has_value(),
 		QStringLiteral("an empty list-mode word is rejected"));
@@ -110,6 +114,9 @@ TEST_CASE(EditorLogicTests, testListModeSettingReadsWordsAndRetiredBoolean)
 	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor,
 		QStringLiteral("the legacy word selects the legacy editor"));
 	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("rows"));
+	expectEqual(EditorSettings::listModeWord(EditorSettings::readListMode(settings)), QStringLiteral("rows"),
+		"the rows word selects rows");
+	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("future-mode"));
 	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
 		QStringLiteral("an unknown word falls back to cards"));
 
@@ -144,6 +151,15 @@ TEST_CASE(EditorLogicTests, testListModeSettingWritesWordsAndRetiresBoolean)
 		QStringLiteral("writing cards removes the retired boolean"));
 	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
 		QStringLiteral("written cards read back as cards"));
+
+	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), true);
+	EditorSettings::writeListMode(settings, EditorSettings::ListMode::Rows);
+	expectEqual(settings.value(QLatin1String(EditorSettings::Keys::ListMode)).toString(), QStringLiteral("rows"),
+		"writing rows stores its word");
+	expectFalse(settings.contains(QLatin1String(EditorSettings::Keys::RetiredLegacyRows)),
+		QStringLiteral("writing rows removes the retired boolean"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Rows,
+		QStringLiteral("written rows read back as rows"));
 
 	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), false);
 	EditorSettings::writeListMode(settings, EditorSettings::ListMode::LegacyEditor);
