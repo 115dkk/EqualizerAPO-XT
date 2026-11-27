@@ -98,7 +98,8 @@ It also applies to `--card-move-test`, `--card-selection-test`,
 `--close-save-sweep`, and `--skin-switch-test`. Without it these checks use
 cards, regardless of the saved preference. With `rows`, a skin without row
 support uses cards and logs that fallback once. Unknown values exit non-zero
-with a usage line.
+with a usage line. `--interface-menu-test` checks the Interface menu's mode,
+skin, restart and shortcut behavior offscreen without writing preferences.
 
 ## Interaction-layer wishes (follow-up candidates)
 

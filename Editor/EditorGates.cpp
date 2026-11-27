@@ -77,6 +77,11 @@ struct GateEntry
 	ArmRunner arm;
 };
 
+int runInterfaceMenuTest(const QStringList&)
+{
+	return SkinGallery::runInterfaceMenuTest();
+}
+
 int runScrollBench(const QStringList&)
 {
 	return SkinGallery::runScrollBench();
@@ -257,6 +262,14 @@ void armSkinSwitchStorm(MainWindow& window, const QCommandLineParser&)
 
 // EditorOffscreenTest.Tests.ps1 reads these literals.
 static const GateEntry kGates[] = {
+	{
+		"--interface-menu-test",
+		Stage::Headless,
+		nullptr,
+		false,
+		runInterfaceMenuTest,
+		nullptr
+	},
 	{
 		"--scroll-bench",
 		Stage::Headless,
