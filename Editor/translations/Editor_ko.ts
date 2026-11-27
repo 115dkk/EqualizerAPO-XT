@@ -1291,7 +1291,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1048"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1343"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
@@ -1300,47 +1300,47 @@ Select a different file or change the device configuration.</source>
         <translation type="vanished">이 명령을 활성화하거나 주석 처리합니다</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="180"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="243"/>
         <source>Add filter above this card</source>
         <translation>이 카드 위에 필터 추가</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="194"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="257"/>
         <source>Remove filter</source>
         <translation>필터 제거</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="195"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="258"/>
         <source>Remove this filter. %1 brings it back.</source>
         <translation>이 필터를 제거합니다. %1로 되돌릴 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="211"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="274"/>
         <source>Edit raw command</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="850"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1089"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1048"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1343"/>
         <source>Collapse filter card</source>
         <translation>필터 카드 접기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1051"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1346"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>이 줄을 끕니다. 파일에는 주석으로 남습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1052"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1347"/>
         <source>Switch this line back on.</source>
         <translation>이 줄을 다시 켭니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="848"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1087"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO가 이 필터를 준비하지 못해 설정 전체를 적용하지 않았고, 이전 설정이 계속 재생됩니다. 이 줄이 쓰는 파일이나 플러그인을 확인하거나 이 줄을 끄십시오.</translation>
     </message>
@@ -2323,7 +2323,7 @@ Alexander Walch</translation>
 <context>
     <name>MainWindow</name>
     <message>
-        <location filename="../MainWindow.cpp" line="115"/>
+        <location filename="../MainWindow.cpp" line="117"/>
         <source>Equalizer APO %0 Configuration Editor</source>
         <translation>Equalizer APO %0 구성 편집기</translation>
     </message>
@@ -2507,7 +2507,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="665"/>
-        <location filename="../MainWindow.cpp" line="384"/>
+        <location filename="../MainWindow.cpp" line="386"/>
         <source>Check for updates</source>
         <translation>업데이트 확인</translation>
     </message>
@@ -2548,115 +2548,115 @@ Alexander Walch</translation>
         <translation>설정</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="130"/>
+        <location filename="../MainWindow.cpp" line="132"/>
         <source>Instant mode</source>
         <translation>즉시 적용 모드</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="134"/>
+        <location filename="../MainWindow.cpp" line="136"/>
         <source>Changes are saved immediately</source>
         <translation>변경 사항을 즉시 저장합니다</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="131"/>
+        <location filename="../MainWindow.cpp" line="133"/>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="95"/>
         <source>Saved</source>
         <translation>저장됨</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="135"/>
+        <location filename="../MainWindow.cpp" line="137"/>
         <source>Current file save state</source>
         <translation>현재 파일 저장 상태</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="132"/>
+        <location filename="../MainWindow.cpp" line="134"/>
         <source>Device</source>
         <translation>장치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="136"/>
+        <location filename="../MainWindow.cpp" line="138"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>EqualizerAPO가 이 장치의 스트림을 직접 처리하는지, 필터 없이 그대로 전달하는지 나타냅니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="133"/>
+        <location filename="../MainWindow.cpp" line="135"/>
         <source>Channels</source>
         <translation>채널</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="149"/>
+        <location filename="../MainWindow.cpp" line="151"/>
         <source>Default (%1 - %2)</source>
         <translation>기본값 (%1 - %2)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="253"/>
+        <location filename="../MainWindow.cpp" line="255"/>
         <source>Automatic (%0)</source>
         <translation>자동 (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="296"/>
+        <location filename="../MainWindow.cpp" line="298"/>
         <source>An update has been downloaded and will be applied when you close the editor.</source>
         <translation>업데이트를 내려받았습니다. 편집기를 닫으면 자동으로 적용됩니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="297"/>
+        <location filename="../MainWindow.cpp" line="299"/>
         <source>Update %0 has been downloaded and will be applied when you close the editor.</source>
         <translation>%0 업데이트를 내려받았습니다. 편집기를 닫으면 자동으로 적용됩니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="304"/>
-        <location filename="../MainWindow.cpp" line="327"/>
-        <location filename="../MainWindow.cpp" line="331"/>
+        <location filename="../MainWindow.cpp" line="306"/>
+        <location filename="../MainWindow.cpp" line="329"/>
+        <location filename="../MainWindow.cpp" line="333"/>
         <source>Restart Windows audio</source>
         <translation>Windows 오디오 다시 시작</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="307"/>
         <source>Restart Windows audio now? Sound stops for a few seconds.</source>
         <translation>지금 Windows 오디오를 다시 시작할까요? 몇 초 동안 소리가 끊깁니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="328"/>
+        <location filename="../MainWindow.cpp" line="330"/>
         <source>Windows audio has been restarted.</source>
         <translation>Windows 오디오가 다시 동작하고 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="332"/>
+        <location filename="../MainWindow.cpp" line="334"/>
         <source>Windows audio could not be restarted. Restart the computer to load the installed version.</source>
         <translation>Windows 오디오를 다시 시작하지 못했습니다. 설치된 버전을 사용하려면 컴퓨터를 다시 시작하세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="389"/>
+        <location filename="../MainWindow.cpp" line="391"/>
         <source>This copy was not installed by the installer, so it cannot update itself.</source>
         <translation>설치 프로그램으로 설치하지 않아 편집기에서 업데이트할 수 없습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="392"/>
+        <location filename="../MainWindow.cpp" line="394"/>
         <source>You have the latest version (%1).</source>
         <translation>최신 버전(%1)을 사용하고 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="400"/>
+        <location filename="../MainWindow.cpp" line="402"/>
         <source>Could not check for updates. Check the internet connection and try again.</source>
         <translation>업데이트를 확인하지 못했습니다. 인터넷 연결을 확인하고 다시 시도하세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="427"/>
+        <location filename="../MainWindow.cpp" line="429"/>
         <source>Windows audio service</source>
         <translation>Windows 오디오 서비스</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="428"/>
+        <location filename="../MainWindow.cpp" line="430"/>
         <source>The Windows audio service is not running. Sound will not play until it is started.</source>
         <translation>Windows 오디오 서비스가 실행되지 않았습니다. 서비스를 시작해야 소리를 재생할 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="444"/>
+        <location filename="../MainWindow.cpp" line="446"/>
         <source>Audio engine out of date</source>
         <translation>오디오 엔진이 이전 버전입니다</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="445"/>
+        <location filename="../MainWindow.cpp" line="447"/>
         <source>The audio engine is still running Equalizer APO %1, but %2 is installed. Windows audio has to restart before the new version takes over.
 
 Restart Windows audio now? Sound stops for a few seconds.</source>
@@ -2665,12 +2665,12 @@ Restart Windows audio now? Sound stops for a few seconds.</source>
 지금 Windows 오디오를 다시 시작할까요? 몇 초 동안 소리가 끊깁니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="475"/>
+        <location filename="../MainWindow.cpp" line="477"/>
         <source>Audio folder access</source>
         <translation>오디오 서비스의 폴더 접근</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="476"/>
+        <location filename="../MainWindow.cpp" line="478"/>
         <source>The Windows audio service cannot read this folder:
 %0
 
@@ -2681,36 +2681,36 @@ Run tools\Repair-EqualizerAPO.ps1 from the installation folder as administrator 
 접근 권한을 복구하려면 설치 폴더에서 tools\Repair-EqualizerAPO.ps1을 관리자 권한으로 실행하십시오.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="481"/>
+        <location filename="../MainWindow.cpp" line="483"/>
         <source>Registry problem</source>
         <translation>레지스트리 문제</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="481"/>
+        <location filename="../MainWindow.cpp" line="483"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO 작동에 필요한 레지스트리 값이 올바르게 설정되지 않았습니다.
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="490"/>
+        <location filename="../MainWindow.cpp" line="492"/>
         <source>APO not installed to device</source>
         <translation>장치에 APO 미설치</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="490"/>
+        <location filename="../MainWindow.cpp" line="492"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>선택한 장치에 Equalizer APO가 설치되지 않았습니다.
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="548"/>
+        <location filename="../MainWindow.cpp" line="550"/>
         <source>EQ inactive on some devices</source>
         <translation>일부 장치에서 EQ 비활성</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="549"/>
+        <location filename="../MainWindow.cpp" line="551"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -2723,12 +2723,12 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 충돌은 아닙니다. 소리는 장치로 전달되지만 EQ는 적용되지 않습니다. 이 장치에 필터링이 필요하면 소리 설정에서 장치 기본 형식을 32비트 IEEE_FLOAT로 바꾸세요.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="584"/>
+        <location filename="../MainWindow.cpp" line="586"/>
         <source>Audio enhancements disabled</source>
         <translation>오디오 향상 사용 안 함</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="584"/>
+        <location filename="../MainWindow.cpp" line="586"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -2737,30 +2737,30 @@ Do you want to run the Device Selector application to fix the problem?</source>
 문제를 해결하기 위해 장치 선택기 앱을 실행하시겠습니까?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="615"/>
-        <location filename="../MainWindow.cpp" line="619"/>
+        <location filename="../MainWindow.cpp" line="617"/>
+        <location filename="../MainWindow.cpp" line="621"/>
         <source>Device Selector</source>
         <translation>장치 선택기</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="616"/>
+        <location filename="../MainWindow.cpp" line="618"/>
         <source>The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File &gt; APO settings.</source>
         <translation>장치 선택기를 열지 않았습니다. 오디오 장치를 관리하려면 관리자 승인이 필요하며, 파일 &gt; APO 설정에서 언제든 다시 열 수 있습니다.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="619"/>
+        <location filename="../MainWindow.cpp" line="621"/>
         <source>The Device Selector could not be opened:
 %1</source>
         <translation>Device Selector를 열지 못했습니다.
 %1</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="152"/>
+        <location filename="../MainWindow.cpp" line="154"/>
         <source>Playback devices:</source>
         <translation>재생 장치:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="163"/>
+        <location filename="../MainWindow.cpp" line="165"/>
         <source>Capture devices:</source>
         <translation>캡처 장치:</translation>
     </message>
@@ -2770,17 +2770,17 @@ Do you want to run the Device Selector application to fix the problem?</source>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="139"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="461"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="546"/>
         <source>Graph</source>
         <translation>그래프</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="270"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="316"/>
         <source>Interface</source>
         <translation>인터페이스</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="274"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="320"/>
         <source>Modern cards</source>
         <translation>모던 카드</translation>
     </message>
@@ -2789,97 +2789,102 @@ Do you want to run the Device Selector application to fix the problem?</source>
         <translation type="vanished">레거시 행</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="293"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="305"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="294"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="306"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="295"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="307"/>
         <source>Stock Flat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="296"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="308"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="297"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="309"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="327"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="185"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="321"/>
+        <source>Modern rows</source>
+        <translation>모던 행</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="377"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="207"/>
         <source>Knob gain range</source>
         <translation>노브 게인 범위</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="332"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="382"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="337"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="395"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="387"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="489"/>
         <source>Custom...</source>
         <translation>사용자 지정...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="356"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="406"/>
         <source>Native title bar</source>
         <translation>기본 제목 표시줄</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="364"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="414"/>
         <source>Windows file dialog</source>
         <translation>Windows 기본 파일 대화상자</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="396"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="490"/>
         <source>Custom (±%1 dB)...</source>
         <translation>사용자 지정 (±%1 dB)...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="309"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="363"/>
         <source>Dark theme</source>
         <translation>어두운 테마</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="278"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="356"/>
         <source>Legacy editor</source>
         <translation>레거시 에디터</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="347"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="397"/>
         <source>Fullscreen graph</source>
         <translation>그래프 전체화면</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="186"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="208"/>
         <source>Gain knobs will cover ± this many dB:</source>
         <translation>게인 노브가 담당할 ± dB 범위:</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="102"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="235"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="262"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="289"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="313"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="100"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="257"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="284"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="311"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="335"/>
         <source>Restart required</source>
         <translation>다시 시작 필요</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="102"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="235"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="262"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="289"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="313"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="100"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="257"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="284"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="311"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="335"/>
         <source>Configuration Editor will be restarted to apply the changed settings. Proceed?</source>
         <translation>변경된 설정을 적용하려면 구성 편집기를 다시 시작해야 합니다. 계속하시겠습니까?</translation>
     </message>
