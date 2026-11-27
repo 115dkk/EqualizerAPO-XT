@@ -117,40 +117,40 @@
         <translation>Allpassfilter</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="238"/>
         <source>Center frequency</source>
         <translation>Mittenfrequenz</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="228"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="240"/>
         <source>Corner frequency</source>
         <translation>Eckfrequenz</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="257"/>
         <source>Fixed Q</source>
         <translation>Festes Q</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="292"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="259"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="304"/>
         <source>Fixed S</source>
         <translation>Festes S</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="251"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="294"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="263"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="306"/>
         <source>Q factor</source>
         <translation>Q-Faktor</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="258"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="270"/>
         <source>Bandwidth</source>
         <translation>Bandbreite</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="293"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="261"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="305"/>
         <source>Slope</source>
         <translation>Steilheit</translation>
     </message>
@@ -223,12 +223,12 @@
 <context>
     <name>BlockChipView</name>
     <message>
-        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="214"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="227"/>
         <source>Show fewer channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="215"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="228"/>
         <source>Show %n more channel(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -236,7 +236,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="228"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="241"/>
         <source>Add channel</source>
         <translation type="unfinished">Kanal hinzufügen</translation>
     </message>
@@ -1278,7 +1278,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1343"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
         <source>Expand filter card</source>
         <translation>Filterkarte aufklappen</translation>
     </message>
@@ -1307,27 +1307,27 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Rohbefehl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1089"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1105"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1343"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
         <source>Collapse filter card</source>
         <translation>Filterkarte zuklappen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1346"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1362"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Diese Zeile ausschalten. Sie bleibt als Kommentar in der Datei.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1347"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1363"/>
         <source>Switch this line back on.</source>
         <translation>Diese Zeile wieder einschalten.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1087"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1103"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO konnte diesen Filter nicht vorbereiten. Deshalb wurde die gesamte Konfiguration nicht angewendet, und die bisherigen Einstellungen werden weiter wiedergegeben. Prüfen Sie die Datei oder das Plug-in, das diese Zeile verwendet, oder schalten Sie die Zeile aus.</translation>
     </message>
@@ -1579,7 +1579,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FlatReferenceCardView</name>
     <message>
-        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="241"/>
+        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="351"/>
         <source>Checking...</source>
         <translation>Wird geprüft...</translation>
     </message>
@@ -1587,82 +1587,83 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FlatSkin</name>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="57"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="58"/>
         <source>Otherwise</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="59"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="60"/>
         <source>End of the rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="70"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="71"/>
         <source>Set %1 to %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="91"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="92"/>
         <source>If %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="93"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="94"/>
         <source>If %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="95"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="96"/>
         <source>If %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="97"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="98"/>
         <source>If %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="99"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="100"/>
         <source>If %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="101"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="102"/>
         <source>If %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="106"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="107"/>
         <source>Otherwise, if %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="108"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="109"/>
         <source>Otherwise, if %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="110"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="111"/>
         <source>Otherwise, if %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="112"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="113"/>
         <source>Otherwise, if %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="114"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="115"/>
         <source>Otherwise, if %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="116"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="117"/>
         <source>Otherwise, if %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="227"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="243"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="278"/>
         <source>Not applied to the audio.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -3081,7 +3082,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>MatrixReferenceCardView</name>
     <message>
-        <location filename="../skins/matrix/cards/MatrixReferenceCardView.cpp" line="180"/>
+        <location filename="../skins/matrix/cards/MatrixReferenceCardView.cpp" line="228"/>
         <source>Checking...</source>
         <translation>Wird geprüft...</translation>
     </message>
@@ -3097,7 +3098,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>MinimalReferenceCardView</name>
     <message>
-        <location filename="../skins/minimal/cards/MinimalReferenceCardView.cpp" line="103"/>
+        <location filename="../skins/minimal/cards/MinimalReferenceCardView.cpp" line="122"/>
         <source>Checking...</source>
         <translation>Wird geprüft...</translation>
     </message>
@@ -3660,7 +3661,7 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../skins/studio/routing/LightTraceRoutingRenderer.cpp" line="580"/>
+        <location filename="../skins/studio/routing/LightTraceRoutingRenderer.cpp" line="594"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>Zum Routen zwischen Kanälen ziehen - + fügt einen Ausgang hinzu</translation>
     </message>
@@ -4004,14 +4005,14 @@ Möchten Sie die Device Selector-Anwendung starten, um das Problem zu beheben?</
 <context>
     <name>VSTBusStrip</name>
     <message>
-        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="586"/>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="598"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>Out</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="587"/>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="599"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>In</source>
@@ -4356,30 +4357,30 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillBlock</name>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="234"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="248"/>
         <source>Choose which channel goes into and comes out of each plugin slot.</source>
         <translation>Wählen Sie für jeden Plugin-Platz, welcher Kanal hineingeht und welcher herauskommt.</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="241"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="255"/>
         <source>Out</source>
         <comment>row caption: the channels the plugin&apos;s output slots write</comment>
         <translation>Aus</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="242"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="256"/>
         <source>In</source>
         <comment>row caption: the channels fed into the plugin&apos;s input slots</comment>
         <translation>Ein</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="252"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="266"/>
         <source>Discard</source>
         <comment>an output slot whose sound is thrown away</comment>
         <translation>Verwerfen</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="253"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="267"/>
         <source>Silence</source>
         <comment>an input slot that gets no channel</comment>
         <translation>Stille</translation>
@@ -4411,7 +4412,7 @@ Change the file permissions or copy the files to the config directory.</source>
 <context>
     <name>VSTSlotFillRail</name>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="229"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="243"/>
         <location filename="../widgets/cards/VSTSlotFillBlock.cpp" line="195"/>
         <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="248"/>
         <source>Channel fill</source>
