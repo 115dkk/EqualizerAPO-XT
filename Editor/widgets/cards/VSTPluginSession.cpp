@@ -433,8 +433,16 @@ void VSTPluginSession::openDialog(QWidget* dialogParent)
 		this, &VSTPluginSession::onIdle);
 
 	// OK and Apply store the state only when it moved, like the read-back.
-	if (dialog.exec() == QDialog::Accepted)
+	const bool accepted = dialog.exec() == QDialog::Accepted;
+	// With auto apply on, an edit is stored as it is made, whichever way the
+	// dialog closes afterwards. The read an automate call asked for may still
+	// be waiting for its turn when the dialog closes; it is made here.
+	const bool automateWaiting = autoApply && automatedRead.readWanted();
+	automatedRead.readTaken();
+	if (accepted)
 		readBack(true);
+	else if (automateWaiting)
+		readAndStoreState(true);
 	disconnect(QAbstractEventDispatcher::instance(), &QAbstractEventDispatcher::aboutToBlock,
 		this, &VSTPluginSession::onIdle);
 	previewFeeder.stop();

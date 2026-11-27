@@ -52,6 +52,13 @@ public:
 		return wanted && (msSinceLastRead < 0 || msSinceLastRead >= minimumIntervalMs);
 	}
 
+	// An automate call asked for a read that has not been made yet. The
+	// session asks when a panel closes: the read must not be lost with it.
+	bool readWanted() const
+	{
+		return wanted;
+	}
+
 	// The session is about to make the read that was asked for; it answers
 	// every automate call that arrived before it.
 	void readTaken()
