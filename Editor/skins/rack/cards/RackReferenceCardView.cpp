@@ -15,12 +15,16 @@
 
 #include <QAbstractButton>
 #include <QEnterEvent>
+#include <QEvent>
 #include <QFontMetrics>
+#include <QFontMetricsF>
 #include <QHBoxLayout>
 #include <QPainter>
+#include <QSpacerItem>
 #include <QStyle>
 #include <QToolButton>
 #include <QVBoxLayout>
+#include <QtMath>
 
 namespace
 {
@@ -132,6 +136,12 @@ void RackEngravedLabel::setWordWrap(bool newWordWrap)
 	update();
 }
 
+void RackEngravedLabel::setMinimumCharacters(int count)
+{
+	minimumCharacters = qMax(0, count);
+	updateGeometry();
+}
+
 QFont RackEngravedLabel::engraveFont() const
 {
 	// The letter-spaced DM Sans approximation of condensed engraving type
@@ -162,8 +172,29 @@ QSize RackEngravedLabel::minimumSizeHint() const
 	QSize hint = sizeHint();
 	// Elidable and wrapping printing must not let the full text dictate the
 	// minimum.
-	if (elideMode != Qt::ElideNone || wordWrap)
+	if (wordWrap || (elideMode != Qt::ElideNone && minimumCharacters == 0))
+	{
 		hint.setWidth(qMin(hint.width(), 28));
+	}
+	else if (elideMode != Qt::ElideNone && !stamped && text.size() > minimumCharacters)
+	{
+		// The floor that still shows minimumCharacters characters around the
+		// ellipsis. Measured in fractional advances and rounded up, because
+		// elidedText() compares fractional widths (see paintEvent); the extra
+		// pixel keeps a rounding tie from dropping one more character.
+		const QFontMetricsF metrics(engraveFont());
+		const int head = (minimumCharacters + 1) / 2;
+		const int tail = minimumCharacters - head;
+		const QString ellipsis(QChar(0x2026));
+		qreal kept = metrics.horizontalAdvance(ellipsis);
+		if (elideMode == Qt::ElideMiddle)
+			kept += metrics.horizontalAdvance(text.left(head)) + metrics.horizontalAdvance(text.right(tail));
+		else if (elideMode == Qt::ElideLeft)
+			kept += metrics.horizontalAdvance(text.right(minimumCharacters));
+		else
+			kept += metrics.horizontalAdvance(text.left(minimumCharacters));
+		hint.setWidth(qMin(hint.width(), int(qCeil(kept)) + 3));
+	}
 	return hint;
 }
 
@@ -356,8 +387,18 @@ QSize RackLcdWindow::sizeHint() const
 	return QSize(metrics.horizontalAdvance(displayText()) + 20, metrics.height() + 12);
 }
 
+void RackLcdWindow::setWholeText(bool newWholeText)
+{
+	if (wholeText == newWholeText)
+		return;
+	wholeText = newWholeText;
+	updateGeometry();
+}
+
 QSize RackLcdWindow::minimumSizeHint() const
 {
+	if (wholeText)
+		return sizeHint().boundedTo(maximumSize());
 	return QSize(72, sizeHint().height());
 }
 
@@ -420,7 +461,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 
 	// The engraved label strip: function caption + stamped tags over the
 	// target's name, with the location and any service note as sub-printing.
-	QWidget* labelArea = new QWidget(page);
+	labelArea = new QWidget(page);
 	labelArea->setObjectName(QStringLiteral("RackRefLabelArea"));
 	QVBoxLayout* labelLayout = new QVBoxLayout(labelArea);
 	labelLayout->setContentsMargins(0, 0, 0, 0);
@@ -510,6 +551,7 @@ RackReferenceCardView::RackReferenceCardView(const QString& kind, const SkinToke
 	actionLayout->setSpacing(4);
 	rootLayout->addLayout(actionLayout);
 	rootLayout->addStretch(1);
+	trailingStretch = rootLayout->itemAt(rootLayout->count() - 1)->spacerItem();
 
 	// The service note is a sentence, not a label: it prints on its own line
 	// across the plate under the unit, aligned with the label strip, and
@@ -542,7 +584,95 @@ void RackReferenceCardView::placeBusStrip(QWidget* strip)
 	// the machine buttons, the same seat the LCD readout takes on IR units.
 	// The strip paints its own recessed sub-panel.
 	strip->setParent(contentWidget());
+	busStrip = strip;
+	if (rowMode && wiringLayout != nullptr)
+	{
+		wiringLayout->insertWidget(wiringLayout->indexOf(dirLabel) + 1, strip, 0, Qt::AlignVCenter);
+		strip->installEventFilter(this);
+		updateRowArrangement();
+		return;
+	}
 	rootLayout->insertWidget(rootLayout->indexOf(lcdWindow), strip, 0, Qt::AlignVCenter);
+}
+
+void RackReferenceCardView::setInlineRow(bool inlineRow)
+{
+	if (!inlineRow || rowMode || moduleReadout == nullptr)
+		return;
+	rowMode = true;
+
+	// A row has the plate's width but not a card's: lamp, readout, name, bus
+	// strip and caps on one line overflowed the 960 px row (the Auto state
+	// scrolled sideways) or cut the readout and the name. So the row says the
+	// unit in two lines: line 1 is identity and actions, line 2 is where the
+	// unit points (the path) and how it is wired (the bus strip).
+	QVBoxLayout* pageLayout = qobject_cast<QVBoxLayout*>(contentWidget()->layout());
+	if (pageLayout == nullptr)
+		return;
+	wiringLayout = new QHBoxLayout();
+	// Aligned with the label strip, like the status line under it.
+	wiringLayout->setContentsMargins(lamp->width() + rootLayout->spacing(), 0, 0, 0);
+	wiringLayout->setSpacing(rootLayout->spacing());
+	pageLayout->insertLayout(pageLayout->indexOf(rootLayout) + 1, wiringLayout);
+
+	if (QLayout* labelLayout = labelArea->layout())
+		labelLayout->removeWidget(dirLabel);
+	wiringLayout->addWidget(dirLabel, 0, Qt::AlignVCenter);
+	if (busStrip != nullptr)
+	{
+		rootLayout->removeWidget(busStrip);
+		wiringLayout->addWidget(busStrip, 0, Qt::AlignVCenter);
+	}
+	// The path takes what the bus strip leaves and elides first; a
+	// QBoxLayout skips this spacer while everything else on the line is
+	// hidden, so an empty line 2 takes no height.
+	wiringLayout->addStretch(1);
+
+	// The display clause: the module readout shows its whole text or is not
+	// there. The name keeps 12 characters before it elides.
+	moduleReadout->setWholeText(true);
+	nameLabel->setMinimumCharacters(12);
+
+	// Line 2's parts are shown and hidden by the host (the bus strip by the
+	// VST editor, the path by applyState), so the arrangement follows their
+	// visibility rather than one moment's answer.
+	dirLabel->installEventFilter(this);
+	if (busStrip != nullptr)
+		busStrip->installEventFilter(this);
+	updateRowArrangement();
+}
+
+bool RackReferenceCardView::eventFilter(QObject* watched, QEvent* event)
+{
+	if (rowMode && (watched == dirLabel || watched == busStrip)
+		&& (event->type() == QEvent::ShowToParent || event->type() == QEvent::HideToParent))
+		updateRowArrangement();
+	return ReferenceCardView::eventFilter(watched, event);
+}
+
+void RackReferenceCardView::updateRowArrangement()
+{
+	if (!rowMode || trailingStretch == nullptr)
+		return;
+	const bool secondLine = !dirLabel->isHidden() || (busStrip != nullptr && !busStrip->isHidden());
+	// With a second line the caps sit at the right end of line 1 and the
+	// label strip (the name) takes the stretch. Without one (a module that
+	// is not found and shows no bus strip) the unit is the card's single
+	// line, caps packed after the name, exactly as the approved row drew it.
+	const int stretchIndex = rootLayout->indexOf(trailingStretch);
+	if (secondLine)
+	{
+		trailingStretch->changeSize(0, 0, QSizePolicy::Fixed, QSizePolicy::Minimum);
+		rootLayout->setStretch(stretchIndex, 0);
+		rootLayout->setStretchFactor(labelArea, 1);
+	}
+	else
+	{
+		trailingStretch->changeSize(0, 0, QSizePolicy::Expanding, QSizePolicy::Minimum);
+		rootLayout->setStretch(stretchIndex, 1);
+		rootLayout->setStretchFactor(labelArea, 0);
+	}
+	rootLayout->invalidate();
 }
 
 void RackReferenceCardView::addLeadingWidget(QWidget* widget)
