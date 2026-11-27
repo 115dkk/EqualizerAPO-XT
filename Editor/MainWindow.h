@@ -188,6 +188,9 @@ private slots:
 private:
 	void startSkinSwitchStorm();
 	void applySkinAndRebuild();
+	void selectInterface(FilterTable::RenderMode mode, const QString& selectedSkin);
+	void persistSkinChoice();
+	void syncInterfaceMenu();
 	void executeStartAnalysis();
 	// Writes one document and applies the widget-free transition for its save
 	// reason. Callers do not repair title/path/dirty state themselves.
@@ -297,7 +300,9 @@ private:
 	int graphDockPosition = 1;
 	FilterTable::RenderMode currentRenderMode = FilterTable::ModernCards;
 	QActionGroup* interfaceModeActionGroup = nullptr;
-	QActionGroup* skinActionGroup = nullptr;
+	QMenu* modernCardsMenu = nullptr;
+	QMenu* modernRowsMenu = nullptr;
+	QList<QAction*> skinShortcutActions;
 	QAction* darkThemeAction = nullptr;
 	QAction* fullscreenGraphAction = nullptr;
 	QActionGroup* knobRangeActionGroup = nullptr;

@@ -74,6 +74,8 @@ FilterTable::RenderMode renderModeForListMode(EditorSettings::ListMode mode)
 	{
 	case EditorSettings::ListMode::Cards:
 		return FilterTable::ModernCards;
+	case EditorSettings::ListMode::Rows:
+		return FilterTable::ModernRows;
 	case EditorSettings::ListMode::LegacyEditor:
 		return FilterTable::LegacyEditor;
 	}
@@ -86,6 +88,8 @@ EditorSettings::ListMode listModeForRenderMode(FilterTable::RenderMode mode)
 	{
 	case FilterTable::ModernCards:
 		return EditorSettings::ListMode::Cards;
+	case FilterTable::ModernRows:
+		return EditorSettings::ListMode::Rows;
 	case FilterTable::LegacyEditor:
 		return EditorSettings::ListMode::LegacyEditor;
 	}
@@ -224,8 +228,11 @@ void MainWindow::savePreferences()
 	settings.setValue(QLatin1String(EditorSettings::Keys::OpenFiles), fileList);
 	settings.setValue(QLatin1String(EditorSettings::Keys::TabIndex), ui->tabWidget->currentIndex());
 	settings.setValue(QLatin1String(EditorSettings::Keys::RecentFiles), recentFiles);
-	EditorSettings::writeSkinChoice(settings, { skinId, skinDark });
-	EditorSettings::writeListMode(settings, listModeForRenderMode(currentRenderMode));
+	if (!skinPersistenceSuppressed)
+	{
+		EditorSettings::writeSkinChoice(settings, { skinId, skinDark });
+		EditorSettings::writeListMode(settings, listModeForRenderMode(currentRenderMode));
+	}
 	settings.setValue(QLatin1String(EditorSettings::Keys::GraphDockPosition), graphDockPosition);
 
 	settings.sync();
@@ -271,20 +278,17 @@ void MainWindow::setupRedesignActions()
 
 	interfaceModeActionGroup = new QActionGroup(this);
 	interfaceModeActionGroup->setExclusive(true);
-	QAction* modernAction = interfaceMenu->addAction(tr("Modern cards"));
-	modernAction->setCheckable(true);
-	modernAction->setData(static_cast<int>(FilterTable::ModernCards));
-	interfaceModeActionGroup->addAction(modernAction);
-	QAction* legacyAction = interfaceMenu->addAction(tr("Legacy editor"));
-	legacyAction->setCheckable(true);
-	legacyAction->setData(static_cast<int>(FilterTable::LegacyEditor));
-	interfaceModeActionGroup->addAction(legacyAction);
-	connect(interfaceModeActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(interfaceModeSelected(QAction*)));
-
-	interfaceMenu->addSeparator();
-
-	skinActionGroup = new QActionGroup(this);
-	skinActionGroup->setExclusive(true);
+	modernCardsMenu = interfaceMenu->addMenu(tr("Modern cards"));
+	modernRowsMenu = interfaceMenu->addMenu(tr("Modern rows"));
+	for (QMenu* menu : { modernCardsMenu, modernRowsMenu })
+	{
+		// These summarize a presentation, not a second exclusive choice. Opening
+		// a submenu must never change the selected presentation.
+		menu->menuAction()->setCheckable(true);
+		connect(menu->menuAction(), &QAction::triggered, this, &MainWindow::syncInterfaceMenu);
+		connect(menu, &QMenu::aboutToShow, this, &MainWindow::syncInterfaceMenu);
+	}
+	connect(interfaceMenu, &QMenu::aboutToShow, this, &MainWindow::syncInterfaceMenu);
 	// Which skins exist and in what order comes from SkinThemeData::roster(); this
 	// only supplies the translated names. A roster id with no name here shows as
 	// its raw id - visible and reportable, unlike the old hand-written list, where
@@ -296,28 +300,46 @@ void MainWindow::setupRedesignActions()
 		{ QStringLiteral("rack"), tr("Hardware Rack") },
 		{ QStringLiteral("matrix"), tr("Signal Matrix") }
 	};
-	for (const QString& skinId : SkinThemeData::ids())
+	for (const QString& id : SkinThemeData::ids())
 	{
-		QAction* action = interfaceMenu->addAction(skinNames.value(skinId, skinId));
-		action->setCheckable(true);
-		action->setData(skinId);
-		action->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+%1").arg(skinActionGroup->actions().size() + 1)));
-		skinActionGroup->addAction(action);
+		for (FilterTable::RenderMode mode : { FilterTable::ModernCards, FilterTable::ModernRows })
+		{
+			if (mode == FilterTable::ModernRows && !SkinManager::instance()->skinSupportsRows(id))
+				continue;
+			QMenu* menu = mode == FilterTable::ModernCards ? modernCardsMenu : modernRowsMenu;
+			QAction* action = menu->addAction(skinNames.value(id, id));
+			action->setCheckable(true);
+			action->setData(QVariantMap{
+				{ QStringLiteral("mode"), static_cast<int>(mode) }, { QStringLiteral("skin"), id }
+			});
+			interfaceModeActionGroup->addAction(action);
+		}
+		// Only these window actions own the key sequences. Menu text may show
+		// them after a tab without registering an ambiguous second shortcut.
+		QAction* shortcut = new QAction(this);
+		shortcut->setObjectName(QStringLiteral("SkinShortcut_%1").arg(id));
+		shortcut->setData(id);
+		shortcut->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+%1").arg(skinShortcutActions.size() + 1)));
+		shortcut->setShortcutContext(Qt::WindowShortcut);
+		addAction(shortcut);
+		skinShortcutActions.append(shortcut);
+		connect(shortcut, &QAction::triggered, this, [this, shortcut]() { skinSelected(shortcut); });
 	}
-	connect(skinActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(skinSelected(QAction*)));
+	QAction* legacyAction = interfaceMenu->addAction(tr("Legacy editor"));
+	legacyAction->setCheckable(true);
+	legacyAction->setData(QVariantMap{ { QStringLiteral("mode"), static_cast<int>(FilterTable::LegacyEditor) } });
+	interfaceModeActionGroup->addAction(legacyAction);
+	connect(interfaceModeActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(interfaceModeSelected(QAction*)));
 
+	interfaceMenu->addSeparator();
 	darkThemeAction = interfaceMenu->addAction(tr("Dark theme"));
 	darkThemeAction->setCheckable(true);
 	darkThemeAction->setShortcut(QKeySequence(QStringLiteral("Ctrl+Alt+D")));
 	connect(darkThemeAction, SIGNAL(toggled(bool)), this, SLOT(darkThemeToggled(bool)));
 
-	if (SkinManager::instance()->isHeritage())
-	{
-		// Heritage is unskinned by definition; the choices come back with the
-		// modern presentation.
-		skinActionGroup->setEnabled(false);
-		darkThemeAction->setEnabled(false);
-	}
+	// Heritage is unskinned, but both submenus remain available to restart
+	// into a modern presentation.
+	syncInterfaceMenu();
 
 	interfaceMenu->addSeparator();
 
@@ -366,6 +388,50 @@ void MainWindow::setupRedesignActions()
 	nativeFileDialogAction->setChecked(GUIHelper::useNativeFileDialog());
 	connect(nativeFileDialogAction, &QAction::toggled, this,
 		[](bool checked) { GUIHelper::setUseNativeFileDialog(checked); });
+}
+
+void MainWindow::syncInterfaceMenu()
+{
+	if (interfaceModeActionGroup == nullptr)
+		return;
+	for (QAction* action : interfaceModeActionGroup->actions())
+	{
+		const QVariantMap choice = action->data().toMap();
+		const auto mode = static_cast<FilterTable::RenderMode>(choice.value(QStringLiteral("mode")).toInt());
+		const QString id = choice.value(QStringLiteral("skin")).toString();
+		action->setChecked(mode == currentRenderMode && (mode == FilterTable::LegacyEditor || id == skinId));
+		if (mode != FilterTable::LegacyEditor)
+		{
+			QString text = action->text().section(QLatin1Char('\t'), 0, 0);
+			if (mode == currentRenderMode)
+				for (const QAction* shortcut : skinShortcutActions)
+					if (shortcut->data().toString() == id)
+						text += QLatin1Char('\t') + shortcut->shortcut().toString(QKeySequence::NativeText);
+			action->setText(text);
+		}
+	}
+	for (QMenu* menu : { modernCardsMenu, modernRowsMenu })
+	{
+		if (menu == nullptr)
+			continue;
+		const QSignalBlocker blocker(menu->menuAction());
+		menu->menuAction()->setChecked(currentRenderMode ==
+			(menu == modernCardsMenu ? FilterTable::ModernCards : FilterTable::ModernRows));
+	}
+	if (darkThemeAction != nullptr)
+		darkThemeAction->setEnabled(currentRenderMode != FilterTable::LegacyEditor);
+}
+
+// The companion DeviceSelector dresses itself from interface/skin +
+// interface/dark at startup. Persist the presentation alongside that pair
+// immediately, so both tools and a restarted Editor see the chosen state.
+void MainWindow::persistSkinChoice()
+{
+	if (skinPersistenceSuppressed)
+		return;
+	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	EditorSettings::writeSkinChoice(settings, { skinId, skinDark });
+	EditorSettings::writeListMode(settings, listModeForRenderMode(currentRenderMode));
 }
 
 void MainWindow::syncKnobRangeActions()
@@ -436,16 +502,7 @@ void MainWindow::applyRedesignPreferences()
 		dressSkinChrome();
 	}
 
-	if (interfaceModeActionGroup != nullptr)
-	{
-		for (QAction* action : interfaceModeActionGroup->actions())
-			action->setChecked(action->data().toInt() == static_cast<int>(currentRenderMode));
-	}
-	if (skinActionGroup != nullptr)
-	{
-		for (QAction* action : skinActionGroup->actions())
-			action->setChecked(action->data().toString() == skinId);
-	}
+	syncInterfaceMenu();
 	if (darkThemeAction != nullptr)
 	{
 		darkThemeAction->blockSignals(true);

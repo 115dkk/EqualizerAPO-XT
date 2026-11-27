@@ -76,6 +76,11 @@ const QString& SkinManager::currentSkinId() const
 	return skinId;
 }
 
+bool SkinManager::skinSupportsRows(const QString& skinId) const
+{
+	return Skins::byId(skinId)->supportsRowMode();
+}
+
 bool SkinManager::isDark() const
 {
 	return darkMode;
