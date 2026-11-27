@@ -14,6 +14,12 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor, Stock Flat: a switched-off card dims its channel mapping too.**
+  Switching off a MultiConvolution, Copy or Send card dimmed its header and
+  selectors but left the channel mapping under them at full strength, so the
+  card looked partly on. The mapping now fades with the rest of the card.
+  ([#553](https://github.com/115dkk/EqualizerAPO-XT/pull/553))
+
 ## v2.86.3 — 2026-11-27
 
 - **Editor: a line you did not change keeps its text.** Clicking into a text
