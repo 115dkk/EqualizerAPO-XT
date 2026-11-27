@@ -501,8 +501,12 @@ int main(int argc, char* argv[])
 		bool legacyEditorMode = false;
 		if (!hasEditorGateArgument(argc, argv))
 		{
+			// The one place that decides the presentation of a machine with
+			// none saved (a new installation starts in Modern rows) and
+			// stores it; the main window reads the stored word afterwards.
+			// A headless check never comes here, so it never writes one.
 			QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-			legacyEditorMode = EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor;
+			legacyEditorMode = EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::LegacyEditor;
 		}
 
 		// Font rendering (skinned mode): force Qt's FreeType font engine on

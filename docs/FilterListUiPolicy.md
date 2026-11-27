@@ -11,8 +11,8 @@ the same list behavior is not implemented twice.
 
 | Mode | Row widget | Status | Representative files |
 | --- | --- | --- | --- |
-| `ModernCards` | `FilterCardRow` | Canonical, actively maintained, runtime default | `Editor/widgets/FilterCardRow.cpp`, `Editor/widgets/FilterCardModel.cpp`, `Editor/widgets/cards/` |
-| `ModernRows` | `FilterCardRow` with `inlineRow` | Canonical: the card path laid out as one row per line. Drawn by a skin that supports it (`ISkin::supportsRowMode`); under any other skin the table builds cards | `Editor/widgets/FilterCardRow.cpp`, `Editor/skins/rack/RackSkin.CommandRows.cpp` |
+| `ModernCards` | `FilterCardRow` | Canonical, actively maintained | `Editor/widgets/FilterCardRow.cpp`, `Editor/widgets/FilterCardModel.cpp`, `Editor/widgets/cards/` |
+| `ModernRows` | `FilterCardRow` with `inlineRow` | Canonical: the card path laid out as one row per line, and what a new installation starts in. Every skin draws it (`ISkin::supportsRowMode`); under a skin that answered false the table would build cards | `Editor/widgets/FilterCardRow.cpp`, each skin's `*Skin.CommandRows.cpp` |
 | `LegacyEditor` | `FilterTableRow` | Kept; guarantees only that existing usage keeps working | `Editor/FilterTableRow.cpp` |
 
 `FilterTable` branches between the card path and the legacy path when it builds
@@ -20,14 +20,21 @@ row widgets. The two branch points are in `FilterTable::updateGuis()` (full
 rebuild) and `FilterTable::updateSingleRowGui()` (single in-place row refresh),
 both in `Editor/FilterTable.cpp`. Cards and rows are not a branch of their own
 there: `FilterTable::effectiveRenderMode()` decides which of the two the card
-path lays out, and falls back to cards under a skin without rows. The default is
-set by the `renderMode = ModernCards` member initializer in
-`Editor/FilterTable.h`.
+path lays out, and falls back to cards under a skin without rows (every skin
+draws rows today, and the CI row runs fail on a fallback). A table that is told
+nothing builds cards (the `renderMode = ModernCards` member initializer in
+`Editor/FilterTable.h`); the headless checks rely on that and name rows with
+`--list-mode rows` when they want them.
 
 The user's choice is stored as one word in `interface/listMode` (`cards`,
 `rows` or `legacy`; `services/settings/EditorSettings.h`) and made in View >
 Interface, where Modern cards and Modern rows each list the skins that draw
-them and Legacy editor is an entry of its own.
+them and Legacy editor is an entry of its own. A machine with no stored word
+gets one at the Editor's first interactive start (`EditorSettings::adoptListMode`,
+called from `Editor/main.cpp`): `rows` for a new installation, `cards` for a
+store that already holds interface values from a build older than the word.
+The store's existence is not the sign, because the original Equalizer APO's
+editor keeps its geometry under the same registry key.
 
 ## Why the card path is canonical
 

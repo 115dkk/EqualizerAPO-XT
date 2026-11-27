@@ -590,18 +590,21 @@ jobs:
     # The list checks above once more in Modern rows. A row holds the same
     # editors as a card in a different layout, and the save sweep found a
     # Send line rewritten without an edit only there. Each run must report
-    # at least one skin that drew rows, or it fails: on a runner the checks
-    # that open one Editor window would otherwise open the default skin and
-    # pass in cards. The list of checks is the gate script's; a Pester test
-    # keeps this loop equal to it.
+    # rows in every skin it ran and no skin that fell back to cards, or it
+    # fails. The checks that open one Editor window name the window's skin
+    # (a runner has none saved), the quick one once per skin. The gate script
+    # owns the list (its plan's RowGates); this step runs what the plan says.
     - name: Run the list checks in Modern rows (offscreen)
       if: matrix.primary == true
       timeout-minutes: 40
       shell: pwsh
       run: |
-        foreach ($check in @("power-toggle", "routing-edit", "close-save", "close-save-sweep", "skin-switch", "card-move", "card-selection")) {
+        $plan = & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate power-toggle -Platform "${{ matrix.platform }}" -PlanOnly
+        if (@($plan.RowGates).Count -eq 0) { throw "The gate script names no row runs" }
+        foreach ($gate in $plan.RowGates) {
           & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
-            -WorkspaceRoot "${{ github.workspace }}" -Gate "$check-rows" -Platform "${{ matrix.platform }}"
+            -WorkspaceRoot "${{ github.workspace }}" -Gate $gate -Platform "${{ matrix.platform }}"
         }
 
     - name: Upload skin gallery

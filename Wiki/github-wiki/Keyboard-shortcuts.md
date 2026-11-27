@@ -23,7 +23,7 @@ The most useful ones:
 | Ctrl+C | Edit > Copy | Copies the selected lines as text |
 | Ctrl+V | Edit > Paste | Pastes lines into the filter list |
 | Ctrl+A | Edit > Select all | Selects every line |
-| Ctrl+Alt+1 to Ctrl+Alt+5 | View > Interface > Modern cards or Modern rows | Switches skin within the current presentation: 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix. In Modern rows, a skin that does not draw rows opens as Modern cards |
+| Ctrl+Alt+1 to Ctrl+Alt+5 | View > Interface > Modern cards or Modern rows | Switches skin within the current presentation: 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
 | Ctrl+Alt+D | View > Interface > Dark theme | Switches between the light and dark theme |
 | Ctrl+Alt+F | View > Interface > Fullscreen graph | Lets the analysis graph fill the window, hiding the filter list and toolbar |
 

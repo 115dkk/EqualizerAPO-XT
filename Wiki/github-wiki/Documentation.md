@@ -112,7 +112,7 @@ Equalizer APO runs inside the Windows audio engine as an APO, so it processes ev
 The Configuration Editor shows a configuration one line at a time, in one of five skins (Minimal, Signal Matrix, Rack, Soft and Studio), each in a light and a dark mode. **View > Interface** offers three presentations:
 
 * **Modern cards:** each line is a card, with a header strip (number, power switch, add, remove, edit as text, name) above its controls.
-* **Modern rows:** each line is one row, with the same parts at its left and the controls beside them, so the same configuration needs less height. A skin appears under Modern rows once it draws rows; for now that is Hardware Rack only.
+* **Modern rows:** each line is one row, with the same parts at its left and the controls beside them, so the same configuration needs less height. Every skin draws rows. A new installation starts in Modern rows with the Studio skin; an installation that was already in use keeps the presentation it had.
 * **Legacy editor:** the original row layout kept as it was, without skins. Switching to or from it restarts the Editor.
 
 Pick a skin in the Modern cards or the Modern rows submenu; the choice is remembered. The interface is available in English, Korean, German, French and Simplified Chinese. A few things worth knowing:

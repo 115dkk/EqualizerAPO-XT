@@ -23,7 +23,7 @@
 | Ctrl+C | 편집 > 복사 | 선택한 줄을 텍스트로 복사합니다 |
 | Ctrl+V | 편집 > 붙여넣기 | 필터 목록에 줄을 붙여 넣습니다 |
 | Ctrl+A | 편집 > 모두 선택 | 모든 줄을 선택합니다 |
-| Ctrl+Alt+1 ~ Ctrl+Alt+5 | 보기 > 인터페이스 > 모던 카드 또는 모던 행 | 지금 표시 방식 안에서 스킨을 바꿉니다. 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix. 모던 행에서 행으로 표시하지 않는 스킨을 고르면 모던 카드로 열립니다 |
+| Ctrl+Alt+1 ~ Ctrl+Alt+5 | 보기 > 인터페이스 > 모던 카드 또는 모던 행 | 지금 표시 방식 안에서 스킨을 바꿉니다. 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
 | Ctrl+Alt+D | 보기 > 인터페이스 > 어두운 테마 | 밝은 테마와 어두운 테마를 오갑니다 |
 | Ctrl+Alt+F | 보기 > 인터페이스 > 그래프 전체화면 | 필터 목록과 도구 모음을 숨기고 분석 그래프를 창 가득 띄웁니다 |
 

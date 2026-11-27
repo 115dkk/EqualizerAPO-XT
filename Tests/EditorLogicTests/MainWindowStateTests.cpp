@@ -171,6 +171,70 @@ TEST_CASE(EditorLogicTests, testListModeSettingWritesWordsAndRetiresBoolean)
 		QStringLiteral("the written legacy editor reads back"));
 }
 
+TEST_CASE(EditorLogicTests, testListModeIsAdoptedOnceForAStoreWithoutOne)
+{
+	const auto storedWord = [](const QSettings& settings) {
+		return settings.value(QLatin1String(EditorSettings::Keys::ListMode)).toString();
+	};
+
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Rows,
+			QStringLiteral("an empty store is a new installation and starts in rows"));
+		expectEqual(storedWord(settings), QStringLiteral("rows"), "the adopted rows word is stored");
+		EditorSettings::writeSkinChoice(settings, { QStringLiteral("studio"), true });
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Rows,
+			QStringLiteral("the second start reads the stored word and does not decide again"));
+	}
+	{
+		// What the original Equalizer APO's editor leaves in the same key.
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(EditorSettings::Keys::Geometry), QByteArray("geometry"));
+		settings.setValue(QLatin1String(EditorSettings::Keys::RecentFiles), QStringList{ QStringLiteral("config.txt") });
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Rows,
+			QStringLiteral("values outside the interface group do not make an existing user"));
+		expectEqual(storedWord(settings), QStringLiteral("rows"), "rows are stored for a user of the original editor");
+	}
+	for (const char* key : { EditorSettings::Keys::Skin, EditorSettings::Keys::Dark, EditorSettings::Keys::NativeTitleBar })
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(key), QStringLiteral("studio"));
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Cards,
+			QStringLiteral("a store with an interface value keeps cards: %1").arg(QLatin1String(key)));
+		expectEqual(storedWord(settings), QStringLiteral("cards"), "the kept cards word is stored");
+	}
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("legacy"));
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::LegacyEditor,
+			QStringLiteral("a stored legacy word is not replaced"));
+		expectEqual(storedWord(settings), QStringLiteral("legacy"), "the stored legacy word stays");
+
+		settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("future-mode"));
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Cards,
+			QStringLiteral("a word of a newer build reads as cards"));
+		expectEqual(storedWord(settings), QStringLiteral("future-mode"), "a word of a newer build is not overwritten");
+	}
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), true);
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::LegacyEditor,
+			QStringLiteral("the retired boolean alone decides for a store that has it"));
+		expectFalse(settings.contains(QLatin1String(EditorSettings::Keys::ListMode)),
+			QStringLiteral("adopting does not write a word over the retired boolean"));
+	}
+}
+
 TEST_CASE(EditorLogicTests, testAutomaticUpdateSettingDefaultsAndRoundTrips)
 {
 	QTemporaryDir temp;
