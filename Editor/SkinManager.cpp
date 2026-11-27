@@ -76,7 +76,7 @@ const QString& SkinManager::currentSkinId() const
 	return skinId;
 }
 
-bool SkinManager::skinSupportsRows(const QString& skinId) const
+bool SkinManager::skinSupportsRows(const QString& skinId)
 {
 	return Skins::byId(skinId)->supportsRowMode();
 }
