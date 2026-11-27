@@ -7,11 +7,14 @@
 #include "MinimalSkin.h"
 
 #include <QComboBox>
+#include <QEvent>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPainter>
 #include <QSpacerItem>
+#include <QToolButton>
 #include <QWidget>
 #include <QtMath>
 
@@ -50,6 +53,50 @@ QString minimalTypeGlyph(const QString& type)
 	// /utf-8 flag is set for MSVC).
 	return QString(QChar(0x00B7));
 }
+
+// A chip never elides its label. The sheet's 14 px floor (one-letter seats
+// must not collapse into slivers) let a crowded Channel row squeeze the ALL
+// chip to an ellipsis, so in a row each chip's floor is its whole word. The
+// add-a-seat prompt gives way instead, down to its first word and an
+// ellipsis. The editor rebuilds its chips when the channels in scope change,
+// so the floors are restated whenever it lays itself out again.
+class RowChipFloor final : public QObject
+{
+public:
+	using QObject::QObject;
+
+	bool eventFilter(QObject* watched, QEvent* event) override
+	{
+		if (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)
+		{
+			if (QWidget* editor = qobject_cast<QWidget*>(watched))
+				restate(editor);
+		}
+		return QObject::eventFilter(watched, event);
+	}
+
+	static void restate(QWidget* editor)
+	{
+		for (QToolButton* chip : editor->findChildren<QToolButton*>(QStringLiteral("ChannelChip")))
+		{
+			chip->ensurePolished();
+			const int word = chip->sizeHint().width();
+			if (chip->minimumWidth() != word)
+				chip->setMinimumWidth(word);
+		}
+		// The prompt's floor: its first word and an ellipsis, the 6 px
+		// padding on each side, the hairline and the line edit's own 2 px
+		// text margins.
+		if (QLineEdit* add = editor->findChild<QLineEdit*>(QStringLiteral("ChannelChipAdd")))
+		{
+			add->ensurePolished();
+			const QString word = add->placeholderText().section(QLatin1Char(' '), 0, 0);
+			const int floor = add->fontMetrics().horizontalAdvance(word + QChar(0x2026)) + 12 + 2 + 4 + 1;
+			if (add->minimumWidth() != floor)
+				add->setMinimumWidth(floor);
+		}
+	}
+};
 }
 
 QString MinimalSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
@@ -178,6 +225,21 @@ void MinimalSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, Q
 					if (QLayout* stack = block->layout())
 						stack->setSpacing(3);
 				}
+			}
+			if (QWidget* channels = body->findChild<QWidget*>(QStringLiteral("ChannelCardEditor")))
+			{
+				// The seats stand 4 px apart instead of 6 in a row.
+				if (QBoxLayout* line = qobject_cast<QBoxLayout*>(channels->layout()))
+				{
+					line->setSpacing(4);
+					for (int i = 0; i < line->count(); i++)
+					{
+						if (QLayout* seats = line->itemAt(i)->layout())
+							seats->setSpacing(4);
+					}
+				}
+				channels->installEventFilter(new RowChipFloor(channels));
+				RowChipFloor::restate(channels);
 			}
 			// The Send line's device name is a data column: across one row
 			// it gives way first (shared article 4). The combo sizes itself to
