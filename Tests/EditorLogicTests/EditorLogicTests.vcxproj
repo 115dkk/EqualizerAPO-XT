@@ -102,6 +102,7 @@
     <ClCompile Include="VSTBusModelTests.cpp" />
     <ClCompile Include="VSTSlotFillModelTests.cpp" />
     <ClCompile Include="VSTRowDocumentTests.cpp" />
+    <ClCompile Include="VSTAutomatedReadTests.cpp" />
     <ClCompile Include="VSTPanelIntentTests.cpp" />
     <ClCompile Include="VstPanelCrashMarkerTests.cpp" />
     <ClCompile Include="VSTBusVerdictTests.cpp" />
@@ -237,6 +238,7 @@
     <ClInclude Include="..\..\Editor\widgets\cards\ReferenceProbeRequests.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\ReferencePresence.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\GraphicEQCsv.h" />
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTAutomatedRead.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h" />
     <ClInclude Include="..\..\Editor\widgets\cards\VSTBusVerdict.h" />
     <ClInclude Include="..\..\Editor\analysis\AnalysisPanelState.h" />

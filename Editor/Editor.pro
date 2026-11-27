@@ -763,6 +763,7 @@ HEADERS  += \
 	widgets/cards/VSTSlotFillRail.h \
 	widgets/cards/VSTRowDocument.h \
 	widgets/cards/VSTPluginSession.h \
+	widgets/cards/VSTAutomatedRead.h \
 	widgets/cards/VSTPanelIntent.h \
 	widgets/cards/VSTCardEditor.h \
 	widgets/ElidedLabel.h \

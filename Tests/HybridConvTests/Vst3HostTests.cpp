@@ -830,6 +830,84 @@ TEST_CASE(Vst3HostTests, testEditorEditWithoutZeroSampleFlush)
 	DestroyWindow(parent);
 }
 
+// zDolbi Surround Upmixer announces its parameters again, values unchanged,
+// from inside getState. The host answered each of those calls like an edit:
+// a process call to flush it and the automate callback, whose listener in
+// the Editor reads the state. That read called getState again, and the
+// Editor closed with its stack used up as soon as a control was changed.
+TEST_CASE(Vst3HostTests, testEditRaisedInsideGetStateIsOnlyQueued)
+{
+	const wstring bundle = prepareBundle(exeDirectory(), L"EditInGetStateBundle.vst3",
+		testvst3::mode::editInGetState);
+	auto library = VSTPluginLibrary::getInstance(bundle);
+	harness.require(!bundle.empty() && VSTPluginLibrary::load(bundle).succeeded(),
+		"state-read edit VST3 module initializes");
+	HMODULE module = GetModuleHandleW(testvst3::mode::editInGetState);
+	using CountFunc = int (*)();
+	CountFunc receivedChanges = module != nullptr
+		? reinterpret_cast<CountFunc>(GetProcAddress(module, "GetReceivedParameterChangeCount")) : nullptr;
+	CountFunc editsInsideGetState = module != nullptr
+		? reinterpret_cast<CountFunc>(GetProcAddress(module, "GetEditsRaisedInsideGetState")) : nullptr;
+	CountFunc processInsideGetState = module != nullptr
+		? reinterpret_cast<CountFunc>(GetProcAddress(module, "GetProcessCallsInsideGetState")) : nullptr;
+	harness.require(receivedChanges != nullptr && editsInsideGetState != nullptr && processInsideGetState != nullptr,
+		"state-read edit counters are exported");
+	if (receivedChanges == nullptr || editsInsideGetState == nullptr || processInsideGetState == nullptr)
+		return;
+	auto instance = VSTPluginInstance::create(library, VSTPluginInstance::ProcessLevel::User);
+	harness.require(instance->initialize(), "state-read edit instance initializes");
+	HWND parent = CreateWindowExW(0, L"STATIC", L"VST3 state-read edit parent", WS_OVERLAPPED,
+		0, 0, 640, 480, nullptr, nullptr, GetModuleHandleW(nullptr), nullptr);
+	short width = 0;
+	short height = 0;
+	harness.require(parent != nullptr && instance->startEditing(parent, &width, &height),
+		"state-read edit editor attaches");
+	HWND hostWindow = GetWindow(parent, GW_CHILD);
+	HWND pluginWindow = hostWindow != nullptr ? GetWindow(hostWindow, GW_CHILD) : nullptr;
+	harness.require(pluginWindow != nullptr, "state-read edit editor creates its child window");
+
+	wstring automatedChunk;
+	int automateCalls = 0;
+	int automateDepth = 0;
+	int deepestAutomateDepth = 0;
+	instance->setAutomateFunc([&]() {
+		++automateCalls;
+		// Bound the broken host's recursion so it fails checks, not the process.
+		if (automateDepth >= 8)
+			return;
+		++automateDepth;
+		deepestAutomateDepth = std::max(deepestAutomateDepth, automateDepth);
+		std::unordered_map<wstring, float> legacyParameters;
+		instance->readFromEffect(automatedChunk, legacyParameters);
+		VSTPluginInstance::WritableParameterValues parameters;
+		instance->readWritableParameterValues(parameters);
+		--automateDepth;
+	});
+	const int changesBefore = receivedChanges();
+	const int editsBefore = editsInsideGetState();
+	const int processBefore = processInsideGetState();
+	SendMessageW(pluginWindow, WM_APP + 77, 0, 0);
+	harness.expectTrue(automateCalls > 0, "the real editor edit calls automate");
+	harness.expectTrue(editsInsideGetState() > editsBefore,
+		"the plug-in raises unchanged edits inside getState");
+	harness.expectEqual(deepestAutomateDepth, 1,
+		"an edit the plug-in raises while the host reads its state does not call automate again");
+	harness.expectEqual(processInsideGetState(), processBefore,
+		"the host does not call process while the plug-in's getState is on the stack");
+	harness.expectTrue(receivedChanges() > changesBefore, "the real editor edit reaches the processor");
+	PluginState edited;
+	edited.gain = 0.25;
+	harness.expectTrue(automatedChunk == encodeState(edited),
+		"the real editor edit reaches the processor before the automate callback reads its state");
+	const int changesBeforeIdle = receivedChanges();
+	instance->doIdle();
+	harness.expectTrue(receivedChanges() > changesBeforeIdle,
+		"an edit queued during the state read reaches the processor at the next idle");
+	instance->stopEditing();
+	instance->setAutomateFunc(nullptr);
+	DestroyWindow(parent);
+}
+
 TEST_CASE(Vst3HostTests, testUntouchedVst3PanelsDoNotStoreState)
 {
 	for (const wchar_t* mode : {testvst3::mode::spuriousDirty,

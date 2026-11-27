@@ -209,6 +209,9 @@
     <ClCompile Include="VSTRowDocumentTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="VSTAutomatedReadTests.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
     <ClCompile Include="VSTPanelIntentTests.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -245,6 +248,9 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\routing\RoutingGridModel.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\Editor\widgets\cards\VSTAutomatedRead.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="..\..\Editor\widgets\cards\VSTPanelIntent.h">

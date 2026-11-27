@@ -230,6 +230,20 @@ bool VST3Instance::onVST3ParameterEdit(ParamID id, ParamValue value)
 {
 	if (!isVST3ParameterWritable(id))
 		return false;
+	// A plug-in may raise an edit from inside the getState the host is in the
+	// middle of calling: zDolbi Surround Upmixer, a JUCE build, announces some
+	// twenty parameters again there, values unchanged. That is the plug-in
+	// answering the read, not an edit, so it only waits in the ring. Flushing
+	// it would call process from inside the plug-in's getState, and the
+	// automate callback would have its listener read the state again from
+	// inside that read; the Editor's did, and the two calls took turns until
+	// the stack ran out. doIdle, the next process call or the next edit hands
+	// the value to the processor.
+	if (vst3StateReadDepth.load(memory_order_acquire) != 0)
+	{
+		queueVST3ParameterEdit(id, value);
+		return true;
+	}
 	vst3ParameterEditSequence.fetch_add(1, memory_order_release);
 	queueVST3ParameterEdit(id, value);
 	const bool processing = vst3Lifecycle.audioProcessing();
