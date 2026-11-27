@@ -390,7 +390,7 @@ QComboBox {
 }
 QComboBox:hover {
     border-color: rgba(91, 140, 255, 0.45);
-    border-top-color: rgba(255, 255, 255, 0.16);
+    border-top-color: rgba(91, 140, 255, 0.45);
     background: @CARD_HOVER@;
 }
 QComboBox:focus,
@@ -1017,6 +1017,7 @@ QWidget#PreampCardEditor, QWidget#DelayCardEditor,
 QWidget#IncludeCardEditor,
 QWidget#ConvolutionCardEditor,
 QWidget#MultiConvolutionCardEditor,
+QWidget#MultiConvolutionMappingArea,
 QWidget#VSTCardEditor,
 QWidget#ReferenceCardView,
 QWidget#RefCardContent,
@@ -1038,24 +1039,39 @@ QLabel#PreampCardCaption {
     letter-spacing: 1px;
     font-size: 10pt;
 }
+/* Every value field in the list is the same part: the sunken glass well
+   of the value boxes (valueScrub, X1), with its dark top edge, 8 px round,
+   mono at the body weight, set from the left. The knob cards' readouts
+   (Preamp, Delay, All-pass) used to be raised light plates in bold,
+   centred, and stood out from every other field in the list. The height
+   is the value box's 35 px. */
 QLabel#EditableValue {
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(6, 9, 20, 0.62);
     color: @TEXT@;
     border: 1px solid @BORDER@;
-    border-top-color: rgba(255, 255, 255, 0.12);
-    border-radius: 6px;
-    padding: 6px 10px;
+    border-top-color: rgba(0, 0, 0, 0.55);
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-height: 25px;
     font-family: @MONO_STACK@;
-    font-weight: 700;
+    font-weight: 500;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+}
+QLabel#EditableValue:hover {
+    border-color: rgba(91, 140, 255, 0.45);
+    background: #090910;
 }
 
+/* Typing into a readout is the focused well. */
 QLineEdit#EditableValueEditor {
-    background: #05050A;
+    background: #090910;
     border: 1px solid @ACCENT@;
-    border-radius: 6px;
-    padding: 6px 10px;
+    border-radius: 8px;
+    padding: 4px 8px;
+    min-height: 25px;
     font-family: @MONO_STACK@;
-    font-weight: 700;
+    font-weight: 500;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
 }
 
 /* ===== Reference cards (Include / Conv / MultiConv / VST bodies) =====
@@ -1269,7 +1285,7 @@ QToolButton#GraphicEQActionButton {
 QToolButton#GraphicEQActionButton:hover {
     background: rgba(91, 140, 255, 0.20);
     border-color: rgba(91, 140, 255, 0.40);
-    border-top-color: rgba(123, 162, 255, 0.55);
+    border-top-color: rgba(91, 140, 255, 0.40);
 }
 QToolButton#GraphicEQActionButton:pressed {
     background: rgba(91, 140, 255, 0.30);
@@ -1416,7 +1432,7 @@ QToolButton#DeviceChip:checked:enabled {
     background: rgba(91, 140, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.80);
-    border-top-color: rgba(123, 162, 255, 0.95);
+    border-top-color: rgba(91, 140, 255, 0.80);
 }
 /* Selected but not installed: the user meant it - lit one step dimmer;
    the glass is alive, the endpoint stays dark. */
@@ -1424,7 +1440,7 @@ QToolButton#DeviceChip[deviceInstalled="false"]:checked:enabled {
     background: rgba(91, 140, 255, 0.20);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.60);
-    border-top-color: rgba(123, 162, 255, 0.70);
+    border-top-color: rgba(91, 140, 255, 0.60);
 }
 /* "All devices" master chip: lit, it floods one step hotter than a
    single selected chip. */
@@ -1432,14 +1448,14 @@ QToolButton#DeviceChip[allDevices="true"]:checked:enabled {
     background: rgba(91, 140, 255, 0.40);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.88);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.88);
 }
 QToolButton#DeviceChip:!checked:hover:enabled {
     background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
         stop:0 rgba(91, 140, 255, 0.22), stop:0.45 rgba(91, 140, 255, 0.09), stop:1 rgba(91, 140, 255, 0));
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.45);
-    border-top-color: rgba(123, 162, 255, 0.50);
+    border-top-color: rgba(91, 140, 255, 0.45);
 }
 QToolButton#DeviceChip:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.38);
@@ -1448,7 +1464,7 @@ QToolButton#DeviceChip:checked:hover:enabled {
 QToolButton#DeviceChip[allDevices="true"]:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.46);
     border-color: rgba(91, 140, 255, 0.96);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.96);
 }
 /* Pressing is maximum light (rest < hover < press). A mouse press
    always hovers, so :hover rides along: four pseudo-classes beat the
@@ -1459,7 +1475,7 @@ QToolButton#DeviceChip:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.44);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.95);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.95);
 }
 /* The master chip presses one step past its own hover (0.38 < 0.42);
    attribute + four pseudos outranks everything above. */
@@ -1467,7 +1483,7 @@ QToolButton#DeviceChip[allDevices="true"]:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.50);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 1.0);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 1.0);
 }
 /* Disabled = switched off. Keep these last in the family: they tie
    with the attribute rules above and must win by order. */
@@ -1551,7 +1567,7 @@ QToolButton#ChannelChip:checked:enabled {
     background: rgba(91, 140, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.80);
-    border-top-color: rgba(123, 162, 255, 0.95);
+    border-top-color: rgba(91, 140, 255, 0.80);
 }
 QToolButton#ChannelChip[customChannel="true"]:checked:enabled {
     border-top-color: rgba(91, 140, 255, 0.80);
@@ -1562,7 +1578,7 @@ QToolButton#ChannelChip[allChannels="true"]:checked:enabled {
     background: rgba(91, 140, 255, 0.40);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.88);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.88);
 }
 QToolButton#ChannelChip:!checked:hover:enabled,
 QToolButton#NewChannelChip:!checked:hover:enabled {
@@ -1578,7 +1594,7 @@ QToolButton#ChannelChip:checked:hover:enabled {
 QToolButton#ChannelChip[allChannels="true"]:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.46);
     border-color: rgba(91, 140, 255, 0.96);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.96);
 }
 /* Pressed = maximum light; four pseudos, after the hover rules (see
    the device family note). */
@@ -1588,13 +1604,13 @@ QToolButton#NewChannelChip:!checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.44);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.95);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.95);
 }
 QToolButton#ChannelChip[allChannels="true"]:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.50);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 1.0);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 1.0);
 }
 QToolButton#ChannelChip:disabled,
 QToolButton#NewChannelChip:disabled {
@@ -1660,12 +1676,14 @@ QToolButton#StageChip {
     font-size: 10pt;
     font-weight: 600;
 }
+/* Lit, the lamp edge takes the outline's own colour: the light is one
+   colour on four sides, and the 3 px edge still reads as the lamp. */
 QToolButton#StageChip:checked:enabled {
     background: rgba(91, 140, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.80);
-    border-top-color: rgba(123, 162, 255, 0.95);
-    border-left-color: rgba(91, 140, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.80);
+    border-left-color: rgba(91, 140, 255, 0.80);
 }
 QToolButton#StageChip:!checked:hover:enabled {
     background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
@@ -1677,7 +1695,7 @@ QToolButton#StageChip:!checked:hover:enabled {
 QToolButton#StageChip:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.38);
     border-color: rgba(91, 140, 255, 0.90);
-    border-left-color: rgba(91, 140, 255, 1.0);
+    border-left-color: rgba(91, 140, 255, 0.90);
 }
 /* Pressed = maximum light; four pseudos, after the hover rules (see
    the device family note). */
@@ -1686,8 +1704,8 @@ QToolButton#StageChip:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.44);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.95);
-    border-top-color: rgba(123, 162, 255, 1.0);
-    border-left-color: rgba(91, 140, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.95);
+    border-left-color: rgba(91, 140, 255, 0.95);
 }
 QToolButton#StageChip:disabled {
     background: rgba(255, 255, 255, 0.02);
@@ -1832,5 +1850,166 @@ QToolButton#NewChannelChip[invalid="true"]:hover {
 QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 
 /* Send card: the field captions read like the MultiConvolution mapping
-   caption; a latency the card cannot read takes the danger colour. */
+   caption; a latency the card cannot read takes the danger colour. The
+   latency is a value field like the value boxes: the same well, mono and
+   the same light under the pointer. Its line is a line of 26 px
+   selectors, though, and at the value boxes' 35 px it stood out of step
+   with them, so it takes the cap height and padding of its line, typing
+   included. */
+QLineEdit#SendLatencyEdit {
+    background: rgba(6, 9, 20, 0.62);
+    min-height: 24px; max-height: 24px; padding-top: 0px; padding-bottom: 0px;
+    font-family: @MONO_STACK@;
+}
+QLineEdit#SendLatencyEdit:hover {
+    border-color: rgba(91, 140, 255, 0.45);
+    background: #090910;
+}
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
+
+/* ===== Modern rows =====
+   A row is one pane of glass. In a card the body is a second, fainter
+   pane under the header strip; across one line that pane started at the
+   editor and left the name cell in a darker gap between it and the left
+   column (StudioSkin::cardHeaderStyle clears the column). Clear, the
+   editor, the name and the column all stand on the row's own glass. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#FilterCardBody,
+QFrame#FilterCardRow[inlineRow="true"] QWidget#FilterCardEditor {
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+}
+/* The three actions stack in one column beside the editor: each bare
+   glyph takes a slimmer cap so the column stays inside the top band. */
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
+    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
+}
+/* The biquad knobs are 84 px wide boxes around a 66 px high instrument;
+   on one line the width goes to the value fields. The track keeps its
+   inset, so the arc's widest glow stroke stays inside the box. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
+    min-width: 66px; max-width: 66px;
+}
+/* The same trade for the type selector: a little less air around its
+   text and arrow keeps the whole editor beside the left column, also on
+   an indented line under a Channel scope. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
+    padding-left: 8px; padding-right: 22px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down { width: 18px; }
+/* Each parameter column is as wide as its value field or its mode
+   selector; two pixels less air on each side of both keeps the third
+   column of an indented Filter row inside the window. */
+QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"] {
+    padding-left: 6px; padding-right: 6px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"] {
+    padding-left: 6px; padding-right: 12px;
+}
+/* A Channel row lays every seat of the layout on its one line; with the
+   card's side padding the last seats and the add field ran off the row. */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip {
+    padding-left: 6px; padding-right: 6px;
+}
+/* The Preamp, Delay and all-pass knobs are 74 px in their cards; in a row
+   they take the biquad knobs' 66 px, so those rows are as tall as a
+   Filter row. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
+    min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
+}
+
+/* ===== One cap height in the list =====
+   Every cap in the filter list (power cap, the header's actions in a card,
+   icon and text caps, framed selectors, chips and the fields on a chip
+   line) is 26 px with its outline, in cards and rows alike. The caps were
+   33 to 38 px with about 10 px clear above and below an 11 to 14 px
+   legend; that air is halved to about 5 px. Parameter selectors are
+   engraved legends, not caps, and keep their own size; the value fields
+   keep the value boxes' 35 px. The row's stacked header actions stay bare
+   18 px glyphs (Modern rows block). */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd {
+    min-height: 24px; max-height: 24px; padding-top: 0px; padding-bottom: 0px;
+}
+/* The painted pick-one controls (All-pass order, Hilbert direction, Velvet
+   mode) are framed selectors on the same lines; the skin paints them in
+   the rect they get, so the list gives them the cap height too. */
+QFrame#FilterCardRow SegmentedControl {
+    min-height: 26px; max-height: 26px;
+}
+
+/* ===== Keyboard focus on the list's caps =====
+   Shared article 8: focus recolours the outline a control already has.
+   The caps and chips of the list had no focus rule, so a key press moved
+   focus onto them with nothing to show for it. The whole outline, all four
+   sides, takes the focus colour; a resting header action brings its cap
+   back to carry it. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:focus,
+QFrame#FilterCardRow QToolButton#ChannelChip:focus,
+QFrame#FilterCardRow QToolButton#NewChannelChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:focus,
+QFrame#FilterCardRow QToolButton#StageChip:focus {
+    border-color: @FOCUS@;
+}
+
+/* ===== Resting outline in the list =====
+   At rest every cap, selector, chip and value field in the filter list
+   shows its outline on all four sides in one colour, a hairline of the
+   muted ink (dark) or the text ink (light). The faint glass edge with its
+   lighter or darker top was lost against the pane on one or more sides,
+   so a field or chip at rest read as loose text. Lit states (hover,
+   press, checked, focus) keep their own rules: every selector here
+   leaves them out, and disabled parts keep their lights-off edge. The
+   painted parts (pick-one controls, VST bus strips, fill cells) take the
+   same colour in StudioSkin.Controls.cpp. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#ChannelChip:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#NewChannelChip:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#StageChip:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#StageChipUnknown:enabled,
+QFrame#FilterCardRow QComboBox:enabled:!hover:!focus:!on,
+QFrame#FilterCardRow QAbstractSpinBox[valueScrub="true"]:enabled:!hover:!focus,
+QFrame#FilterCardRow QLabel#EditableValue:enabled:!hover,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit:enabled:!hover:!focus,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd:enabled:!hover:!focus,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd:enabled:!hover:!focus {
+    border-color: rgba(145, 160, 186, 0.45);
+}
+/* The header's actions rest as bare glyphs (#456); a row's stacked
+   actions too. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[headerAction="true"]:enabled:!hover:!pressed:!checked:!focus {
+    border-color: transparent;
+}
+/* A broken reference's Locate rests lit; its edge is the accent on four
+   sides. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[studioLocate="true"]:enabled:!hover:!pressed:!checked:!focus {
+    border-color: rgba(91, 140, 255, 0.55);
+}

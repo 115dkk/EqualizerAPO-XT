@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <functional>
 
+#include <QCoreApplication>
 #include <QFontMetrics>
 #include <QKeyEvent>
 #include <QMouseEvent>
@@ -252,6 +253,19 @@ void StudioRoutingView::relayout()
 	// crash). This view's hint HEIGHT is constant anyway - two chip rows and
 	// the trace zone - so the height-pinning wrapper never needs a nudge.
 	updateGeometry();
+	// The width does change with the fold, and the host scroll
+	// (RoutingViewScroll) sizes this view to its hint only on a Resize or a
+	// LayoutRequest of the view itself; updateGeometry() alone reaches its
+	// parent. Unfolded in a Modern row, narrower than a card, the board then
+	// kept its folded width and cut its last chips. A posted request is
+	// handled after this pass, outside resizeEvent, and only when the hint
+	// changed, so the scroll's resize cannot bring it back here in a loop.
+	const QSize hint = sizeHint();
+	if (hint != announcedHint)
+	{
+		announcedHint = hint;
+		QCoreApplication::postEvent(this, new QEvent(QEvent::LayoutRequest));
+	}
 	update();
 }
 

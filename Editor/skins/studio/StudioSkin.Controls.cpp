@@ -20,6 +20,18 @@
 
 using namespace StudioBandColors;
 
+namespace
+{
+// The resting outline of every cap, selector, chip and value field in the
+// list: one hairline on four sides, the colour the sheets give the same
+// parts at rest (muted ink in dark, text ink in light). The faint glass
+// edge it replaces was lost against the pane on one or more sides.
+QColor studioRestingHairline(const SkinTokens& tokens)
+{
+	return skinIsDark(tokens) ? withAlpha(QColor(tokens.mutedText), 115) : withAlpha(QColor(tokens.text), 77);
+}
+}
+
 void StudioSkin::paintKnob(QPainter& painter, const QRect& rect, const KnobState& state, const SkinTokens& tokens) const
 {
 	painter.setRenderHint(QPainter::Antialiasing);
@@ -255,7 +267,7 @@ void StudioSkin::paintSegmentedControl(QPainter& painter, const SegmentedControl
 	// focus - the focus lives on the cap - because a lit frame round the
 	// whole strip is a frame around the group.
 	painter.setBrush(Qt::NoBrush);
-	painter.setPen(QPen(withAlpha(tokens.border, lit ? 210 : 130), 1.0));
+	painter.setPen(QPen(lit ? studioRestingHairline(tokens) : withAlpha(tokens.border, 130), 1.0));
 	painter.drawRoundedRect(frame, 8.0, 8.0);
 
 	// Labels. Hierarchy is luminance first, weight second: a cell's ink is
@@ -329,7 +341,7 @@ void StudioSkin::paintVstBusSelector(QPainter& painter, const VstBusSelectorStat
 	painter.setBrush(withAlphaF(glassInk, fill));
 	painter.drawRoundedRect(cell, radius, radius);
 
-	QColor border = withAlphaF(glassInk, state.enabled ? 0.09 : 0.05);
+	QColor border = state.enabled ? studioRestingHairline(tokens) : withAlphaF(glassInk, 0.05);
 	if (state.enabled && (state.focused || state.menuOpen))
 		border = QColor(tokens.accent);
 	else if (state.enabled && state.hovered)
@@ -472,7 +484,7 @@ void StudioSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 		painter.setBrush(withAlphaF(glassInk, !state.enabled ? 0.02
 			: (state.pressed || state.menuOpen ? 0.10 : (state.hovered ? 0.07 : 0.045))));
 		painter.drawRoundedRect(well, 4.0, 4.0);
-		QColor border = withAlphaF(glassInk, state.enabled ? 0.10 : 0.05);
+		QColor border = state.enabled ? studioRestingHairline(tokens) : withAlphaF(glassInk, 0.05);
 		if (state.missingChannel)
 			border = QColor(tokens.danger);
 		else if (state.enabled && (state.focused || state.menuOpen))
@@ -522,7 +534,7 @@ void StudioSkin::paintVstSlotFillCell(QPainter& painter, const VstSlotFillCellSt
 	painter.setPen(Qt::NoPen);
 	painter.setBrush(withAlphaF(glassInk, state.pressed || state.menuOpen ? 0.10 : (state.hovered ? 0.07 : 0.045)));
 	painter.drawRoundedRect(well, 4.0, 4.0);
-	QColor border = withAlphaF(glassInk, 0.10);
+	QColor border = state.enabled ? studioRestingHairline(tokens) : withAlphaF(glassInk, 0.10);
 	if (state.missingChannel)
 		border = QColor(tokens.danger);
 	else if (state.enabled && (state.focused || state.menuOpen))
@@ -671,7 +683,7 @@ void StudioSkin::paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlock
 	painter.setBrush(withAlphaF(glassInk, !state.enabled ? 0.02
 		: (state.latchPressed ? 0.10 : (state.latchHovered ? 0.07 : 0.045))));
 	painter.drawRoundedRect(cap, 4.0, 4.0);
-	QColor border = withAlphaF(glassInk, state.enabled ? 0.10 : 0.05);
+	QColor border = state.enabled ? studioRestingHairline(tokens) : withAlphaF(glassInk, 0.05);
 	if (state.enabled && state.latchFocused)
 		border = QColor(tokens.accent);
 	else if (state.enabled && state.latchHovered)
