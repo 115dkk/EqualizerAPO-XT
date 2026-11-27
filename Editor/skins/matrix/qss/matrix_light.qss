@@ -2041,4 +2041,8 @@ QFrame#FilterCardRow SegmentedControl {
 /* In a row the coordinate cell takes the same pitch, level with the key. */
 QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
     min-height: 20px; max-height: 20px;
+}/* The Velvet value cells asked for 30 px in code; they are value cells like
+   the others on the board and take the same height. */
+QFrame#FilterCardRow QAbstractSpinBox#VelvetValue {
+    min-height: 22px; max-height: 22px;
 }
