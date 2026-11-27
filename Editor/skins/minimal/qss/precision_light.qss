@@ -1057,14 +1057,6 @@ QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[head
 QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
     min-height: 33px; max-height: 33px;
 }
-/* A chip never elides its label. A crowded Channel line squeezed the ALL
-   chip to an ellipsis; in a row every chip keeps its whole word (its floor
-   is restated from the word by MinimalSkin::prepareCommandRow), the chips
-   take 6 px of air beside the word instead of 8, and the add-a-seat
-   prompt is what gives way. */
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip {
-    padding-left: 6px; padding-right: 6px;
-}
 /* The biquad drums are 84 px boxes around a 66 px instrument (the editor
    pins that width for the cards). On one line the width goes to the type
    selector and the three parameter columns: the drum takes 50 px, where
