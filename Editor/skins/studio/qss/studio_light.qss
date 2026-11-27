@@ -331,7 +331,7 @@ QComboBox {
     padding: 4px 28px 4px 10px;
     min-height: 28px;
 }
-QComboBox:hover { border-color: rgba(47, 107, 255, 0.5); border-top-color: #DCE0E8; background: @CARD_HOVER@; }
+QComboBox:hover { border-color: rgba(47, 107, 255, 0.5); border-top-color: rgba(47, 107, 255, 0.5); background: @CARD_HOVER@; }
 QComboBox:focus, QComboBox:on { border: 1px solid @ACCENT@; }
 QComboBox::drop-down { subcontrol-origin: padding; subcontrol-position: top right; width: 22px; border: 0; background: transparent; }
 QComboBox::down-arrow {
@@ -916,7 +916,7 @@ QToolButton#GraphicEQActionButton {
 QToolButton#GraphicEQActionButton:hover {
     background: rgba(47, 107, 255, 0.14);
     border-color: rgba(47, 107, 255, 0.50);
-    border-top-color: rgba(255, 255, 255, 0.95);
+    border-top-color: rgba(47, 107, 255, 0.50);
 }
 QToolButton#GraphicEQActionButton:pressed {
     background: rgba(47, 107, 255, 0.22);
@@ -1050,13 +1050,13 @@ QToolButton#DeviceChip:checked:enabled {
     background: rgba(47, 107, 255, 0.16);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.55);
-    border-top-color: rgba(255, 255, 255, 0.95);
+    border-top-color: rgba(47, 107, 255, 0.55);
 }
 QToolButton#DeviceChip[deviceInstalled="false"]:checked:enabled {
     background: rgba(47, 107, 255, 0.10);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.40);
-    border-top-color: rgba(255, 255, 255, 0.85);
+    border-top-color: rgba(47, 107, 255, 0.40);
 }
 /* "All devices": hotter accent fill and deeper border - more light,
    never a second hue. */
@@ -1064,14 +1064,14 @@ QToolButton#DeviceChip[allDevices="true"]:checked:enabled {
     background: rgba(47, 107, 255, 0.26);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.70);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.70);
 }
 QToolButton#DeviceChip:!checked:hover:enabled {
     background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
         stop:0 rgba(47, 107, 255, 0.16), stop:0.45 rgba(47, 107, 255, 0.07), stop:1 rgba(47, 107, 255, 0));
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.50);
-    border-top-color: rgba(255, 255, 255, 0.95);
+    border-top-color: rgba(47, 107, 255, 0.50);
 }
 QToolButton#DeviceChip:checked:hover:enabled {
     background: rgba(47, 107, 255, 0.24);
@@ -1080,7 +1080,7 @@ QToolButton#DeviceChip:checked:hover:enabled {
 QToolButton#DeviceChip[allDevices="true"]:checked:hover:enabled {
     background: rgba(47, 107, 255, 0.34);
     border-color: rgba(47, 107, 255, 0.90);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.90);
 }
 /* Pressed = maximum light; four pseudos, after the hover rules (see
    the sheet header note). */
@@ -1089,14 +1089,14 @@ QToolButton#DeviceChip:checked:pressed:hover:enabled {
     background: rgba(47, 107, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.85);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.85);
 }
 /* The master chip presses one step past its own hover (0.34 < 0.38). */
 QToolButton#DeviceChip[allDevices="true"]:checked:pressed:hover:enabled {
     background: rgba(47, 107, 255, 0.38);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.95);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.95);
 }
 QToolButton#DeviceChip:disabled {
     background: rgba(24, 32, 51, 0.02);
@@ -1173,7 +1173,7 @@ QToolButton#ChannelChip:checked:enabled {
     background: rgba(47, 107, 255, 0.16);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.55);
-    border-top-color: rgba(255, 255, 255, 0.95);
+    border-top-color: rgba(47, 107, 255, 0.55);
 }
 QToolButton#ChannelChip[customChannel="true"]:checked:enabled {
     border-top-color: rgba(47, 107, 255, 0.55);
@@ -1182,7 +1182,7 @@ QToolButton#ChannelChip[allChannels="true"]:checked:enabled {
     background: rgba(47, 107, 255, 0.26);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.70);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.70);
 }
 QToolButton#ChannelChip:!checked:hover:enabled,
 QToolButton#NewChannelChip:!checked:hover:enabled {
@@ -1198,7 +1198,7 @@ QToolButton#ChannelChip:checked:hover:enabled {
 QToolButton#ChannelChip[allChannels="true"]:checked:hover:enabled {
     background: rgba(47, 107, 255, 0.34);
     border-color: rgba(47, 107, 255, 0.90);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.90);
 }
 /* Pressed = maximum light; four pseudos, after the hover rules. */
 QToolButton#ChannelChip:!checked:pressed:hover:enabled,
@@ -1207,13 +1207,13 @@ QToolButton#NewChannelChip:!checked:pressed:hover:enabled {
     background: rgba(47, 107, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.85);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.85);
 }
 QToolButton#ChannelChip[allChannels="true"]:checked:pressed:hover:enabled {
     background: rgba(47, 107, 255, 0.38);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.95);
-    border-top-color: rgba(255, 255, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.95);
 }
 QToolButton#ChannelChip:disabled,
 QToolButton#NewChannelChip:disabled {
@@ -1277,12 +1277,14 @@ QToolButton#StageChip {
     font-size: 10pt;
     font-weight: 600;
 }
+/* Lit, the lamp edge takes the outline's own colour: the light is one
+   colour on four sides, and the 3 px edge still reads as the lamp. */
 QToolButton#StageChip:checked:enabled {
     background: rgba(47, 107, 255, 0.16);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.55);
-    border-top-color: rgba(255, 255, 255, 0.95);
-    border-left-color: rgba(47, 107, 255, 0.95);
+    border-top-color: rgba(47, 107, 255, 0.55);
+    border-left-color: rgba(47, 107, 255, 0.55);
 }
 QToolButton#StageChip:!checked:hover:enabled {
     background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
@@ -1294,7 +1296,7 @@ QToolButton#StageChip:!checked:hover:enabled {
 QToolButton#StageChip:checked:hover:enabled {
     background: rgba(47, 107, 255, 0.24);
     border-color: rgba(47, 107, 255, 0.75);
-    border-left-color: rgba(47, 107, 255, 1.0);
+    border-left-color: rgba(47, 107, 255, 0.75);
 }
 /* Pressed = maximum light; four pseudos, after the hover rules. */
 QToolButton#StageChip:!checked:pressed:hover:enabled,
@@ -1302,8 +1304,8 @@ QToolButton#StageChip:checked:pressed:hover:enabled {
     background: rgba(47, 107, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(47, 107, 255, 0.85);
-    border-top-color: rgba(255, 255, 255, 1.0);
-    border-left-color: rgba(47, 107, 255, 1.0);
+    border-top-color: rgba(47, 107, 255, 0.85);
+    border-left-color: rgba(47, 107, 255, 0.85);
 }
 QToolButton#StageChip:disabled {
     background: rgba(24, 32, 51, 0.02);
@@ -1545,4 +1547,23 @@ QFrame#FilterCardRow QLineEdit#NewChannelAdd {
    the rect they get, so the list gives them the cap height too. */
 QFrame#FilterCardRow SegmentedControl {
     min-height: 26px; max-height: 26px;
+}
+
+/* ===== Keyboard focus on the list's caps =====
+   Shared article 8: focus recolours the outline a control already has.
+   The caps and chips of the list had no focus rule, so a key press moved
+   focus onto them with nothing to show for it. The whole outline, all four
+   sides, takes the focus colour; a resting header action brings its cap
+   back to carry it. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:focus,
+QFrame#FilterCardRow QToolButton#ChannelChip:focus,
+QFrame#FilterCardRow QToolButton#NewChannelChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:focus,
+QFrame#FilterCardRow QToolButton#StageChip:focus {
+    border-color: @FOCUS@;
 }

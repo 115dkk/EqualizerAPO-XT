@@ -390,7 +390,7 @@ QComboBox {
 }
 QComboBox:hover {
     border-color: rgba(91, 140, 255, 0.45);
-    border-top-color: rgba(255, 255, 255, 0.16);
+    border-top-color: rgba(91, 140, 255, 0.45);
     background: @CARD_HOVER@;
 }
 QComboBox:focus,
@@ -1284,7 +1284,7 @@ QToolButton#GraphicEQActionButton {
 QToolButton#GraphicEQActionButton:hover {
     background: rgba(91, 140, 255, 0.20);
     border-color: rgba(91, 140, 255, 0.40);
-    border-top-color: rgba(123, 162, 255, 0.55);
+    border-top-color: rgba(91, 140, 255, 0.40);
 }
 QToolButton#GraphicEQActionButton:pressed {
     background: rgba(91, 140, 255, 0.30);
@@ -1431,7 +1431,7 @@ QToolButton#DeviceChip:checked:enabled {
     background: rgba(91, 140, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.80);
-    border-top-color: rgba(123, 162, 255, 0.95);
+    border-top-color: rgba(91, 140, 255, 0.80);
 }
 /* Selected but not installed: the user meant it - lit one step dimmer;
    the glass is alive, the endpoint stays dark. */
@@ -1439,7 +1439,7 @@ QToolButton#DeviceChip[deviceInstalled="false"]:checked:enabled {
     background: rgba(91, 140, 255, 0.20);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.60);
-    border-top-color: rgba(123, 162, 255, 0.70);
+    border-top-color: rgba(91, 140, 255, 0.60);
 }
 /* "All devices" master chip: lit, it floods one step hotter than a
    single selected chip. */
@@ -1447,14 +1447,14 @@ QToolButton#DeviceChip[allDevices="true"]:checked:enabled {
     background: rgba(91, 140, 255, 0.40);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.88);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.88);
 }
 QToolButton#DeviceChip:!checked:hover:enabled {
     background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
         stop:0 rgba(91, 140, 255, 0.22), stop:0.45 rgba(91, 140, 255, 0.09), stop:1 rgba(91, 140, 255, 0));
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.45);
-    border-top-color: rgba(123, 162, 255, 0.50);
+    border-top-color: rgba(91, 140, 255, 0.45);
 }
 QToolButton#DeviceChip:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.38);
@@ -1463,7 +1463,7 @@ QToolButton#DeviceChip:checked:hover:enabled {
 QToolButton#DeviceChip[allDevices="true"]:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.46);
     border-color: rgba(91, 140, 255, 0.96);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.96);
 }
 /* Pressing is maximum light (rest < hover < press). A mouse press
    always hovers, so :hover rides along: four pseudo-classes beat the
@@ -1474,7 +1474,7 @@ QToolButton#DeviceChip:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.44);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.95);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.95);
 }
 /* The master chip presses one step past its own hover (0.38 < 0.42);
    attribute + four pseudos outranks everything above. */
@@ -1482,7 +1482,7 @@ QToolButton#DeviceChip[allDevices="true"]:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.50);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 1.0);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 1.0);
 }
 /* Disabled = switched off. Keep these last in the family: they tie
    with the attribute rules above and must win by order. */
@@ -1566,7 +1566,7 @@ QToolButton#ChannelChip:checked:enabled {
     background: rgba(91, 140, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.80);
-    border-top-color: rgba(123, 162, 255, 0.95);
+    border-top-color: rgba(91, 140, 255, 0.80);
 }
 QToolButton#ChannelChip[customChannel="true"]:checked:enabled {
     border-top-color: rgba(91, 140, 255, 0.80);
@@ -1577,7 +1577,7 @@ QToolButton#ChannelChip[allChannels="true"]:checked:enabled {
     background: rgba(91, 140, 255, 0.40);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.88);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.88);
 }
 QToolButton#ChannelChip:!checked:hover:enabled,
 QToolButton#NewChannelChip:!checked:hover:enabled {
@@ -1593,7 +1593,7 @@ QToolButton#ChannelChip:checked:hover:enabled {
 QToolButton#ChannelChip[allChannels="true"]:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.46);
     border-color: rgba(91, 140, 255, 0.96);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.96);
 }
 /* Pressed = maximum light; four pseudos, after the hover rules (see
    the device family note). */
@@ -1603,13 +1603,13 @@ QToolButton#NewChannelChip:!checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.44);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.95);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.95);
 }
 QToolButton#ChannelChip[allChannels="true"]:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.50);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 1.0);
-    border-top-color: rgba(123, 162, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 1.0);
 }
 QToolButton#ChannelChip:disabled,
 QToolButton#NewChannelChip:disabled {
@@ -1675,12 +1675,14 @@ QToolButton#StageChip {
     font-size: 10pt;
     font-weight: 600;
 }
+/* Lit, the lamp edge takes the outline's own colour: the light is one
+   colour on four sides, and the 3 px edge still reads as the lamp. */
 QToolButton#StageChip:checked:enabled {
     background: rgba(91, 140, 255, 0.30);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.80);
-    border-top-color: rgba(123, 162, 255, 0.95);
-    border-left-color: rgba(91, 140, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.80);
+    border-left-color: rgba(91, 140, 255, 0.80);
 }
 QToolButton#StageChip:!checked:hover:enabled {
     background: qradialgradient(cx:0.5, cy:1.05, radius:0.9, fx:0.5, fy:1.05,
@@ -1692,7 +1694,7 @@ QToolButton#StageChip:!checked:hover:enabled {
 QToolButton#StageChip:checked:hover:enabled {
     background: rgba(91, 140, 255, 0.38);
     border-color: rgba(91, 140, 255, 0.90);
-    border-left-color: rgba(91, 140, 255, 1.0);
+    border-left-color: rgba(91, 140, 255, 0.90);
 }
 /* Pressed = maximum light; four pseudos, after the hover rules (see
    the device family note). */
@@ -1701,8 +1703,8 @@ QToolButton#StageChip:checked:pressed:hover:enabled {
     background: rgba(91, 140, 255, 0.44);
     color: @TEXT@;
     border-color: rgba(91, 140, 255, 0.95);
-    border-top-color: rgba(123, 162, 255, 1.0);
-    border-left-color: rgba(91, 140, 255, 1.0);
+    border-top-color: rgba(91, 140, 255, 0.95);
+    border-left-color: rgba(91, 140, 255, 0.95);
 }
 QToolButton#StageChip:disabled {
     background: rgba(255, 255, 255, 0.02);
@@ -1947,4 +1949,23 @@ QFrame#FilterCardRow QLineEdit#NewChannelAdd {
    the rect they get, so the list gives them the cap height too. */
 QFrame#FilterCardRow SegmentedControl {
     min-height: 26px; max-height: 26px;
+}
+
+/* ===== Keyboard focus on the list's caps =====
+   Shared article 8: focus recolours the outline a control already has.
+   The caps and chips of the list had no focus rule, so a key press moved
+   focus onto them with nothing to show for it. The whole outline, all four
+   sides, takes the focus colour; a resting header action brings its cap
+   back to carry it. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:focus,
+QFrame#FilterCardRow QToolButton#ChannelChip:focus,
+QFrame#FilterCardRow QToolButton#NewChannelChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:focus,
+QFrame#FilterCardRow QToolButton#StageChip:focus {
+    border-color: @FOCUS@;
 }
