@@ -101,12 +101,14 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
     부품을 뺐습니다. 올패스와 Hilbert 카드의 그래프 스위치를 빼고
     ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536), [#540](https://github.com/115dkk/EqualizerAPO-XT/pull/540)), 서브우퍼 라우팅 카드를 한 줄짜리
     참조 카드로 바꾸고([#539](https://github.com/115dkk/EqualizerAPO-XT/pull/539)), 늘 펼쳐져 있던 채널 매핑을 접을 수
-    있게 했습니다([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). 세 번째 인터페이스인 Modern rows를 넣고
-    있습니다. 필터 하나를 스킨의 모습 그대로 한 줄에 표시하는 모드입니다. 첫
-    단계로 원본의 행 배치를 Legacy editor로 이름을 바꿨습니다
-    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)). Hardware Rack 카드의 단추를 낮추고 윤곽선이 네 면에
-    모두 나오게 했습니다([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)). 다음은 그 스킨의 Modern rows,
-    나머지 네 스킨 순서입니다.
+    있게 했습니다([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). 세 번째 인터페이스인 Modern rows는
+    필터 하나를 스킨의 모습 그대로 한 줄에 표시합니다. 원본의 행 배치는
+    Legacy editor로 이름을 바꿨고([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)), Hardware Rack 카드의 단추를
+    낮추고 윤곽선이 네 면에 모두 나오게 했으며
+    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)), Hardware Rack에서 Modern rows를 쓸 수 있게
+    했습니다([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550)). 32줄짜리 시험 설정의 높이가 4,960px에서
+    3,628px로 줄었습니다. 다음은 나머지 네 스킨의 행이고, Studio Glass가
+    먼저입니다.
 
 ## 주요 기능
 

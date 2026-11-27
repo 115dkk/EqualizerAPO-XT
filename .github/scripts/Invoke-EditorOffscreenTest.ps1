@@ -141,8 +141,11 @@ $gates = @{
         PostChecks = @()
     }
     # Every gallery card row times every edit its body offers, saved through
-    # the close prompt and through Ctrl+S. Two passes, so a failure that
-    # comes and goes has two chances to show; a pass took 71 s locally.
+    # the close prompt and through Ctrl+S, and every text field of every row
+    # only focused, left, or given Enter: an untouched field must leave its
+    # line exactly as written and announce no edit. Two passes, so a failure
+    # that comes and goes has two chances to show; a pass (726 cases) took
+    # 139 s locally.
     "close-save-sweep" = [pscustomobject]@{
         Arguments  = @("--close-save-sweep", "2")
         ExtraEnv   = @{ QT_FORCE_STDERR_LOGGING = "1" }
