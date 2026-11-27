@@ -21,6 +21,7 @@
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "RackSkinDetail.h"
+#include "Editor/skins/rack/cards/RackReferenceCardView.h"
 
 namespace
 {
@@ -94,7 +95,14 @@ void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 		if (header != nullptr && header->layout() != nullptr)
 			header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 0, 2, 0);
 		if (body != nullptr)
+		{
 			body->setContentsMargins(0, 0, 0, 0);
+			// The reference unit lays itself out for the row (the VST unit
+			// takes two lines); the editor is mounted in the body by now,
+			// and its own construction-time call never sees inlineRow.
+			for (RackReferenceCardView* view : body->findChildren<RackReferenceCardView*>())
+				view->setInlineRow(true);
+		}
 	}
 	// Reserve the rack-ear zones along the faceplate edges so the painted
 	// chrome (screws, LEDs, patchbay jacks) never
