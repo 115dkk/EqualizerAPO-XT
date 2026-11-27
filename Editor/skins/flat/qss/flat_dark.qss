@@ -937,3 +937,61 @@ QFrame#FilterCardRow QToolButton#VelvetRegenerate {
 QFrame#FilterCardRow QToolButton#FilterCardIconButton[powerToggle="true"] {
     min-height: 18px; max-height: 18px; padding: 0px;
 }
+
+/* ====================================================================
+   Resting outlines. A button is a bordered box (constitution rule 1), so
+   every resting cap of the list shows its line on four sides, in the
+   button line (@BORDER_STRONG@), in cards and rows alike. The reference
+   rows' icon buttons (browse, open, options), MultiConvolution's file and
+   channel buttons and Velvet's Regenerate rested as bare glyphs (no line
+   at all) and take it here. Still bare at rest, by their own rules: the
+   card header's actions and a section's fold (shared contract #456), a
+   row's stacked actions, and the quiet parameter selects (the parameter
+   area rule). Their box comes back under the pointer and the focus.
+   ==================================================================== */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"],
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"],
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"],
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
+    background: @CARD@; border: 1px solid @BORDER_STRONG@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:hover,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:hover,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:hover,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:hover,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:hover {
+    background: @CARD_HOVER@; border-color: @EDGE@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:pressed,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:pressed,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:pressed,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:pressed,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:pressed,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:checked,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:checked {
+    background: @CARD_SELECTED@; border-color: @EDGE@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:focus,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:focus,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:focus,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:focus { border-color: @FOCUS@; }
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:disabled,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:disabled,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:disabled,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:disabled,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:disabled { background: transparent; border-color: @BORDER_STRONG@; }
+/* A section's fold in MultiConvolution is a header action: bare at rest. */
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"] {
+    background: transparent; border-color: transparent;
+}
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"]:hover {
+    background: @CARD_HOVER@; border-color: @BORDER_STRONG@;
+}
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"]:pressed {
+    background: @CARD_SELECTED@; border-color: @BORDER_STRONG@;
+}
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"]:focus {
+    border-color: @FOCUS@;
+}
