@@ -48,6 +48,9 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
   card's delay option is shorter (Retarder pour synchroniser), because it
   made the Send row scroll sideways in Modern rows.
   ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550))
+
+## v2.86.4 — 2026-11-27
+
 - **Editor, Stock Flat: a switched-off card dims its channel mapping too.**
   Switching off a MultiConvolution, Copy or Send card dimmed its header and
   selectors but left the channel mapping under them at full strength, so the
