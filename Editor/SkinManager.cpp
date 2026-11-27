@@ -76,6 +76,11 @@ const QString& SkinManager::currentSkinId() const
 	return skinId;
 }
 
+bool SkinManager::skinSupportsRows(const QString& skinId)
+{
+	return Skins::byId(skinId)->supportsRowMode();
+}
+
 bool SkinManager::isDark() const
 {
 	return darkMode;
@@ -88,8 +93,8 @@ bool SkinManager::isHeritage() const
 
 void SkinManager::applyHeritage()
 {
-	CrashHandler::setBreadcrumb(L"applyHeritage (legacy rows)");
-	LogFStatic(L"Applying heritage presentation (legacy rows)");
+	CrashHandler::setBreadcrumb(L"applyHeritage (Legacy editor)");
+	LogFStatic(L"Applying heritage presentation (Legacy editor)");
 
 	heritageMode = true;
 	// The heritage identity - classic light tokens, no QSS, no routing view,
@@ -201,6 +206,11 @@ void SkinManager::prepareCommandRow(const CommandRowInfo& info, QWidget* card, Q
 	// The tokens come from here rather than from each skin reaching back into this
 	// singleton, which is what all five did before the hook took them.
 	activeSkin->prepareCommandRow(info, card, header, body, tokens());
+}
+
+bool SkinManager::supportsRowMode() const
+{
+	return activeSkin->supportsRowMode();
 }
 
 void SkinManager::paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const

@@ -46,6 +46,7 @@
 #include <QToolButton>
 
 #include "Editor/FilterTable.h"
+#include "Editor/EditorGates.h"
 #include "Editor/FilterTemplate.h"
 #include "Editor/SkinManager.h"
 #include "Editor/diagnostics/ToolbarPixelProbe.h"
@@ -239,7 +240,7 @@ int checkPaintOnlyChrome(const QScrollArea& scrollArea, const QString& objectNam
 int checkLegacyCopyScene(FilterTable* table)
 {
 	int failures = 0;
-	// LegacyRows still uses CopyFilterGUI. Its QGraphicsView does not own
+	// LegacyEditor still uses CopyFilterGUI. Its QGraphicsView does not own
 	// the scene, so the GUI must parent it explicitly; allWidgets() cannot
 	// detect this leak because QGraphicsScene is not a QWidget.
 	CopyFilterGUI* legacyCopy = new CopyFilterGUI({}, table);
@@ -375,6 +376,7 @@ void runOneSwitch(SwitchRun& run, ISkin* skin, bool dark, int round)
 		table->clearRows();
 		clearMs = timer.restart();
 		SkinManager::instance()->applySkin(skin->id(), dark);
+		EditorGates::noteListModeSkin(skin->id());
 		applyMs = timer.restart();
 		table->updateGuis();
 		VSTPluginSession::waitForPendingLoads(30000);
@@ -495,7 +497,7 @@ int runSwitchTest(const QStringList& arguments)
 
 	QScrollArea scrollArea;
 	scrollArea.resize(960, 720);
-	buildRows(scrollArea, fixture.configPath(), lines);
+	buildGateRows(scrollArea, fixture.configPath(), lines);
 	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 	if (table == nullptr)
 	{
@@ -587,7 +589,7 @@ int runCardMoveTest(const QStringList& arguments)
 
 	QScrollArea scrollArea;
 	scrollArea.resize(960, 720);
-	buildRows(scrollArea, fixture.configPath(), lines);
+	buildGateRows(scrollArea, fixture.configPath(), lines);
 	FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 	if (table == nullptr)
 	{
@@ -624,6 +626,7 @@ int runCardMoveTest(const QStringList& arguments)
 		// before the stylesheet swap, rebuild after).
 		table->clearRows();
 		SkinManager::instance()->applySkin(skin->id(), dark);
+		EditorGates::noteListModeSkin(skin->id());
 		table->updateGuis();
 		VSTPluginSession::waitForPendingLoads(30000);
 		QApplication::processEvents();
@@ -1294,7 +1297,7 @@ bool checkCommentNoteOnce(const QString& configPath)
 {
 	QScrollArea noteArea;
 	noteArea.resize(960, 240);
-	QList<FilterCardRow*> noteRows = buildRows(noteArea, configPath, { QStringLiteral("# Living room preset") });
+	QList<FilterCardRow*> noteRows = buildGateRows(noteArea, configPath, { QStringLiteral("# Living room preset") });
 	const QLabel* noteSummary = noteRows.size() == 1
 		? noteRows.first()->findChild<QLabel*>(QStringLiteral("FilterCardSummary")) : nullptr;
 	bool noteOnce = false;
@@ -1321,7 +1324,7 @@ void runCardSelectionScene(CardSelectionRun& run, ISkin* skin, bool dark)
 
 	QScrollArea scrollArea;
 	scrollArea.resize(960, 720);
-	QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
+	QList<FilterCardRow*> rows = buildGateRows(scrollArea, configPath, {
 		QStringLiteral("Preamp: -1 dB"),
 		QStringLiteral("Preamp: -2 dB"),
 		QStringLiteral("Preamp: -3 dB")
@@ -1357,7 +1360,7 @@ void runCardSelectionScene(CardSelectionRun& run, ISkin* skin, bool dark)
 		focusLines.append(QStringLiteral("Preamp: -1 dB"));
 	QScrollArea focusArea;
 	focusArea.resize(960, 320);
-	QList<FilterCardRow*> focusRows = buildRows(focusArea, configPath, focusLines);
+	QList<FilterCardRow*> focusRows = buildGateRows(focusArea, configPath, focusLines);
 	FilterTable* focusTable = qobject_cast<FilterTable*>(focusArea.widget());
 	focusTable->setFocusPolicy(Qt::StrongFocus);
 	focusArea.activateWindow();

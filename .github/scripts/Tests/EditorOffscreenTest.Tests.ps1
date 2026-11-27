@@ -20,9 +20,14 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
                 ForEach-Object { $_.Groups["gate"].Value }
         )
         $gateNames.Count | Should -BeGreaterThan 0
+        # The row runs are generated from the table, so the pattern above
+        # does not see them; their names come from the plan's own list.
+        $gateNames += @((PlanFor "power-toggle").RowGates)
         $scriptFlags = @(
             $gateNames | ForEach-Object { (PlanFor $_).EditorFlags } | Sort-Object -Unique
         )
+        $scriptFlags | Should -Contain "--list-mode"
+        $scriptFlags | Should -Contain "--window-skin"
 
         $gateSource = Get-Content -LiteralPath $editorGatesSource -Raw
         $declaredFlags = @(
@@ -87,6 +92,90 @@ Describe "Invoke-EditorOffscreenTest.ps1 planning" {
             $plan.LogPath | Should -Not -BeNullOrEmpty
             $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
         }
+    }
+
+    It "names every row run, in the order CI runs them" {
+        $plan = PlanFor "power-toggle"
+        $plan.RowSkins | Should -Be @("flat", "matrix", "minimal", "rack", "studio")
+        $plan.RowListGates | Should -Be @("power-toggle", "routing-edit", "skin-switch", "card-move", "card-selection")
+        @($plan.RowWindowGates.Keys) | Should -Be @("close-save", "close-save-sweep")
+        $plan.RowGates | Should -Be @(
+            "power-toggle-rows", "routing-edit-rows", "skin-switch-rows", "card-move-rows", "card-selection-rows",
+            "close-save-rows-flat", "close-save-rows-matrix", "close-save-rows-minimal", "close-save-rows-rack", "close-save-rows-studio",
+            "close-save-sweep-rows-studio"
+        )
+    }
+
+    It "runs each list check again in Modern rows, with its own log and output folder" {
+        $plan = PlanFor "power-toggle"
+        foreach ($rowGate in $plan.RowGates) {
+            $gate = $rowGate -replace '-rows(-[a-z]+)?$', ''
+            $cards = PlanFor $gate
+            $rows = PlanFor $rowGate
+            $rows.EditorFlags | Should -Contain $cards.EditorFlags[0]
+            ($rows.Arguments -join " ") | Should -Match '--list-mode rows'
+            $rows.LogPath | Should -Not -Be $cards.LogPath
+            $rows.LogPath | Should -Match 'rows'
+            $rows.PostChecks | Should -Contain "rows-coverage"
+            foreach ($check in $cards.PostChecks) {
+                $rows.PostChecks | Should -Contain $check
+            }
+            foreach ($name in $cards.ExtraEnv.Keys) {
+                $rows.ExtraEnv[$name] | Should -Be $cards.ExtraEnv[$name]
+            }
+            $rows.QtPlatform | Should -Be "offscreen"
+        }
+        @($plan.RowGates | ForEach-Object { (PlanFor $_).LogPath } | Sort-Object -Unique).Count | Should -Be $plan.RowGates.Count
+        (PlanFor "card-selection-rows").Arguments[1] | Should -Be "C:\ws\card-selection-rows"
+        (PlanFor "card-selection-rows").LogPath | Should -Be "C:\ws\card-selection-rows\card-selection-test.log"
+        (PlanFor "close-save-sweep-rows-studio").LogPath | Should -Be "C:\ws\close-save-sweep-rows-studio.log"
+        (PlanFor "close-save-rows-rack").LogPath | Should -Be "C:\ws\close-save-test-rows-rack.log"
+    }
+
+    It "names the window's skin for the row runs that open one Editor window" {
+        # A runner has no saved skin; without the name these checks open the
+        # default skin whatever the run is meant to cover.
+        $plan = PlanFor "power-toggle"
+        $plan.RowWindowGates["close-save"] | Should -Be $plan.RowSkins
+        # The sweep runs where the card sweep runs: in the skin a new
+        # installation opens.
+        $plan.RowWindowGates["close-save-sweep"] | Should -Be @("studio")
+        foreach ($gate in $plan.RowWindowGates.Keys) {
+            foreach ($skin in $plan.RowWindowGates[$gate]) {
+                $rows = PlanFor "$gate-rows-$skin"
+                ($rows.Arguments -join " ") | Should -Match "--window-skin $skin$"
+                $rows.ExpectedRowSkins | Should -Be @($skin)
+            }
+        }
+        foreach ($gate in $plan.RowListGates) {
+            $rows = PlanFor "$gate-rows"
+            # A check that walks every skin fails when handed a window skin.
+            ($rows.Arguments -join " ") | Should -Not -Match '--window-skin'
+            $rows.ExpectedRowSkins | Should -Be $plan.RowSkins
+        }
+        (PlanFor "power-toggle").ExpectedRowSkins | Should -Be @()
+    }
+
+    It "names the skins that draw rows in the Editor" {
+        # Every skin folder is in the list: a new skin has to draw rows or be
+        # left out of it on purpose, with the row runs then failing on it.
+        $skinsRoot = Join-Path $PSScriptRoot "..\..\..\Editor\skins"
+        $folders = @(Get-ChildItem -LiteralPath $skinsRoot -Directory | Where-Object { $_.Name -ne "shared" } | ForEach-Object { $_.Name } | Sort-Object)
+        (PlanFor "power-toggle").RowSkins | Should -Be $folders
+    }
+
+    It "has the workflow run the row checks the plan names" {
+        $workflow = Get-Content -LiteralPath (Join-Path $PSScriptRoot "..\..\workflows\build.yml") -Raw
+        $workflow | Should -Match 'foreach \(\$gate in \$plan\.RowGates\) \{\s*&[^\r\n]*Invoke-EditorOffscreenTest\.ps1'
+        $workflow | Should -Match '-Gate power-toggle -Platform "\$\{\{ matrix\.platform \}\}" -PlanOnly'
+        $workflow | Should -Match '-Gate interface-menu'
+    }
+
+    It "runs the Interface menu check with a log" {
+        $plan = PlanFor "interface-menu"
+        $plan.Arguments | Should -Be @("--interface-menu-test")
+        $plan.LogPath | Should -Be "C:\ws\interface-menu-test.log"
+        $plan.ExtraEnv["QT_FORCE_STDERR_LOGGING"] | Should -Be "1"
     }
 
     It "keeps the switch and move latency budgets" {

@@ -21,6 +21,7 @@
 #include "Editor/SkinTokens.h"
 
 class QHBoxLayout;
+class QSpacerItem;
 
 // Engraved faceplate printing (flat in the depth hierarchy): a contrast pass
 // offset one pixel down - the recess edge catching the light - then the ink,
@@ -61,6 +62,10 @@ public:
 	// Sentence printing (the status line): breaks at word boundaries over as
 	// many lines as the width needs instead of eliding.
 	void setWordWrap(bool newWordWrap);
+	// The fewest characters an eliding label keeps on show before it lets
+	// the layout squeeze it further (0 = the default 28 px floor). A text
+	// no longer than this never elides.
+	void setMinimumCharacters(int count);
 
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
@@ -86,6 +91,7 @@ private:
 	bool stamped = false;
 	Qt::TextElideMode elideMode = Qt::ElideNone;
 	bool wordWrap = false;
+	int minimumCharacters = 0;
 };
 
 // A bezel-set panel LED (Rack's panel-lamp grammar: bezel ring, halo
@@ -124,6 +130,10 @@ public:
 	explicit RackLcdWindow(const SkinTokens& tokens, QWidget* parent = nullptr);
 
 	void setSegments(const QString& newText);
+	// A display that may not be cut: its minimum is its whole text, so the
+	// layout squeezes something else (the display clause: a readout shows
+	// its whole text or is not there).
+	void setWholeText(bool newWholeText);
 
 	QSize sizeHint() const override;
 	QSize minimumSizeHint() const override;
@@ -137,6 +147,7 @@ private:
 	QString displayText() const;
 
 	QString text;
+	bool wholeText = false;
 };
 
 class RackReferenceCardView : public ReferenceCardView
@@ -149,12 +160,42 @@ public:
 	void addLeadingWidget(QWidget* widget) override;
 	void placeBusStrip(QWidget* strip) override;
 
+	// Called by RackSkin::prepareCommandRow when the unit sits in a Modern
+	// row (CommandRowInfo::inlineRow). One-way: a skin or mode switch
+	// rebuilds the row, so a view never goes back to the card layout. Two
+	// units rearrange (identity and actions on the first line, where the
+	// unit points and how it is wired or set on the second): the VST unit
+	// (path and bus strip) and the Subwoofer Routing unit (path and
+	// readout). Convolution and MultiConvolution keep their one line, and
+	// Include keeps its face. In every row unit an LCD readout keeps its
+	// whole text and the name keeps 12 characters; the path elides first.
+	void setInlineRow(bool inlineRow);
+
 protected:
 	void placeActionButton(ActionRole role, QAbstractButton* button) override;
 	void applyState(const ReferenceCardState& state) override;
+	bool eventFilter(QObject* watched, QEvent* event) override;
 
 private:
+	// Row mode only: the caps go to the right end of line 1 while line 2
+	// has something to show; with an empty line 2 the unit keeps the
+	// card's one line, caps packed after the name.
+	void updateRowArrangement();
+
 	const SkinTokens skinTokens;
+	// ReferenceCardState::kind the view was built for ("vst", "subwoofer",
+	// ...): the row arrangement depends on it.
+	const QString unitKind;
+	bool rowMode = false;
+	// updateRowArrangement is running (it reparents the path).
+	bool arranging = false;
+	QWidget* labelArea = nullptr;
+	QWidget* busStrip = nullptr;
+	// Row mode only: the second line (path, then the bus strip or the
+	// readout).
+	QHBoxLayout* wiringLayout = nullptr;
+	// The stretch that ends line 1 (after the caps).
+	QSpacerItem* trailingStretch = nullptr;
 	// The unit's row (lamp, label strip, bus strip, readout, buttons); the
 	// status sentence prints on its own line under it.
 	QHBoxLayout* rootLayout = nullptr;

@@ -23,6 +23,7 @@
 #include <QTemporaryDir>
 
 #include "devices/AbstractAPOInfo.h"
+#include "Editor/FilterTable.h"
 
 class FilterCardRow;
 class ISkin;
@@ -184,6 +185,12 @@ QToolBar* buildToolbarReplica(QWidget* parent);
 // A fresh FilterTable holding the given lines, hosted like MainWindow hosts
 // it; returns the card rows in line order.
 QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
+	std::shared_ptr<AbstractAPOInfo> device = nullptr, unsigned long channelMask = 0,
+	FilterTable::RenderMode mode = FilterTable::ModernCards);
+// Gates and whole-document probes opt in to --list-mode. Registered gallery
+// scenes keep buildRows' cards default unless they explicitly choose rows.
+FilterTable::RenderMode gateRenderMode();
+QList<FilterCardRow*> buildGateRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
 	std::shared_ptr<AbstractAPOInfo> device = nullptr, unsigned long channelMask = 0);
 
 // Installs the gallery's FileReferenceController::Policy: the reference cards

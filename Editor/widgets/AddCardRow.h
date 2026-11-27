@@ -13,7 +13,7 @@
 // all input handling - click,
 // Space/Return, focus - and delegates every pixel to the active skin through
 // ISkin::paintAddRow, so each skin answers the affordance in its own grammar
-// (docs/skins/README.md, shared insertion contract). LegacyRows keeps the
+// (docs/skins/README.md, shared insertion contract). LegacyEditor keeps the
 // frozen toolbar and never constructs this widget.
 class AddCardRow : public ActivatableListChrome
 {

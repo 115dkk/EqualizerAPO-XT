@@ -23,11 +23,11 @@
 | Ctrl+C | 편집 > 복사 | 선택한 줄을 텍스트로 복사합니다 |
 | Ctrl+V | 편집 > 붙여넣기 | 필터 목록에 줄을 붙여 넣습니다 |
 | Ctrl+A | 편집 > 모두 선택 | 모든 줄을 선택합니다 |
-| Ctrl+Alt+1 ~ Ctrl+Alt+5 | 보기 > 인터페이스 | 스킨을 바꿉니다. 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
+| Ctrl+Alt+1 ~ Ctrl+Alt+5 | 보기 > 인터페이스 > 모던 카드 또는 모던 행 | 지금 표시 방식 안에서 스킨을 바꿉니다. 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
 | Ctrl+Alt+D | 보기 > 인터페이스 > 어두운 테마 | 밝은 테마와 어두운 테마를 오갑니다 |
 | Ctrl+Alt+F | 보기 > 인터페이스 > 그래프 전체화면 | 필터 목록과 도구 모음을 숨기고 분석 그래프를 창 가득 띄웁니다 |
 
-스킨과 테마 단축키는 **Legacy editor**에서는 동작하지 않습니다. 텍스트 입력란에 포커스가 있으면 Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V, Ctrl+A는 필터 목록이 아니라 그 입력란의 글자에 작용합니다.
+스킨과 테마 단축키는 **Legacy editor**에서는 동작하지 않습니다. 모던 행은 이 문서의 모든 키와 동작이 카드와 같습니다. 카드라고 적은 곳은 둘 다 가리키고, 행에서는 왼쪽 열이 줄의 머리 부분입니다. 텍스트 입력란에 포커스가 있으면 Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V, Ctrl+A는 필터 목록이 아니라 그 입력란의 글자에 작용합니다.
 
 제거 버튼이나 Delete 키로 줄을 지우면 **수정 취소** 버튼이 달린 알림이 8초 동안 떠 있습니다. 저장하지 않은 변경이 있는 탭이나 창을 닫을 때는 Enter가 저장, Esc가 취소입니다.
 

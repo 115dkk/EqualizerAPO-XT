@@ -23,11 +23,11 @@ The most useful ones:
 | Ctrl+C | Edit > Copy | Copies the selected lines as text |
 | Ctrl+V | Edit > Paste | Pastes lines into the filter list |
 | Ctrl+A | Edit > Select all | Selects every line |
-| Ctrl+Alt+1 to Ctrl+Alt+5 | View > Interface | Switches skin: 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
+| Ctrl+Alt+1 to Ctrl+Alt+5 | View > Interface > Modern cards or Modern rows | Switches skin within the current presentation: 1 Studio Glass, 2 Precision Minimal, 3 Stock Flat, 4 Hardware Rack, 5 Signal Matrix |
 | Ctrl+Alt+D | View > Interface > Dark theme | Switches between the light and dark theme |
 | Ctrl+Alt+F | View > Interface > Fullscreen graph | Lets the analysis graph fill the window, hiding the filter list and toolbar |
 
-The skin and theme shortcuts do nothing in the **Legacy editor**. While a text field has the focus, Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A act on the text in that field, not on the filter list.
+The skin and theme shortcuts do nothing in the **Legacy editor**. Modern rows take the same keys and gestures as the cards everywhere on this page; where it says cards, it means both, and the header of a row is its left column. While a text field has the focus, Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A act on the text in that field, not on the filter list.
 
 After you remove lines with a remove button or the Delete key, a notice with an **Undo** button stays up for 8 seconds. When you close a tab or the window with unsaved changes, Enter saves and Esc cancels.
 

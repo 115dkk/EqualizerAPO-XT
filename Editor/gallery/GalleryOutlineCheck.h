@@ -17,6 +17,8 @@
 #include <QRect>
 #include <QString>
 
+#include "Editor/FilterTable.h"
+
 class QImage;
 class QWidget;
 
@@ -63,6 +65,8 @@ int checkControlOutlines(QWidget* grabbed, const QImage& image, const QString& s
 // cap class in the gallery rows, the outline with the focus differs from the
 // resting outline by at least the review level on all four sides. Runs only
 // for a skin that promises closed outlines; writes no capture. Returns the
-// number of failing classes.
-int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, const QString& mode);
+// number of failing classes. renderMode builds the rows as cards or, for a
+// skin that draws them, as Modern rows; the report lines name which.
+int checkFocusLightsOutlines(const QString& configPath, const QString& skinId, const QString& mode,
+	FilterTable::RenderMode renderMode = FilterTable::ModernCards);
 }

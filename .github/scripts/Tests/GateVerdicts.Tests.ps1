@@ -17,6 +17,30 @@ BeforeAll {
     }
 }
 
+Describe 'Row coverage of a list check' {
+    It 'passes when exactly the expected skins drew rows' {
+        (Get-RowCoverageVerdict -Line 'ListMode: rows in flat, matrix, minimal, rack, studio; cards in no skin' -ExpectedSkins @('flat', 'matrix', 'minimal', 'rack', 'studio')).Passed | Should -BeTrue
+        (Get-RowCoverageVerdict -Line 'ListMode: rows in studio; cards in no skin' -ExpectedSkins @('studio')).Passed | Should -BeTrue
+    }
+
+    It 'fails when a skin fell back to cards' {
+        $verdict = Get-RowCoverageVerdict -Line 'ListMode: rows in rack, studio; cards in flat, matrix, minimal' -ExpectedSkins @('flat', 'matrix', 'minimal', 'rack', 'studio')
+        $verdict.Passed | Should -BeFalse
+        $verdict.Reasons | Should -Be @('flat fell back to cards', 'matrix fell back to cards', 'minimal fell back to cards')
+    }
+
+    It 'fails when no skin drew rows, an expected skin did not run, or another skin ran' {
+        (Get-RowCoverageVerdict -Line 'ListMode: rows in no skin; cards in studio' -ExpectedSkins @('studio')).Reasons | Should -Be @('studio fell back to cards')
+        (Get-RowCoverageVerdict -Line 'ListMode: rows in rack; cards in no skin' -ExpectedSkins @('rack', 'studio')).Reasons | Should -Be @('studio did not run')
+        (Get-RowCoverageVerdict -Line 'ListMode: rows in rack; cards in no skin' -ExpectedSkins @('studio')).Reasons | Should -Be @('studio did not run', 'rack drew rows but the gate does not name it')
+    }
+
+    It 'fails when the run printed no coverage line' {
+        (Get-RowCoverageVerdict -Line '' -ExpectedSkins @('studio')).Passed | Should -BeFalse
+        (Get-RowCoverageVerdict -Line 'CloseSaveTest: PASS' -ExpectedSkins @('studio')).Reasons | Should -Be @('the run did not report which skins drew rows')
+    }
+}
+
 Describe 'Capture script wiring with a fake probe' {
     BeforeAll {
         $path = Join-Path $PSScriptRoot '../Invoke-CaptureGate.ps1'

@@ -12,7 +12,10 @@
 	PNGs named <skin>_<dark|light>_<row>_<state>.png to a target directory.
 
 	Runs headless: invoke the Editor with QT_QPA_PLATFORM=offscreen and
-	--skin-gallery <outDir> [--skin-gallery-skins id,id,...]. Used by the skin
+	--skin-gallery <outDir> [--skin-gallery-skins id,id,...] [--list-mode cards|rows].
+	--list-mode selects the presentation for whole-document probes and the
+	interaction gates; registered gallery scenes stay in cards. Omitted, gates
+	use cards without reading the saved presentation. Used by the skin
 	agents and CI to prove appearance-preserving changes (pixel-identical
 	before/after) and to build judging contact sheets.
 
@@ -59,6 +62,9 @@ int runCardMoveTest(const QStringList& arguments);
 // different card collapses a prior multi-selection onto that card.
 int runCardSelectionTest(const QStringList& arguments);
 
+// The Interface menu's presentation/skin choices, checks and shortcuts.
+int runInterfaceMenuTest();
+
 // Entry point behind --selftest-vst: the VSTPlugin store()/parse round-trip
 // gate (opening and saving a line must never lose chunk data, parameters or
 // the bus contract). Lived inline in main.cpp before audit #275 B7.
@@ -67,7 +73,7 @@ int runVstRoundTripSelfTest();
 // Second half of --selftest-vst: the channel-fill menus of a VST row must
 // offer the channels selected at that row in both presentations, and follow
 // a Channel row above it. Field report (v2.41.2): under the heritage
-// (LegacyRows) presentation every fill combo listed only "Silence (-)" while
+// (LegacyEditor) presentation every fill combo listed only "Silence (-)" while
 // the card path offered every device channel, so a stereo-to-5.1 upmixer
 // could not be fed from the legacy rows at all.
 int runVstFillSelfTest();

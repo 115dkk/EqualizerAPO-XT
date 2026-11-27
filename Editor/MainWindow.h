@@ -79,6 +79,11 @@ public:
 	// constants) and names this constant beside it.
 	static constexpr int analysisControlBarWidth = 280;
 
+	// The translated name the Interface menu shows for a skin id; a roster id
+	// with no name here is shown as its raw id. The skin gallery's replica of
+	// the Interface menu asks the same table.
+	static QString interfaceSkinName(const QString& id);
+
 	explicit MainWindow(QDir configDir, UpdateSession* updateSession, QWidget* parent = 0,
 		bool analysisLayoutTestMode = false);
 	~MainWindow();
@@ -188,6 +193,9 @@ private slots:
 private:
 	void startSkinSwitchStorm();
 	void applySkinAndRebuild();
+	void selectInterface(FilterTable::RenderMode mode, const QString& selectedSkin);
+	void persistSkinChoice();
+	void syncInterfaceMenu();
 	void executeStartAnalysis();
 	// Writes one document and applies the widget-free transition for its save
 	// reason. Callers do not repair title/path/dirty state themselves.
@@ -297,7 +305,9 @@ private:
 	int graphDockPosition = 1;
 	FilterTable::RenderMode currentRenderMode = FilterTable::ModernCards;
 	QActionGroup* interfaceModeActionGroup = nullptr;
-	QActionGroup* skinActionGroup = nullptr;
+	QMenu* modernCardsMenu = nullptr;
+	QMenu* modernRowsMenu = nullptr;
+	QList<QAction*> skinShortcutActions;
 	QAction* darkThemeAction = nullptr;
 	QAction* fullscreenGraphAction = nullptr;
 	QActionGroup* knobRangeActionGroup = nullptr;

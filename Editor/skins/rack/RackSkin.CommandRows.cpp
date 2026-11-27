@@ -21,6 +21,7 @@
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/FilterCardModel.h"
 #include "RackSkinDetail.h"
+#include "Editor/skins/rack/cards/RackReferenceCardView.h"
 
 namespace
 {
@@ -75,20 +76,46 @@ QString RackSkin::cardHeaderStyle(const CommandRowInfo&, const SkinTokens&) cons
 	return QStringLiteral("QWidget#FilterCardHeader { background: transparent; }");
 }
 
+bool RackSkin::supportsRowMode() const
+{
+	// Modern rows put each unit's controls at the left ear
+	// instead of a header strip over a body.
+	return true;
+}
+
 void RackSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 		const SkinTokens& tokens) const
 {
+	// A one-line unit keeps the ears free the same way, but its left column
+	// meets the left ear only and the editor (or the channel badges after
+	// it) meets the right ear only, so each side reserves one ear.
+	if (info.inlineRow && card != nullptr && card->layout() != nullptr)
+	{
+		card->layout()->setContentsMargins(0, 0, RackSkinDetail::EarWidth + 4, 0);
+		if (header != nullptr && header->layout() != nullptr)
+			header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 0, 2, 0);
+		if (body != nullptr)
+		{
+			body->setContentsMargins(0, 0, 0, 0);
+			// The reference unit lays itself out for the row (the VST and
+			// Subwoofer Routing units take two lines); the editor is
+			// mounted in the body by now, and its own construction-time
+			// call never sees inlineRow.
+			for (RackReferenceCardView* view : body->findChildren<RackReferenceCardView*>())
+				view->setInlineRow(true);
+		}
+	}
 	// Reserve the rack-ear zones along the faceplate edges so the painted
 	// chrome (screws, LEDs, patchbay jacks) never
 	// collides with row content. Rows are rebuilt on every skin switch, so
 	// this only ever runs while the rack skin is active.
-	if (header != nullptr && header->layout() != nullptr)
+	else if (header != nullptr && header->layout() != nullptr)
 	{
 		header->layout()->setContentsMargins(RackSkinDetail::EarWidth + 6, 4, RackSkinDetail::EarWidth + 6, 4);
 	}
 	// Only the modern card's body stack is inset; body-only consultations
 	// (Include/VST editors, legacy rows) already sit inside that stack.
-	if (card != nullptr && body != nullptr)
+	if (!info.inlineRow && card != nullptr && body != nullptr)
 		body->setContentsMargins(RackSkinDetail::EarWidth + 4, 0, RackSkinDetail::EarWidth + 4, 6);
 
 	// Unparsed lines (bare text, programmatic commands like If) are the
@@ -197,7 +224,9 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 
 	// Module groove under the control strip whenever the unit is opened (the
 	// body below it then reads as controls mounted on the same module).
-	if (r.height() >= tokens.rowHeight + 26)
+	// A one-line unit has no strip and no body, so there is nothing for the
+	// groove to separate.
+	if (!info.inlineRow && r.height() >= tokens.rowHeight + 26)
 	{
 		const qreal y = r.top() + tokens.rowHeight;
 		painter.setPen(QPen(RackPalette::shadow(dark ? 110 : 55), 1));
@@ -239,7 +268,10 @@ void RackSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Comma
 	// clear of it). Hardware is never printed with a sawn-off word, so a
 	// designation longer than the run is left off rather than clipped.
 	const QString label = unitLabel(info);
-	if (!label.isEmpty() && r.height() >= 96)
+	// A one-line unit drops the height gate and lets the fit test below
+	// decide alone: the rule is "the whole word or nothing", and the gate
+	// only kept short words off low cards that have a header strip.
+	if (!label.isEmpty() && (info.inlineRow || r.height() >= 96))
 	{
 		QFont earFont(tokens.fontFamily);
 		earFont.setPixelSize(9);

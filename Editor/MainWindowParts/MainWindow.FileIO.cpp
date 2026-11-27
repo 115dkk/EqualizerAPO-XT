@@ -178,8 +178,12 @@ void MainWindow::closeEvent(QCloseEvent* event)
 	{
 		event->ignore();
 		restart = false;
-		noSavePreferences = false;
-		noSaveFilePreferences = false;
+		// A probe stays read-only even if its close or restart is cancelled.
+		if (!skinPersistenceSuppressed)
+		{
+			noSavePreferences = false;
+			noSaveFilePreferences = false;
+		}
 	}
 	else
 	{

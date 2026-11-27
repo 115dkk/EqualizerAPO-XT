@@ -122,43 +122,43 @@
         <translation>Passe-tout</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="226"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="238"/>
         <source>Center frequency</source>
         <translation>Fréq. centrale</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="228"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="240"/>
         <source>Corner frequency</source>
         <translation>Fréquence de coupure</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="245"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="257"/>
         <source>Fixed Q</source>
         <translatorcomment>I don&apos;t understand</translatorcomment>
         <translation>Q fixé</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="247"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="292"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="259"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="304"/>
         <source>Fixed S</source>
         <translatorcomment>I don&apos;t understand</translatorcomment>
         <translation>S fixé</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="249"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="293"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="261"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="305"/>
         <source>Slope</source>
         <translation>Pente</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="251"/>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="294"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="263"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="306"/>
         <source>Q factor</source>
         <translatorcomment>Refer to &quot;Fixed Q&quot; ? Translation is ok if the Q letter doesn&apos;t need translation</translatorcomment>
         <translation>Facteur Q</translation>
     </message>
     <message>
-        <location filename="../guis/BiQuadFilterGUI.cpp" line="258"/>
+        <location filename="../guis/BiQuadFilterGUI.cpp" line="270"/>
         <source>Bandwidth</source>
         <translation>Bande passante</translation>
     </message>
@@ -231,12 +231,12 @@
 <context>
     <name>BlockChipView</name>
     <message>
-        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="214"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="227"/>
         <source>Show fewer channels</source>
         <translation type="unfinished"></translation>
     </message>
     <message numerus="yes">
-        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="215"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="228"/>
         <source>Show %n more channel(s)</source>
         <translation type="unfinished">
             <numerusform></numerusform>
@@ -244,7 +244,7 @@
         </translation>
     </message>
     <message>
-        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="228"/>
+        <location filename="../skins/flat/routing/BlockChipRoutingRenderer.cpp" line="241"/>
         <source>Add channel</source>
         <translation type="unfinished">Ajouter un canal</translation>
     </message>
@@ -1288,7 +1288,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1048"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
@@ -1297,47 +1297,47 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation type="vanished">Activer ou commenter cette commande</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="180"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="243"/>
         <source>Add filter above this card</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="194"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="257"/>
         <source>Remove filter</source>
         <translation>Supprimer le filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="195"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="258"/>
         <source>Remove this filter. %1 brings it back.</source>
         <translation>Supprimer ce filtre. %1 permet de le rétablir.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="211"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="274"/>
         <source>Edit raw command</source>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="850"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1127"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1048"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Collapse filter card</source>
         <translation>Replier la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1051"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1384"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Désactiver cette ligne. Elle reste dans le fichier sous forme de commentaire.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1052"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1385"/>
         <source>Switch this line back on.</source>
         <translation>Réactiver cette ligne.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="848"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1125"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO n’a pas pu préparer ce filtre : la configuration entière n’a donc pas été appliquée et les réglages précédents continuent d’être lus. Vérifiez le fichier ou le plug-in qu’utilise cette ligne, ou désactivez la ligne.</translation>
     </message>
@@ -1589,7 +1589,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FlatReferenceCardView</name>
     <message>
-        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="241"/>
+        <location filename="../skins/flat/cards/FlatReferenceCardView.cpp" line="351"/>
         <source>Checking...</source>
         <translation>Vérification...</translation>
     </message>
@@ -1597,82 +1597,83 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FlatSkin</name>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="57"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="58"/>
         <source>Otherwise</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="59"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="60"/>
         <source>End of the rule</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="70"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="71"/>
         <source>Set %1 to %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="91"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="92"/>
         <source>If %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="93"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="94"/>
         <source>If %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="95"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="96"/>
         <source>If %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="97"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="98"/>
         <source>If %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="99"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="100"/>
         <source>If %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="101"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="102"/>
         <source>If %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="106"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="107"/>
         <source>Otherwise, if %1 is %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="108"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="109"/>
         <source>Otherwise, if %1 is not %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="110"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="111"/>
         <source>Otherwise, if %1 is at least %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="112"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="113"/>
         <source>Otherwise, if %1 is more than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="114"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="115"/>
         <source>Otherwise, if %1 is at most %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="116"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="117"/>
         <source>Otherwise, if %1 is less than %2</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="227"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="243"/>
+        <location filename="../skins/flat/FlatSkin.CommandRows.cpp" line="278"/>
         <source>Not applied to the audio.</source>
         <translation type="unfinished"></translation>
     </message>
@@ -2370,7 +2371,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="139"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="461"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="546"/>
         <source>Graph</source>
         <translation>Graphique</translation>
     </message>
@@ -2529,7 +2530,7 @@ Alexander Walch</translation>
     </message>
     <message>
         <location filename="../MainWindow.ui" line="665"/>
-        <location filename="../MainWindow.cpp" line="384"/>
+        <location filename="../MainWindow.cpp" line="386"/>
         <source>Check for updates</source>
         <translation>Rechercher des mises à jour</translation>
     </message>
@@ -2544,43 +2545,43 @@ Alexander Walch</translation>
         <translation>Tout sélectionner</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="115"/>
+        <location filename="../MainWindow.cpp" line="117"/>
         <source>Equalizer APO %0 Configuration Editor</source>
         <translation>Equalizer APO %0 Éditeur de configuration</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="130"/>
+        <location filename="../MainWindow.cpp" line="132"/>
         <source>Instant mode</source>
         <translation>Mode instantané</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="134"/>
+        <location filename="../MainWindow.cpp" line="136"/>
         <source>Changes are saved immediately</source>
         <translation>Les modifications sont enregistrées immédiatement</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="131"/>
+        <location filename="../MainWindow.cpp" line="133"/>
         <location filename="../MainWindowParts/MainWindow.Edit.cpp" line="95"/>
         <source>Saved</source>
         <translation>Enregistré</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="135"/>
+        <location filename="../MainWindow.cpp" line="137"/>
         <source>Current file save state</source>
         <translation>État d&apos;enregistrement du fichier actuel</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="132"/>
+        <location filename="../MainWindow.cpp" line="134"/>
         <source>Device</source>
         <translation>Périphérique</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="136"/>
+        <location filename="../MainWindow.cpp" line="138"/>
         <source>Whether EqualizerAPO is processing this device&apos;s stream natively, or forwarding it without applying filters.</source>
         <translation>Indique si EqualizerAPO traite le flux de ce périphérique nativement ou s&apos;il le transfère sans appliquer de filtres.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="133"/>
+        <location filename="../MainWindow.cpp" line="135"/>
         <source>Channels</source>
         <translation>Canaux</translation>
     </message>
@@ -2589,89 +2590,89 @@ Alexander Walch</translation>
         <translation type="vanished">Défaut</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="149"/>
+        <location filename="../MainWindow.cpp" line="151"/>
         <source>Default (%1 - %2)</source>
         <translation>Défaut (%1 - %2)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="152"/>
+        <location filename="../MainWindow.cpp" line="154"/>
         <source>Playback devices:</source>
         <translation>Périphériques de lecture:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="163"/>
+        <location filename="../MainWindow.cpp" line="165"/>
         <source>Capture devices:</source>
         <translation>Périphériques de capture:</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="253"/>
+        <location filename="../MainWindow.cpp" line="255"/>
         <source>Automatic (%0)</source>
         <translation>Automatique (%0)</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="296"/>
+        <location filename="../MainWindow.cpp" line="298"/>
         <source>An update has been downloaded and will be applied when you close the editor.</source>
         <translation>Une mise à jour a été téléchargée et sera appliquée à la fermeture de l’éditeur.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="297"/>
+        <location filename="../MainWindow.cpp" line="299"/>
         <source>Update %0 has been downloaded and will be applied when you close the editor.</source>
         <translation>La mise à jour %0 a été téléchargée et sera appliquée à la fermeture de l’éditeur.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="304"/>
-        <location filename="../MainWindow.cpp" line="327"/>
-        <location filename="../MainWindow.cpp" line="331"/>
+        <location filename="../MainWindow.cpp" line="306"/>
+        <location filename="../MainWindow.cpp" line="329"/>
+        <location filename="../MainWindow.cpp" line="333"/>
         <source>Restart Windows audio</source>
         <translation>Redémarrer l’audio Windows</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="305"/>
+        <location filename="../MainWindow.cpp" line="307"/>
         <source>Restart Windows audio now? Sound stops for a few seconds.</source>
         <translation>Redémarrer l’audio Windows maintenant ? Le son sera interrompu pendant quelques secondes.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="328"/>
+        <location filename="../MainWindow.cpp" line="330"/>
         <source>Windows audio has been restarted.</source>
         <translation>L’audio Windows a été redémarré.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="332"/>
+        <location filename="../MainWindow.cpp" line="334"/>
         <source>Windows audio could not be restarted. Restart the computer to load the installed version.</source>
         <translation>Impossible de redémarrer l’audio Windows. Redémarrez l’ordinateur pour charger la version installée.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="389"/>
+        <location filename="../MainWindow.cpp" line="391"/>
         <source>This copy was not installed by the installer, so it cannot update itself.</source>
         <translation>Cette copie n’a pas été installée avec le programme d’installation et ne peut donc pas se mettre à jour elle-même.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="392"/>
+        <location filename="../MainWindow.cpp" line="394"/>
         <source>You have the latest version (%1).</source>
         <translation>Vous utilisez la dernière version (%1).</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="400"/>
+        <location filename="../MainWindow.cpp" line="402"/>
         <source>Could not check for updates. Check the internet connection and try again.</source>
         <translation>Impossible de rechercher des mises à jour. Vérifiez la connexion Internet et réessayez.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="427"/>
+        <location filename="../MainWindow.cpp" line="429"/>
         <source>Windows audio service</source>
         <translation>Service audio Windows</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="428"/>
+        <location filename="../MainWindow.cpp" line="430"/>
         <source>The Windows audio service is not running. Sound will not play until it is started.</source>
         <translation>Le service audio Windows n’est pas en cours d’exécution. Aucun son ne sera lu tant qu’il n’aura pas été démarré.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="444"/>
+        <location filename="../MainWindow.cpp" line="446"/>
         <source>Audio engine out of date</source>
         <translation>Moteur audio à mettre à jour</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="445"/>
+        <location filename="../MainWindow.cpp" line="447"/>
         <source>The audio engine is still running Equalizer APO %1, but %2 is installed. Windows audio has to restart before the new version takes over.
 
 Restart Windows audio now? Sound stops for a few seconds.</source>
@@ -2680,12 +2681,12 @@ Restart Windows audio now? Sound stops for a few seconds.</source>
 Redémarrer l’audio Windows maintenant ? Le son sera interrompu pendant quelques secondes.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="475"/>
+        <location filename="../MainWindow.cpp" line="477"/>
         <source>Audio folder access</source>
         <translation>Accès au dossier pour le service audio</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="476"/>
+        <location filename="../MainWindow.cpp" line="478"/>
         <source>The Windows audio service cannot read this folder:
 %0
 
@@ -2696,36 +2697,36 @@ Run tools\Repair-EqualizerAPO.ps1 from the installation folder as administrator 
 Exécutez tools\Repair-EqualizerAPO.ps1 depuis le dossier d’installation en tant qu’administrateur pour rétablir l’accès.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="481"/>
+        <location filename="../MainWindow.cpp" line="483"/>
         <source>Registry problem</source>
         <translation>Problème de registre</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="481"/>
+        <location filename="../MainWindow.cpp" line="483"/>
         <source>A registry value that is required for the operation of Equalizer APO is not set correctly.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Une valeur de registre requise pour le fonctionnement d’Equalizer APO n’est pas définie correctement.
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="490"/>
+        <location filename="../MainWindow.cpp" line="492"/>
         <source>APO not installed to device</source>
         <translation>APO non installé sur le périphérique</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="490"/>
+        <location filename="../MainWindow.cpp" line="492"/>
         <source>Equalizer APO has not been installed to the selected device.
 Do you want to run the Device Selector application to fix the problem?</source>
         <translation>Equalizer APO n’a pas été installé sur le périphérique sélectionné.
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="548"/>
+        <location filename="../MainWindow.cpp" line="550"/>
         <source>EQ inactive on some devices</source>
         <translation>EQ inactif sur certains périphériques</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="549"/>
+        <location filename="../MainWindow.cpp" line="551"/>
         <source>EqualizerAPO can only process IEEE_FLOAT 32/64-bit streams natively. The following installed devices currently use a different format, so audio passes through them without any filter being applied:
 
 %0
@@ -2738,12 +2739,12 @@ This is not a crash — sound still reaches the device, but no EQ. Switch the de
 Il ne s&apos;agit pas d&apos;un plantage : le son atteint toujours le périphérique, mais sans EQ. Si vous avez besoin de filtrage, réglez le format par défaut du périphérique sur un format IEEE_FLOAT 32 bits dans les Paramètres de son.</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="584"/>
+        <location filename="../MainWindow.cpp" line="586"/>
         <source>Audio enhancements disabled</source>
         <translation>Améliorations audio désactivées</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="584"/>
+        <location filename="../MainWindow.cpp" line="586"/>
         <source>Audio enhancements are not enabled for the device
 %0 %1.
 Do you want to run the Device Selector application to fix the problem?</source>
@@ -2752,18 +2753,18 @@ Do you want to run the Device Selector application to fix the problem?</source>
 Voulez-vous exécuter l’application Device Selector (Sélecteur de périphérique) pour résoudre le problème?</translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="615"/>
-        <location filename="../MainWindow.cpp" line="619"/>
+        <location filename="../MainWindow.cpp" line="617"/>
+        <location filename="../MainWindow.cpp" line="621"/>
         <source>Device Selector</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="616"/>
+        <location filename="../MainWindow.cpp" line="618"/>
         <source>The Device Selector was not opened. It needs administrator approval to manage audio devices; you can try again anytime via File &gt; APO settings.</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindow.cpp" line="619"/>
+        <location filename="../MainWindow.cpp" line="621"/>
         <source>The Device Selector could not be opened:
 %1</source>
         <translation>Impossible d’ouvrir Device Selector :
@@ -2926,25 +2927,25 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>%0 ms</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="186"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="208"/>
         <source>Gain knobs will cover ± this many dB:</source>
         <translation>Les boutons de gain couvriront ± ce nombre de dB :</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="102"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="235"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="262"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="289"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="313"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="100"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="257"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="284"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="311"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="335"/>
         <source>Restart required</source>
         <translation>Redémarrage requis</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="102"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="235"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="262"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="289"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="313"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="100"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="257"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="284"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="311"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="335"/>
         <source>Configuration Editor will be restarted to apply the changed settings. Proceed?</source>
         <translation>L&apos;éditeur de configuration sera redémarré pour appliquer les paramètres modifiés. Procéder?</translation>
     </message>
@@ -2975,12 +2976,12 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation>Voulez-vous enregistrer les modifications avant de fermer le fichier?</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="270"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="316"/>
         <source>Interface</source>
         <translation>Interface</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="274"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="320"/>
         <source>Modern cards</source>
         <translation>Cartes modernes</translation>
     </message>
@@ -2989,74 +2990,79 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
         <translation type="vanished">Lignes classiques</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="278"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="356"/>
         <source>Legacy editor</source>
         <translation>Éditeur classique</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="293"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="305"/>
         <source>Studio Glass</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="294"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="306"/>
         <source>Precision Minimal</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="295"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="307"/>
         <source>Stock Flat</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="296"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="308"/>
         <source>Hardware Rack</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="297"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="309"/>
         <source>Signal Matrix</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="309"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="321"/>
+        <source>Modern rows</source>
+        <translation>Lignes modernes</translation>
+    </message>
+    <message>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="363"/>
         <source>Dark theme</source>
         <translation>Thème sombre</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="327"/>
-        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="185"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="377"/>
+        <location filename="../MainWindowParts/MainWindow.ViewActions.cpp" line="207"/>
         <source>Knob gain range</source>
         <translation>Plage de gain des boutons</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="332"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="382"/>
         <source>±%1 dB</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="337"/>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="395"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="387"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="489"/>
         <source>Custom...</source>
         <translation>Personnalisé...</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="347"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="397"/>
         <source>Fullscreen graph</source>
         <translation>Graphique plein écran</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="356"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="406"/>
         <source>Native title bar</source>
         <translation>Barre de titre native</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="364"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="414"/>
         <source>Windows file dialog</source>
         <translation>Boîte de dialogue de fichiers Windows</translation>
     </message>
     <message>
-        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="396"/>
+        <location filename="../MainWindowParts/MainWindow.Preferences.cpp" line="490"/>
         <source>Custom (±%1 dB)...</source>
         <translation>Personnalisé (±%1 dB)...</translation>
     </message>
@@ -3092,7 +3098,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MatrixReferenceCardView</name>
     <message>
-        <location filename="../skins/matrix/cards/MatrixReferenceCardView.cpp" line="180"/>
+        <location filename="../skins/matrix/cards/MatrixReferenceCardView.cpp" line="228"/>
         <source>Checking...</source>
         <translation>Vérification...</translation>
     </message>
@@ -3108,7 +3114,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>MinimalReferenceCardView</name>
     <message>
-        <location filename="../skins/minimal/cards/MinimalReferenceCardView.cpp" line="103"/>
+        <location filename="../skins/minimal/cards/MinimalReferenceCardView.cpp" line="122"/>
         <source>Checking...</source>
         <translation>Vérification...</translation>
     </message>
@@ -3478,7 +3484,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
     <message>
         <location filename="../widgets/cards/SendCardEditor.cpp" line="98"/>
         <source>Delay this device to match</source>
-        <translation>Retarder ce périphérique pour le synchroniser</translation>
+        <translation>Retarder pour synchroniser</translation>
     </message>
     <message>
         <location filename="../widgets/cards/SendCardEditor.cpp" line="100"/>
@@ -3671,7 +3677,7 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>StudioRoutingView</name>
     <message>
-        <location filename="../skins/studio/routing/LightTraceRoutingRenderer.cpp" line="580"/>
+        <location filename="../skins/studio/routing/LightTraceRoutingRenderer.cpp" line="594"/>
         <source>Drag between channels to route - click + to add an output</source>
         <translation>Glissez entre les canaux pour router - cliquez sur + pour ajouter une sortie</translation>
     </message>
@@ -4015,14 +4021,14 @@ Voulez-vous exécuter l’application Device Selector (Sélecteur de périphéri
 <context>
     <name>VSTBusStrip</name>
     <message>
-        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="586"/>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="598"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>Out</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="587"/>
+        <location filename="../skins/studio/StudioSkin.Controls.cpp" line="599"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="55"/>
         <location filename="../widgets/cards/VSTBusStrip.cpp" line="115"/>
         <source>In</source>
@@ -4367,30 +4373,30 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
 <context>
     <name>VSTSlotFillBlock</name>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="234"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="248"/>
         <source>Choose which channel goes into and comes out of each plugin slot.</source>
         <translation>Choisissez le canal qui entre dans chaque emplacement du plugin et celui qui en sort.</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="241"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="255"/>
         <source>Out</source>
         <comment>row caption: the channels the plugin&apos;s output slots write</comment>
         <translation>Sortie</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="242"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="256"/>
         <source>In</source>
         <comment>row caption: the channels fed into the plugin&apos;s input slots</comment>
         <translation>Entrée</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="252"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="266"/>
         <source>Discard</source>
         <comment>an output slot whose sound is thrown away</comment>
         <translation>Ignorer</translation>
     </message>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="253"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="267"/>
         <source>Silence</source>
         <comment>an input slot that gets no channel</comment>
         <translation>Silence</translation>
@@ -4422,7 +4428,7 @@ Modifiez les autorisations des fichiers ou copiez les fichiers dans le dossier d
 <context>
     <name>VSTSlotFillRail</name>
     <message>
-        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="229"/>
+        <location filename="../skins/flat/FlatSkin.Controls.cpp" line="243"/>
         <location filename="../widgets/cards/VSTSlotFillBlock.cpp" line="195"/>
         <location filename="../widgets/cards/VSTSlotFillRail.cpp" line="248"/>
         <source>Channel fill</source>

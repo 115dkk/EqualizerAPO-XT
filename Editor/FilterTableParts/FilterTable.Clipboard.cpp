@@ -84,7 +84,7 @@ void FilterTable::paste()
 		emit linesChanged();
 		// A single pasted line is the common case: splice just that row into
 		// the card grid instead of rebuilding every row.
-		if (insertedCount == 1 && renderMode == ModernCards)
+		if (insertedCount == 1 && usesCardRows())
 			insertRowAt(dropRow);
 		else
 			updateGuis();
@@ -119,7 +119,7 @@ void FilterTable::removeSelectedLines()
 	// just one out of the grid. Multi-row deletions (and the frozen legacy
 	// path) keep the full rebuild.
 	int removedIndex = -1;
-	if (renderMode == ModernCards && model.selected().size() == 1)
+	if (usesCardRows() && model.selected().size() == 1)
 		removedIndex = int(model.items().indexOf(*model.selected().cbegin()));
 
 	model.deleteSelected();
@@ -166,7 +166,7 @@ void FilterTable::addActionTriggered()
 		addLine(filterTemplate.getLine());
 		// The toolbar add appends exactly one line; splice just that row into
 		// the card grid.
-		if (renderMode == ModernCards)
+		if (usesCardRows())
 			insertRowAt(int(model.items().count()) - 1);
 		else
 			updateGuis();

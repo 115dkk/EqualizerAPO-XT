@@ -109,7 +109,13 @@ Equalizer APO runs inside the Windows audio engine as an APO, so it processes ev
 * **Raw mode** streams (an application that sets `AUDCLNT_STREAMOPTIONS_RAW`) skip the stream slot (SFX) but still pass the post-mix slot: the mode effect on Windows 10 and later, the endpoint effect always. An installation with both stages ticked keeps applying the post-mix part of the configuration to them. A recording endpoint has no post-mix slot, so an app that asks for raw capture gets no EQ at all. The driver decides whether raw mode exists at all; a virtual cable, for example, has none.
 
 ## The Editor
-The Configuration Editor shows a configuration as cards, one per line, in one of five skins (Minimal, Signal Matrix, Rack, Soft and Studio), each in a light and a dark mode; the **Legacy editor** is the sixth presentation, the original row layout kept as it was. The interface is available in English, Korean, German, French and Simplified Chinese. A few things worth knowing:
+The Configuration Editor shows a configuration one line at a time, in one of five skins (Minimal, Signal Matrix, Rack, Soft and Studio), each in a light and a dark mode. **View > Interface** offers three presentations:
+
+* **Modern cards:** each line is a card, with a header strip (number, power switch, add, remove, edit as text, name) above its controls.
+* **Modern rows:** each line is one row, with the same parts at its left and the controls beside them, so the same configuration needs less height. Every skin draws rows. A new installation starts in Modern rows with the Studio skin; an installation that was already in use keeps the presentation it had.
+* **Legacy editor:** the original row layout kept as it was, without skins. Switching to or from it restarts the Editor.
+
+Pick a skin in the Modern cards or the Modern rows submenu; the choice is remembered. The interface is available in English, Korean, German, French and Simplified Chinese. A few things worth knowing:
 
 * The analysis graph switches between **Mag**, **Phase** and **GD** (group delay); all three come from one analysis run. Under Phase and GD a checkbox, off by default, puts the configuration's bulk delay back into the reading (a configuration that is nothing but `Delay: 10 ms` reads flat with it off and 10 ms of group delay with it on). The line breaks where the response is zero.
 * A VST plug-in's panel is fed live audio while it is open: the Editor taps the system output and runs it through the preview instance, so meters and analyzers move, and the processed copy is discarded. Audio a plug-in generates itself (calibration noise, a test sweep) is played to the default output a few seconds after the system goes quiet. `EAPO_DISABLE_PANEL_FEED=1` turns the feed off; `EAPO_DISABLE_PANEL_MONITOR=1` turns the playback off and keeps the meters. Moving a control in a panel applies it to the engine at once unless auto-apply was turned off.

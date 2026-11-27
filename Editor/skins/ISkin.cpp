@@ -143,6 +143,12 @@ void ISkin::prepareCommandRow(const CommandRowInfo&, QWidget*, QWidget*, QWidget
 	// Neutral default: rows keep their stock construction.
 }
 
+bool ISkin::supportsRowMode() const
+{
+	// Neutral default: the list stays in cards.
+	return false;
+}
+
 void ISkin::paintCardChrome(QPainter&, const QRect&, const CommandRowInfo&, const SkinTokens&) const
 {
 	// Neutral default: no painted decoration on top of the QSS chrome.

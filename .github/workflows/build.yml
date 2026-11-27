@@ -418,6 +418,8 @@ jobs:
     # - card-move keeps the drag-move on the incremental splice path (a full
     #   rebuild costs 1.4-1.6 s per move on this runner and fails the gate).
     # - card-selection pins pointer-selection chrome across skins.
+    # - the checks that also run in Modern rows are listed once, in the gate
+    #   script ($rowListGates); the step after card-selection runs them.
     - name: Run VST Editor self-test (offscreen)
       if: matrix.primary == true
       timeout-minutes: 3
@@ -574,6 +576,37 @@ jobs:
         & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
           -WorkspaceRoot "${{ github.workspace }}" -Gate card-selection -Platform "${{ matrix.platform }}"
 
+    # View > Interface: Modern cards and Modern rows with a skin each, the
+    # Legacy editor entry and its restart, the Ctrl+Alt+1..5 shortcuts, and
+    # that nothing chosen in the check reaches the saved preferences.
+    - name: Run Interface menu test (offscreen)
+      if: matrix.primary == true
+      timeout-minutes: 5
+      shell: pwsh
+      run: |
+        & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate interface-menu -Platform "${{ matrix.platform }}"
+
+    # The list checks above once more in Modern rows. A row holds the same
+    # editors as a card in a different layout, and the save sweep found a
+    # Send line rewritten without an edit only there. Each run must report
+    # rows in every skin it ran and no skin that fell back to cards, or it
+    # fails. The checks that open one Editor window name the window's skin
+    # (a runner has none saved), the quick one once per skin. The gate script
+    # owns the list (its plan's RowGates); this step runs what the plan says.
+    - name: Run the list checks in Modern rows (offscreen)
+      if: matrix.primary == true
+      timeout-minutes: 40
+      shell: pwsh
+      run: |
+        $plan = & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+          -WorkspaceRoot "${{ github.workspace }}" -Gate power-toggle -Platform "${{ matrix.platform }}" -PlanOnly
+        if (@($plan.RowGates).Count -eq 0) { throw "The gate script names no row runs" }
+        foreach ($gate in $plan.RowGates) {
+          & .\.github\scripts\Invoke-EditorOffscreenTest.ps1 `
+            -WorkspaceRoot "${{ github.workspace }}" -Gate $gate -Platform "${{ matrix.platform }}"
+        }
+
     - name: Upload skin gallery
       if: matrix.primary == true
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -596,6 +629,14 @@ jobs:
       with:
         name: card-selection
         path: card-selection/*
+        if-no-files-found: error
+
+    - name: Upload card selection proof in Modern rows
+      if: matrix.primary == true
+      uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+      with:
+        name: card-selection-rows
+        path: card-selection-rows/*
         if-no-files-found: error
 
     # Keep the debug symbols of every shipped program as a run artifact:

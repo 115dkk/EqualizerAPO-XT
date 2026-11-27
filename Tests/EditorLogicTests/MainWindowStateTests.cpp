@@ -88,7 +88,11 @@ TEST_CASE(EditorLogicTests, testListModeWordsRoundTrip)
 		EditorSettings::listModeFromWord(EditorSettings::listModeWord(EditorSettings::ListMode::LegacyEditor));
 	expectTrue(legacy.has_value() && *legacy == EditorSettings::ListMode::LegacyEditor,
 		QStringLiteral("the legacy editor word round trips"));
-	expectFalse(EditorSettings::listModeFromWord(QStringLiteral("rows")).has_value(),
+	const auto rows = EditorSettings::listModeFromWord(QStringLiteral("rows"));
+	expectTrue(rows.has_value(), QStringLiteral("rows is a known list-mode word"));
+	if (rows.has_value())
+		expectEqual(EditorSettings::listModeWord(*rows), QStringLiteral("rows"), "the rows word round trips");
+	expectFalse(EditorSettings::listModeFromWord(QStringLiteral("future-mode")).has_value(),
 		QStringLiteral("an unknown list-mode word is rejected"));
 	expectFalse(EditorSettings::listModeFromWord(QString()).has_value(),
 		QStringLiteral("an empty list-mode word is rejected"));
@@ -110,6 +114,9 @@ TEST_CASE(EditorLogicTests, testListModeSettingReadsWordsAndRetiredBoolean)
 	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor,
 		QStringLiteral("the legacy word selects the legacy editor"));
 	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("rows"));
+	expectEqual(EditorSettings::listModeWord(EditorSettings::readListMode(settings)), QStringLiteral("rows"),
+		"the rows word selects rows");
+	settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("future-mode"));
 	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
 		QStringLiteral("an unknown word falls back to cards"));
 
@@ -145,6 +152,15 @@ TEST_CASE(EditorLogicTests, testListModeSettingWritesWordsAndRetiresBoolean)
 	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Cards,
 		QStringLiteral("written cards read back as cards"));
 
+	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), true);
+	EditorSettings::writeListMode(settings, EditorSettings::ListMode::Rows);
+	expectEqual(settings.value(QLatin1String(EditorSettings::Keys::ListMode)).toString(), QStringLiteral("rows"),
+		"writing rows stores its word");
+	expectFalse(settings.contains(QLatin1String(EditorSettings::Keys::RetiredLegacyRows)),
+		QStringLiteral("writing rows removes the retired boolean"));
+	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::Rows,
+		QStringLiteral("written rows read back as rows"));
+
 	settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), false);
 	EditorSettings::writeListMode(settings, EditorSettings::ListMode::LegacyEditor);
 	expectEqual(settings.value(QLatin1String(EditorSettings::Keys::ListMode)).toString(), QStringLiteral("legacy"),
@@ -153,6 +169,70 @@ TEST_CASE(EditorLogicTests, testListModeSettingWritesWordsAndRetiresBoolean)
 		QStringLiteral("writing the legacy editor removes the retired boolean"));
 	expectTrue(EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor,
 		QStringLiteral("the written legacy editor reads back"));
+}
+
+TEST_CASE(EditorLogicTests, testListModeIsAdoptedOnceForAStoreWithoutOne)
+{
+	const auto storedWord = [](const QSettings& settings) {
+		return settings.value(QLatin1String(EditorSettings::Keys::ListMode)).toString();
+	};
+
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Rows,
+			QStringLiteral("an empty store is a new installation and starts in rows"));
+		expectEqual(storedWord(settings), QStringLiteral("rows"), "the adopted rows word is stored");
+		EditorSettings::writeSkinChoice(settings, { QStringLiteral("studio"), true });
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Rows,
+			QStringLiteral("the second start reads the stored word and does not decide again"));
+	}
+	{
+		// What the original Equalizer APO's editor leaves in the same key.
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(EditorSettings::Keys::Geometry), QByteArray("geometry"));
+		settings.setValue(QLatin1String(EditorSettings::Keys::RecentFiles), QStringList{ QStringLiteral("config.txt") });
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Rows,
+			QStringLiteral("values outside the interface group do not make an existing user"));
+		expectEqual(storedWord(settings), QStringLiteral("rows"), "rows are stored for a user of the original editor");
+	}
+	for (const char* key : { EditorSettings::Keys::Skin, EditorSettings::Keys::Dark, EditorSettings::Keys::NativeTitleBar })
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(key), QStringLiteral("studio"));
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Cards,
+			QStringLiteral("a store with an interface value keeps cards: %1").arg(QLatin1String(key)));
+		expectEqual(storedWord(settings), QStringLiteral("cards"), "the kept cards word is stored");
+	}
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("legacy"));
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::LegacyEditor,
+			QStringLiteral("a stored legacy word is not replaced"));
+		expectEqual(storedWord(settings), QStringLiteral("legacy"), "the stored legacy word stays");
+
+		settings.setValue(QLatin1String(EditorSettings::Keys::ListMode), QStringLiteral("future-mode"));
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::Cards,
+			QStringLiteral("a word of a newer build reads as cards"));
+		expectEqual(storedWord(settings), QStringLiteral("future-mode"), "a word of a newer build is not overwritten");
+	}
+	{
+		QTemporaryDir temp;
+		requireTrue(temp.isValid(), "temporary settings directory exists");
+		QSettings settings(temp.filePath(QStringLiteral("preferences.ini")), QSettings::IniFormat);
+		settings.setValue(QLatin1String(EditorSettings::Keys::RetiredLegacyRows), true);
+		expectTrue(EditorSettings::adoptListMode(settings) == EditorSettings::ListMode::LegacyEditor,
+			QStringLiteral("the retired boolean alone decides for a store that has it"));
+		expectFalse(settings.contains(QLatin1String(EditorSettings::Keys::ListMode)),
+			QStringLiteral("adopting does not write a word over the retired boolean"));
+	}
 }
 
 TEST_CASE(EditorLogicTests, testAutomaticUpdateSettingDefaultsAndRoundTrips)

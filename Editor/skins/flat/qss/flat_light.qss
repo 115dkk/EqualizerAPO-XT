@@ -341,8 +341,10 @@ QToolButton#FilterCardIconButton {
     border: 1px solid transparent; border-radius: 6px;
     min-width: 28px; min-height: 28px; padding: 2px 4px; font-weight: 600;
 }
-QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; }
-QToolButton#FilterCardIconButton:pressed { background: @CARD_SELECTED@; }
+/* A lit action is its whole box: the fill and the button line on four
+   sides, not a fill alone (it showed no edge against the card). */
+QToolButton#FilterCardIconButton:hover { background: @CARD_HOVER@; border-color: @BORDER_STRONG@; }
+QToolButton#FilterCardIconButton:pressed { background: @CARD_SELECTED@; border-color: @BORDER_STRONG@; }
 QToolButton#FilterCardIconButton:checked { background: @CARD_SELECTED@; border-color: @BORDER_STRONG@; }
 QToolButton#FilterCardIconButton:focus { border-color: @FOCUS@; }
 QToolButton#FilterCardIconButton:disabled { color: rgba(@MUTED_RGB@, 0.55); }
@@ -360,7 +362,10 @@ QToolButton#FilterCardIconButton[powerToggle="true"]:pressed { background: @CARD
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked { background: @ACCENT@; border-color: @ACCENT@; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked:hover { background: @ACCENT@; border-color: @TEXT@; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:focus { border-color: @FOCUS@; }
-QToolButton#FilterCardIconButton[powerToggle="true"]:checked:focus { border-color: @TEXT@; }
+/* On the filled track the focus line is the emphasis colour taken toward
+   the card under it: in the light finish the body ink is the emphasis
+   colour itself, and a body-ink line did not show. */
+QToolButton#FilterCardIconButton[powerToggle="true"]:checked:focus { border-color: rgba(@ACCENT_RGB@, 0.5); background-clip: padding; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:disabled { background: @CARD@; border-color: @BORDER_STRONG@; }
 QToolButton#FilterCardIconButton[powerToggle="true"]:checked:disabled { background: rgba(@ACCENT_RGB@, 0.45); border-color: transparent; }
 
@@ -411,15 +416,26 @@ QLabel#PreampCardCaption { background: transparent; border: 0; }
 QLabel#IIRCardCaption, QLabel#IIRCardCoefficientCaption,
 QLabel#AllPassCardCaption,
 QLabel#PreampCardCaption { color: @MUTED@; font-size: 10pt; }
+/* The knob cards' readouts (Preamp, Delay, All-pass) are value fields like
+   the parametric filter's: the same height, line, hover line, weight and
+   left-hung number, so no field on a line stands out. The 23 px text box
+   is the height the value fields' spin-box line takes in the body face. */
 QLabel#EditableValue {
     background: @CARD@; color: @TEXT@;
     border: 1px solid @EDGE@; border-radius: 6px;
-    padding: 5px 10px;
+    padding: 4px 10px; min-height: 23px;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+    /* A framed label indents its text by half an x; the field's 2 px text
+       margin is in the padding instead, so both numbers start together. */
+    qproperty-indent: 0;
 }
+QLabel#EditableValue:hover { border-color: @TEXT@; }
+QLabel#EditableValue:disabled { color: rgba(@MUTED_RGB@, 0.55); border: 1px solid @BORDER_STRONG@; }
 
 QLineEdit#EditableValueEditor {
     background: @CARD@; border: 2px solid @FOCUS@;
-    border-radius: 6px; padding: 4px 9px;
+    border-radius: 6px; padding: 3px 7px; min-height: 23px;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
 }
 
 /* Reference cards (Include / Convolution / MultiConvolution / VST bodies):
@@ -616,8 +632,9 @@ QToolButton#DeviceChip:checked, QToolButton#ChannelChip:checked, QToolButton#Sta
     background: @ACCENT@; color: @ON_ACCENT@;
     border: 1px solid @ACCENT@; font-weight: 600;
 }
+/* The same focus line as the filled switch, for the same reason. */
 QToolButton#DeviceChip:checked:focus, QToolButton#ChannelChip:checked:focus, QToolButton#StageChip:checked:focus {
-    border-color: @TEXT@;
+    border-color: rgba(@ACCENT_RGB@, 0.5); background-clip: padding;
 }
 /* Not there yet: the dashed line. Chosen, it is filled like any other and
    keeps its dashes in the ink that sits on the fill. */
@@ -772,6 +789,12 @@ QToolButton#VelvetAdvancedToggle {
 }
 QToolButton#VelvetAdvancedToggle:hover { background: @CARD_HOVER@; border-color: @EDGE@; }
 QToolButton#VelvetAdvancedToggle:checked { background: @CARD_SELECTED@; border-color: @EDGE@; }
+QToolButton#VelvetAdvancedToggle:focus { border-color: @FOCUS@; }
+/* Regenerate rests as the generic tool button; lit, it shows its whole
+   box like every other cap. */
+QToolButton#VelvetRegenerate:hover { border-color: @BORDER_STRONG@; }
+QToolButton#VelvetRegenerate:pressed { border-color: @BORDER_STRONG@; }
+QToolButton#VelvetRegenerate:focus { border-color: @FOCUS@; }
 
 /* A checked box carries a real check glyph. The stylesheet engine replaces
    the native indicator drawing wholesale, so without an image the checked
@@ -799,3 +822,176 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 /* Send card: a latency the card cannot read takes the failure colour on its
    line. */
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
+
+/* ====================================================================
+   Modern rows: every line is one card-surface row (FlatSkin::
+   prepareCommandRow with inlineRow). The header's parts are the row's left
+   column, the name cell and the editor follow on the same line, and all of
+   it stands on the one card surface. Every rule here starts with an
+   inlineRow selector, so no card matches it.
+   ==================================================================== */
+/* A card parts its header and body with a hairline; across one line the
+   body starts beside the left column, and that hairline ran along the
+   row's top edge under the frame line, one pixel taller than the row. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#FilterCardBody { border: 0; }
+/* The add, remove and raw-edit actions stack in one column beside the
+   switch: bare glyphs in a slimmer box, so the three stay inside the band.
+   Their box comes back with hover, press and focus as a whole outline. */
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
+    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
+}
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"]:hover {
+    background: @CARD_HOVER@; border-color: @BORDER_STRONG@;
+}
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"]:pressed,
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"]:checked {
+    background: @CARD_SELECTED@; border-color: @BORDER_STRONG@;
+}
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"]:focus {
+    border-color: @FOCUS@;
+}
+/* The If/Eval sentence (FlatSkin::prepareCommandRow) is the row's content
+   in the body ink, as in a card; in a row the summary sits on the frame,
+   not in the header. The switched-off rule after it relaxes it again. */
+QFrame#FilterCardRow[inlineRow="true"][filterKind="if"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[inlineRow="true"][filterKind="elseif"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[inlineRow="true"][filterKind="else"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[inlineRow="true"][filterKind="endif"] QLabel#FilterCardSummary,
+QFrame#FilterCardRow[inlineRow="true"][filterKind="eval"] QLabel#FilterCardSummary { color: @TEXT@; }
+QFrame#FilterCardRow[inlineRow="true"][filterEnabled="false"] QLabel#FilterCardSummary { color: @MUTED@; }
+/* The biquad knobs are 84 px boxes around a 66 px instrument; on one line
+   the width goes to the value fields, so the box is the instrument. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
+    min-width: 66px; max-width: 66px;
+}
+/* The Preamp, Delay and all-pass knobs are 74 px in their cards; in a row
+   they take the biquad knobs' 66 px, so those rows are as tall as a
+   Filter row (84 px). The track is inset in its box, so nothing is cut. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
+    min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
+}
+/* A little less air round the type select's text and chevron keeps an
+   indented Filter row's last field inside the window. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] { padding-left: 8px; padding-right: 22px; }
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]:focus,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]:on { padding-left: 7px; padding-right: 21px; }
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down { width: 20px; }
+/* Each parameter column is as wide as its value field or its name
+   select; two pixels less air on each side of the field keeps the last
+   field of an indented Filter row (a Channel scope's member, with its
+   channel badges) inside a 960 px window. */
+QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"] { padding-left: 6px; padding-right: 6px; }
+QFrame#FilterCardRow[inlineRow="true"] QLabel#EditableValue { padding-left: 8px; padding-right: 8px; }
+QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"]:focus,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#EditableValueEditor { padding-left: 5px; padding-right: 5px; }
+/* The name select of a column is as wide as its longest name; its chevron
+   keeps six pixels less room after the name. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"],
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]:focus,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]:on { padding-right: 16px; }
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]::drop-down { width: 16px; }
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]::down-arrow { margin-right: 5px; }
+/* A Channel row lays every seat on its one line; with the card's side
+   padding the add field's words were cut. */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip { padding-left: 7px; padding-right: 7px; }
+
+/* ====================================================================
+   One cap height in the list. Every cap in the filter list is 26 px with
+   its outline, in cards and rows alike (FlatPaint::listCapHeight for the
+   painted ones): the header's actions in a card, the reference rows' icon
+   and worded buttons, the type and parameter selects, the Send selects,
+   the chips and the fields on a chip line, the GraphicEQ and Velvet
+   buttons. They were 28 to 37 px with 7 to 11 px clear above and below a
+   14 px legend; that air is halved. The switch keeps its 20 px track (a
+   switch is a pill, constitution rule 5), the value fields keep 33 px,
+   and a row's stacked actions stay bare 18 px glyphs (Modern rows block).
+   The Send latency field stands on the line of the Send selects, so it
+   takes their height (the maintainer's call on the Studio round); it
+   keeps the value fields' fill, line, face and alignment.
+   ==================================================================== */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox[paramSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
+    min-height: 24px; max-height: 24px; padding-top: 0px; padding-bottom: 0px;
+}
+/* The rule above names every icon button of the list; the switch keeps
+   its own track. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[powerToggle="true"] {
+    min-height: 18px; max-height: 18px; padding: 0px;
+}
+
+/* ====================================================================
+   Resting outlines. A button is a bordered box (constitution rule 1), so
+   every resting cap of the list shows its line on four sides, in the
+   button line (@BORDER_STRONG@), in cards and rows alike. The reference
+   rows' icon buttons (browse, open, options), MultiConvolution's file and
+   channel buttons and Velvet's Regenerate rested as bare glyphs (no line
+   at all) and take it here. Still bare at rest, by their own rules: the
+   card header's actions and a section's fold (shared contract #456), a
+   row's stacked actions, and the quiet parameter selects (the parameter
+   area rule). Their box comes back under the pointer and the focus.
+   ==================================================================== */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"],
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"],
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"],
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
+    background: @CARD@; border: 1px solid @BORDER_STRONG@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:hover,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:hover,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:hover,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:hover,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:hover {
+    background: @CARD_HOVER@; border-color: @EDGE@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:pressed,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:pressed,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:pressed,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:pressed,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:pressed,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:checked,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:checked {
+    background: @CARD_SELECTED@; border-color: @EDGE@;
+}
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:focus,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:focus,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:focus,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:focus { border-color: @FOCUS@; }
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="browse"]:disabled,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="openTarget"]:disabled,
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[refActionRole="options"]:disabled,
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton:disabled,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:disabled { background: transparent; border-color: @BORDER_STRONG@; }
+/* A section's fold in MultiConvolution is a header action: bare at rest. */
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"] {
+    background: transparent; border-color: transparent;
+}
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"]:hover {
+    background: @CARD_HOVER@; border-color: @BORDER_STRONG@;
+}
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"]:pressed {
+    background: @CARD_SELECTED@; border-color: @BORDER_STRONG@;
+}
+QFrame#FilterCardRow QWidget#MultiConvolutionCardEditor QToolButton#FilterCardIconButton[headerAction="true"]:focus {
+    border-color: @FOCUS@;
+}

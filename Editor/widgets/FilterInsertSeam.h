@@ -15,7 +15,7 @@
 // paints nothing at rest, and reveals a skin-drawn seam
 // (ISkin::paintInsertSeam) while the cursor is inside. A click opens the
 // filter picker and inserts the chosen line at index 0. Never constructed in
-// LegacyRows mode.
+// LegacyEditor mode.
 class FilterInsertSeam : public ActivatableListChrome
 {
 	Q_OBJECT

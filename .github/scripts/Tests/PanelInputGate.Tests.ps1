@@ -109,6 +109,15 @@ Describe 'Panel input gate plan' {
         $plan.Timeouts.ExitSeconds | Should -Be 30
     }
 
+    It 'expects the presentation of a new installation' {
+        # The Editor decides it on its first interactive start (EditorSettings::adoptListMode)
+        # and stores it as interface/listMode, which the registry holds as a value of the
+        # interface subkey.
+        $plan.Presentation.Key | Should -Be 'HKCU:\SOFTWARE\EqualizerAPO\Configuration Editor\interface'
+        $plan.Presentation.Value | Should -Be 'listMode'
+        $plan.Presentation.Expected | Should -Be 'rows'
+    }
+
     It 'does not set ASan options for the shipped Editor' {
         $plan.AsanOptions | Should -BeNullOrEmpty
         ($null -eq $plan.AsanOptions) | Should -BeTrue

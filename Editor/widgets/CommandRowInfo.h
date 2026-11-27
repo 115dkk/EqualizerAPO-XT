@@ -138,4 +138,10 @@ struct CommandRowInfo
 	// editor host the shared raw body; skins extend their raw-body styling
 	// to these rows through this flag.
 	bool dynamicLine = false;
+	// True when the row was built as a row (FilterTable::ModernRows): its
+	// header controls stand at the left of the editor or content instead of
+	// in a strip above it. Set by the row widget, never by CommandRowFacts,
+	// because it depends on the table's mode. The skin's paint and style hooks need it to leave out what
+	// only a card with a header strip has (the groove under the strip).
+	bool inlineRow = false;
 };

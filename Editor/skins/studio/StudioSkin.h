@@ -40,6 +40,7 @@ public:
 		const SkinTokens& tokens) const override;
 	void paintVstSlotFillBlock(QPainter& painter, const VstSlotFillBlockState& state,
 		const SkinTokens& tokens) const override;
+	bool supportsRowMode() const override;
 	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor,
 		const QString& badgeToken, const SkinTokens& tokens) const override;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,

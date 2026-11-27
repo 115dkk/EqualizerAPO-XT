@@ -16,6 +16,7 @@
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
+#include "Editor/skins/flat/cards/FlatReferenceCardView.h"
 #include "Editor/widgets/FilterCardModel.h"
 
 namespace
@@ -158,13 +159,42 @@ BadgeTreatment FlatSkin::badgeTreatment(const CommandRowInfo& info, const QStrin
 	};
 }
 
+// Modern rows: each line is one card-surface row, the header's parts in its
+// left column and the editor beside them.
+bool FlatSkin::supportsRowMode() const
+{
+	return true;
+}
+
 // The plain-text rows (lines that are no command, and programmatic commands
 // such as If/EndIf/Eval). FilterCardRow lays these styles inline, so QSS
 // cannot reach them; construction time is the hook's moment.
 void FlatSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 	const SkinTokens& tokens) const
 {
-	Q_UNUSED(card);
+	// A Modern row: the editor (or the channel badges after it) closes the
+	// line, and the right inset keeps its last field off the frame line,
+	// which it touched (the GraphicEQ plot, the Send selects). The left
+	// column gives the editor what it can of its side margins and gaps:
+	// an indented Filter row with channel badges needs it in French.
+	if (info.inlineRow && card != nullptr && card->layout() != nullptr)
+	{
+		card->layout()->setContentsMargins(0, 0, 8, 0);
+		if (QBoxLayout* column = header != nullptr ? qobject_cast<QBoxLayout*>(header->layout()) : nullptr)
+		{
+			column->setContentsMargins(4, 2, 4, 2);
+			column->setSpacing(4);
+		}
+		// The reference view lays itself out for the row (a VST unit takes
+		// two lines); it is mounted in the body by now, and its own
+		// construction never sees inlineRow.
+		if (body != nullptr)
+		{
+			for (FlatReferenceCardView* view : body->findChildren<FlatReferenceCardView*>())
+				view->setInlineRow(true);
+		}
+	}
+
 	if (info.legacyRow
 		|| !FilterCardModel::hostsSharedRawBody(info.type, info.dynamicLine))
 		return;
@@ -178,9 +208,11 @@ void FlatSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 	// row has settled (the gallery's processEvents() delivers it too).
 	// Known limit: a later rebuildSummary() (raw edit, row reshuffle)
 	// restores the as-written text until the row is rebuilt.
-	if (header != nullptr && info.kind() != FilterCardKind::Text && !info.dynamicLine)
+	// In a row the summary is a cell of the frame, not of the header.
+	QWidget* summaryHost = info.inlineRow ? card : header;
+	if (summaryHost != nullptr && info.kind() != FilterCardKind::Text && !info.dynamicLine)
 	{
-		if (QLabel* summary = header->findChild<QLabel*>(QStringLiteral("FilterCardSummary")))
+		if (QLabel* summary = summaryHost->findChild<QLabel*>(QStringLiteral("FilterCardSummary")))
 		{
 			const QString command = info.command;
 			QMetaObject::invokeMethod(summary, [summary, command]() {
@@ -194,6 +226,25 @@ void FlatSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWid
 					summary->setToolTip(asWritten);
 				summary->setText(sentence);
 			}, Qt::QueuedConnection);
+		}
+	}
+
+	// A row shows a line that is no command as its summary, beside the name
+	// cell; the body with the source field stays folded there. The row says
+	// once, after the line, that it changes nothing in the sound.
+	if (info.inlineRow && info.kind() == FilterCardKind::Text && card != nullptr)
+	{
+		QBoxLayout* rowLayout = qobject_cast<QBoxLayout*>(card->layout());
+		QLabel* summary = card->findChild<QLabel*>(QStringLiteral("FilterCardSummary"), Qt::FindDirectChildrenOnly);
+		if (rowLayout != nullptr && summary != nullptr && card->findChild<QLabel*>(QStringLiteral("FlatNotAppliedNote")) == nullptr)
+		{
+			const int at = rowLayout->indexOf(summary);
+			rowLayout->setStretch(at, 0);
+			QLabel* note = new QLabel(QCoreApplication::translate("FlatSkin", "Not applied to the audio."), card);
+			note->setObjectName(QStringLiteral("FlatNotAppliedNote"));
+			note->setStyleSheet(QStringLiteral("QLabel#FlatNotAppliedNote { color:%1; font-weight:700; background:transparent; padding-left:6px; }")
+				.arg(tokens.text));
+			rowLayout->insertWidget(at + 1, note, 1, Qt::AlignVCenter);
 		}
 	}
 

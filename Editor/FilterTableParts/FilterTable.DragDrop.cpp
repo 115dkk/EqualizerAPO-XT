@@ -129,7 +129,7 @@ void FilterTable::dropEvent(QDropEvent* event)
 			{
 				emit linesChanged();
 				// A single dropped line splices into the card grid.
-				if (insertedCount == 1 && renderMode == ModernCards)
+				if (insertedCount == 1 && usesCardRows())
 					insertRowAt(dropRow);
 				else
 					updateGuis();

@@ -115,6 +115,9 @@ private:
 	QPoint dragStart;
 	QPoint dragPos;
 
+	// The hint last announced to the host scroll (relayout()).
+	QSize announcedHint;
+
 	QLineEdit* factorEditor = nullptr;
 	int factorEditorTrace = -1;
 	RoutingChannelEditor channelEditor{ QStringLiteral("StudioRoutingChannelEditor"), true };

@@ -279,11 +279,16 @@ void MainWindow::startSkinSwitchStorm()
 			if (darkThemeAction != nullptr && darkThemeAction->isChecked() != dark)
 				darkThemeAction->setChecked(dark);
 			QAction* target = nullptr;
-			if (skinActionGroup != nullptr)
+			if (interfaceModeActionGroup != nullptr)
 			{
-				for (QAction* action : skinActionGroup->actions())
+				for (QAction* action : interfaceModeActionGroup->actions())
 				{
-					if (action->data().toString() == step.value(1))
+					const QVariantMap choice = action->data().toMap();
+					const auto mode = currentRenderMode == FilterTable::ModernRows
+						&& SkinManager::instance()->skinSupportsRows(step.value(1))
+						? FilterTable::ModernRows : FilterTable::ModernCards;
+					if (choice.value(QStringLiteral("skin")).toString() == step.value(1)
+						&& choice.value(QStringLiteral("mode")).toInt() == static_cast<int>(mode))
 					{
 						target = action;
 						break;
@@ -313,13 +318,17 @@ void MainWindow::startSkinSwitchStorm()
 			const bool dark = step.value(2) == QLatin1String("dark");
 			if (darkThemeAction != nullptr && darkThemeAction->isChecked() != dark)
 				darkThemeAction->setChecked(dark);
-			if (skinActionGroup != nullptr)
+			if (interfaceModeActionGroup != nullptr)
 			{
-				for (QAction* action : skinActionGroup->actions())
+				for (QAction* action : interfaceModeActionGroup->actions())
 				{
-					if (action->data().toString() == step.value(1))
+					const QVariantMap choice = action->data().toMap();
+					const auto mode = currentRenderMode == FilterTable::ModernRows
+						&& SkinManager::instance()->skinSupportsRows(step.value(1))
+						? FilterTable::ModernRows : FilterTable::ModernCards;
+					if (choice.value(QStringLiteral("skin")).toString() == step.value(1)
+						&& choice.value(QStringLiteral("mode")).toInt() == static_cast<int>(mode))
 					{
-						action->setChecked(true);
 						action->trigger();
 						break;
 					}

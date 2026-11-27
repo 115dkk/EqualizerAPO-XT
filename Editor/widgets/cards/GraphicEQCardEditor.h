@@ -25,7 +25,7 @@ class ValueScrubBox;
 // GraphicEQPlotWidget (ISkin::paintGraphicEqPlot), and the legacy side table
 // is replaced by a selected-band readout strip built from the established
 // per-skin control grammars (value scrub for Freq/Gain, paramSelector for
-// the band layout). The frozen LegacyRows presentation keeps the original
+// the band layout). The frozen LegacyEditor presentation keeps the original
 // GraphicEQFilterGUI untouched.
 class GraphicEQCardEditor : public IFilterGUI
 {

@@ -36,6 +36,7 @@ DEFINES += NOMINMAX
 
 SOURCES += main.cpp\
 	EditorGates.cpp \
+	gallery/GalleryInterfaceMenuTest.cpp \
 	../services/logging/Logging.cpp \
 	../text/WideString.cpp \
 	../platform/windows/TextEncoding.cpp \

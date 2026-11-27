@@ -67,6 +67,7 @@ inline constexpr char RecentFiles[] = "recentFiles";
 enum class ListMode
 {
 	Cards,        // "cards"
+	Rows,         // "rows"
 	LegacyEditor  // "legacy"
 };
 
@@ -77,6 +78,8 @@ inline QString listModeWord(ListMode mode)
 	{
 	case ListMode::Cards:
 		return QStringLiteral("cards");
+	case ListMode::Rows:
+		return QStringLiteral("rows");
 	case ListMode::LegacyEditor:
 		return QStringLiteral("legacy");
 	}
@@ -87,6 +90,8 @@ inline std::optional<ListMode> listModeFromWord(const QString& word)
 {
 	if (word == QLatin1String("cards"))
 		return ListMode::Cards;
+	if (word == QLatin1String("rows"))
+		return ListMode::Rows;
 	if (word == QLatin1String("legacy"))
 		return ListMode::LegacyEditor;
 	return std::nullopt;
@@ -109,6 +114,32 @@ inline void writeListMode(QSettings& settings, ListMode mode)
 {
 	settings.setValue(QLatin1String(Keys::ListMode), listModeWord(mode));
 	settings.remove(QLatin1String(Keys::RetiredLegacyRows));
+}
+
+// The presentation the Editor starts in, decided once for a store that has
+// none saved. A store with the word or the retired boolean reads as
+// readListMode says and is left as it is. Without either, any other value of
+// the interface group shows someone who ran a skinned build before the word
+// existed (the Editor saves interface/skin every time it closes): they keep
+// cards, which is what they had. A store with no interface value at all is a
+// new installation and starts in Modern rows. The store existing proves
+// nothing: it is the key the original Equalizer APO's editor keeps its window
+// geometry in, so someone moving over from it is a new installation too.
+// The answer is written down, so the question is asked once per machine.
+// Only the Editor's interactive start calls this; DeviceSelector and the
+// headless checks read with readListMode and never decide.
+inline ListMode adoptListMode(QSettings& settings)
+{
+	if (settings.contains(QLatin1String(Keys::ListMode)) || settings.contains(QLatin1String(Keys::RetiredLegacyRows)))
+		return readListMode(settings);
+
+	settings.beginGroup(QStringLiteral("interface"));
+	const bool ranSkinnedBuildBefore = !settings.childKeys().isEmpty();
+	settings.endGroup();
+
+	const ListMode mode = ranSkinnedBuildBefore ? ListMode::Cards : ListMode::Rows;
+	writeListMode(settings, mode);
+	return mode;
 }
 
 // The group a configuration file's per-file preferences live under: its

@@ -48,19 +48,6 @@ using std::vector;
 using std::wstring;
 
 
-namespace
-{
-// The companion DeviceSelector dresses itself from
-// interface/skin + interface/dark at startup. savePreferences() writes the
-// pair only when the Editor closes, so a freshly picked skin stayed
-// invisible to a tool launched right after the switch - persist immediately.
-void persistSkinChoice(const QString& skinId, bool dark)
-{
-	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
-	EditorSettings::writeSkinChoice(settings, { skinId, dark });
-}
-}
-
 void MainWindow::on_mainToolBar_visibilityChanged(bool visible)
 {
 	ui->actionToolbar->setChecked(visible);
@@ -90,37 +77,65 @@ void MainWindow::interfaceModeSelected(QAction* action)
 	if (action == nullptr)
 		return;
 
-	FilterTable::RenderMode mode = static_cast<FilterTable::RenderMode>(action->data().toInt());
-	if (mode == currentRenderMode)
-		return;
+	const QVariantMap choice = action->data().toMap();
+	selectInterface(static_cast<FilterTable::RenderMode>(choice.value(QStringLiteral("mode")).toInt()),
+		choice.value(QStringLiteral("skin"), skinId).toString());
+}
 
-	// The two modes are whole presentations, not just row widgets: the legacy
-	// editor runs unskinned on the native style, frame, font engine and system
-	// fonts. None of that can swap cleanly inside a live process, and a partial
-	// swap mixes modern chrome around legacy rows. Restart into the chosen
-	// presentation instead.
-	if (QMessageBox::question(this, tr("Restart required"), tr("Configuration Editor will be restarted to apply the changed settings. Proceed?")) == QMessageBox::Yes)
+void MainWindow::selectInterface(FilterTable::RenderMode mode, const QString& selectedSkin)
+{
+	if (mode == currentRenderMode && selectedSkin == skinId)
 	{
-		// savePreferences() persists interface/listMode from this member on close,
-		// so setting it is what makes the restart come back changed.
-		currentRenderMode = mode;
-		restart = true;
-		close();
+		syncInterfaceMenu();
+		persistSkinChoice();
+		return;
 	}
-	else
+
+	// The legacy editor runs unskinned on the native style, frame, font engine
+	// and system fonts. None of that can swap cleanly inside a live process,
+	// and a partial swap mixes modern chrome around legacy rows. Restart only
+	// when entering or leaving that presentation.
+	if ((mode == FilterTable::LegacyEditor) != (currentRenderMode == FilterTable::LegacyEditor))
 	{
-		for (QAction* other : interfaceModeActionGroup->actions())
-			other->setChecked(static_cast<FilterTable::RenderMode>(other->data().toInt()) == currentRenderMode);
+		if (QMessageBox::question(this, tr("Restart required"), tr("Configuration Editor will be restarted to apply the changed settings. Proceed?")) == QMessageBox::Yes)
+		{
+			const auto previousMode = currentRenderMode;
+			const QString previousSkin = skinId;
+			const bool previousRestart = restart;
+			// Close persists both values, so the next Editor opens with exactly
+			// the submenu choice. Leave the old rows intact to commit pending edits.
+			currentRenderMode = mode;
+			skinId = selectedSkin;
+			restart = true;
+			if (close())
+				persistSkinChoice();
+			else
+			{
+				// Cancelling an unsaved-document prompt cancels the restart too.
+				currentRenderMode = previousMode;
+				skinId = previousSkin;
+				restart = previousRestart;
+			}
+		}
+		syncInterfaceMenu();
+		return;
 	}
+
+	currentRenderMode = mode;
+	skinId = selectedSkin;
+	applySkinAndRebuild();
 }
 
 void MainWindow::skinSelected(QAction* action)
 {
-	if (action == nullptr)
+	if (action == nullptr || currentRenderMode == FilterTable::LegacyEditor)
 		return;
 
-	skinId = action->data().toString();
-	applySkinAndRebuild();
+	const QString selectedSkin = action->data().toString();
+	const auto mode = currentRenderMode == FilterTable::ModernRows
+		&& SkinManager::instance()->skinSupportsRows(selectedSkin)
+		? FilterTable::ModernRows : FilterTable::ModernCards;
+	selectInterface(mode, selectedSkin);
 }
 
 void MainWindow::applySkinAndRebuild()
@@ -151,10 +166,17 @@ void MainWindow::applySkinAndRebuild()
 	{
 		FilterTable* filterTable = filterTableForTab(i);
 		if (filterTable != nullptr)
-			filterTable->updateGuis();
+		{
+			// setRenderMode rebuilds when the mode changes. Do not also call
+			// updateGuis in that case: both choices commit in this single pass.
+			if (filterTable->getRenderMode() != currentRenderMode)
+				filterTable->setRenderMode(currentRenderMode);
+			else
+				filterTable->updateGuis();
+		}
 	}
-	if (!skinPersistenceSuppressed)
-		persistSkinChoice(skinId, skinDark);
+	syncInterfaceMenu();
+	persistSkinChoice();
 }
 
 void MainWindow::darkThemeToggled(bool checked)

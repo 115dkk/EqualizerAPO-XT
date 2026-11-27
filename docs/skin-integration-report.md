@@ -90,8 +90,27 @@ dark and light) are hosted on the `gallery-phase2` branch (never merge it):
 
 Per-skin Phase 1 galleries are browsable in issue #72 (hosted on
 `gallery-phase1`). To regenerate any of it:
-`Editor --skin-gallery <outDir> [--skin-gallery-skins id,...]` (see
-`docs/skin-hooks.md`).
+`Editor --skin-gallery <outDir> [--skin-gallery-skins id,...] [--list-mode cards|rows]`
+(see `docs/skin-hooks.md`). `--list-mode` selects the presentation of the
+whole-document probe (`EAPO_GALLERY_PROBE`), not the registered gallery scenes.
+It also applies to `--card-move-test`, `--card-selection-test`,
+`--power-toggle-test`, `--routing-edit-test`, `--close-save-test`,
+`--close-save-sweep`, and `--skin-switch-test`. Without it these checks use
+cards, regardless of the saved preference. With `rows`, a skin without row
+support uses cards and logs that fallback once; the run ends with one line
+naming the skins that drew rows and the skins that fell back, and exits
+non-zero when no skin drew rows. Unknown values exit non-zero with a usage
+line. `--close-save-test` and `--close-save-sweep` open one Editor window,
+which keeps the skin saved on the machine; `--window-skin <id>` names that
+window's skin instead (its light finish), so the run does not depend on the
+machine. A runner has no skin saved and opens the default one, which is why
+CI names the skin for the row runs of these two: `close-save-rows-<skin>` for
+each of the five skins and the save sweep in rows under Studio Glass. The
+gate script also fails a row run in which a skin that must draw rows fell back
+to cards (`Get-RowCoverageVerdict`). Given to a check that opens no
+such window, `--window-skin` exits non-zero. `--interface-menu-test` checks
+the Interface menu's mode, skin, restart and shortcut behavior offscreen
+without writing preferences.
 
 ## Interaction-layer wishes (follow-up candidates)
 

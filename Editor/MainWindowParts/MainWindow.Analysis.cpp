@@ -168,6 +168,7 @@ void MainWindow::setupAnalysisMetricControls()
 	// registry location instead of EDITOR_REGPATH. That store survived "Reset
 	// all global preferences" and uninstall cleanup. Carry an old value over
 	// once, then drop the stray store's copy.
+	if (!skinPersistenceSuppressed)
 	{
 		QSettings legacy;
 		for (const char* key : {EditorSettings::Keys::AnalysisViewMetric,
@@ -203,14 +204,16 @@ void MainWindow::setupAnalysisMetricControls()
 		if (eqGraphView != nullptr)
 			eqGraphView->setMetric(chosen);
 		ui->includeBaseDelayCheckBox->setVisible(chosen != AnalysisMetric::MagnitudeDb);
-		QSettings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat)
-		.setValue(QLatin1String(EditorSettings::Keys::AnalysisViewMetric), metricSettingName(chosen));
+		if (!skinPersistenceSuppressed)
+			QSettings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat)
+			.setValue(QLatin1String(EditorSettings::Keys::AnalysisViewMetric), metricSettingName(chosen));
 	});
 	connect(ui->includeBaseDelayCheckBox, &QCheckBox::toggled, this, [this](bool checked) {
 		if (eqGraphView != nullptr)
 			eqGraphView->setIncludeLatency(checked);
-		QSettings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat)
-		.setValue(QLatin1String(EditorSettings::Keys::AnalysisIncludeLatency), checked);
+		if (!skinPersistenceSuppressed)
+			QSettings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat)
+			.setValue(QLatin1String(EditorSettings::Keys::AnalysisIncludeLatency), checked);
 	});
 
 	// A filter card can ask for a reading that makes its own filter legible.

@@ -53,7 +53,7 @@ public:
 	bool isDark() const;
 	void applySkin(const QString& skinId, bool dark);
 
-	// The heritage presentation behind the LegacyRows mode: no stylesheet, the
+	// The heritage presentation behind the LegacyEditor mode: no stylesheet, the
 	// platform's standard palette, and classic light token values for the few
 	// custom painters (analysis graph, knobs). The legacy rows are meant to be
 	// the unmodernized original editor, not skinned widgets inside modern
@@ -82,6 +82,9 @@ public:
 	QString cardHeaderStyle(const CommandRowInfo& info) const;
 	BadgeTreatment badgeTreatment(const CommandRowInfo& info, const QString& typeColor, const QString& badgeToken) const;
 	void prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body) const;
+	bool supportsRowMode() const;
+	// Queries the registered skin without changing the application theme.
+	static bool skinSupportsRows(const QString& skinId);
 	void paintCardChrome(QPainter& painter, const QRect& rect, const CommandRowInfo& info) const;
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info) const;
 	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,

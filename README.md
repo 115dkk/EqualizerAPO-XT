@@ -113,13 +113,17 @@ Current work areas:
     ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536), [#540](https://github.com/115dkk/EqualizerAPO-XT/pull/540)), the old Subwoofer Routing
     card in favour of a one-line reference card
     ([#539](https://github.com/115dkk/EqualizerAPO-XT/pull/539)), and an always-open channel mapping that now folds
-    ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). A third interface, Modern rows, is being added:
-    one line per filter in the skin's own look. As its first step the original
-    row layout is now called Legacy editor
-    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)), and the Hardware Rack cards have lower buttons whose
-    outlines show on all four sides
-    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)). Next come Modern rows for that skin, then the
-    other four skins.
+    ([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). A third interface, Modern rows, shows one line
+    per filter in the skin's own look. The original row layout is now called
+    Legacy editor ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)), the Hardware Rack cards have lower buttons
+    whose outlines show on all four sides
+    ([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)), and all five skins draw Modern rows
+    ([#550](https://github.com/115dkk/EqualizerAPO-XT/pull/550)): a filter line is 84 px, and a 32-line test
+    configuration is 3,501 to 3,628 px tall as rows where it is 4,291 to
+    4,778 px as cards. A new installation opens in Modern rows. What is left
+    is listed in #550: a Channel line with more seats than a narrow window
+    holds shortens its add field instead of wrapping, three German row names
+    are shortened, and a few card readouts are still cut.
 
 ## Features
 

@@ -94,6 +94,8 @@ MainWindow::MainWindow(QDir configDir, UpdateSession* updateSession, QWidget* pa
 	updateSession(updateSession),
 	analysisLayoutTestMode(analysisLayoutTestMode)
 {
+	if (analysisLayoutTestMode)
+		probe().suppressPreferenceWrites();
 	outputDevices = toQList(DeviceAPOInfo::loadAllInfos(false));
 	inputDevices = toQList(DeviceAPOInfo::loadAllInfos(true));
 

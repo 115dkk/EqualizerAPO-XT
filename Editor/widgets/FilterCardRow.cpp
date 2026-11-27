@@ -56,6 +56,17 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	setAttribute(Qt::WA_StyledBackground, false);
 	setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
 
+	// The layout differs from the first widget on, so the table's mode is
+	// read before anything is built. In ModernRows every line is a row; a
+	// blank line stays the thin spacer it is in a card list.
+	inlineRow = table != nullptr && table->effectiveRenderMode() == FilterTable::ModernRows
+		&& descriptor.kind != FilterCardKind::Spacer;
+	// Whether the row mounts an editor (its own GUI or the skin's Copy
+	// routing view) or is a body-less line whose content is its title and
+	// summary. The same test mountBody makes.
+	hasEditor = gui != nullptr || (FilterCardModel::opensRoutingView(descriptor)
+		&& SkinManager::instance()->routingRenderer() != nullptr);
+
 	QVBoxLayout* cardLayout = buildCardFrame();
 
 	// Dress the frame and header now, while the card is two widgets deep:
@@ -91,6 +102,10 @@ FilterCardRow::FilterCardRow(FilterTable* table, int number, FilterTable::Item* 
 	// Observe only the non-drag surfaces and select their owning card before
 	// the control handles the same plain click.
 	watchPointerSelection(bodyStack);
+	// A row's raw line editor is not inside the stack; a press in it selects
+	// the row the same way.
+	if (inlineRow)
+		watchPointerSelection(lineEdit);
 	for (QAbstractButton* button : headerWidget->findChildren<QAbstractButton*>())
 		watchPointerSelection(button);
 }
@@ -121,6 +136,24 @@ QVBoxLayout* FilterCardRow::buildCardFrame()
 	headerWidget->setObjectName(QStringLiteral("FilterCardHeader"));
 	headerWidget->setAttribute(Qt::WA_StyledBackground, true);
 	headerWidget->setMinimumHeight(SkinManager::instance()->tokens().rowHeight);
+	if (inlineRow)
+	{
+		// A row: the header becomes the left column and the editor or content
+		// sits beside it, so the frame lays its children out across instead
+		// of down. The property lets a skin sheet size the column's controls.
+		cardLayout->setDirection(QBoxLayout::LeftToRight);
+		cardFrame->setProperty("inlineRow", true);
+		headerWidget->setProperty("inlineRow", true);
+		headerWidget->setSizePolicy(QSizePolicy::Fixed, QSizePolicy::Preferred);
+		// The column's controls stand in a top band as tall as a one-line
+		// row, so number and power keep one distance from the row's top edge
+		// whether the editor beside them is one line, many lines or none (a
+		// body-less line is one band tall). A Copy row centres the band on
+		// the row instead (centresRowMarkers).
+		headerWidget->setFixedHeight(InlineBandHeight);
+		cardLayout->addWidget(headerWidget, 0, centresRowMarkers() ? Qt::AlignVCenter : Qt::AlignTop);
+		return cardLayout;
+	}
 	cardLayout->addWidget(headerWidget);
 	return cardLayout;
 }
@@ -132,7 +165,8 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	// reach it instead of being held up by the button train.
 	QHBoxLayout* headerLayout = new QHBoxLayout(headerWidget);
 	headerLayout->setContentsMargins(8, 2, 8, 2);
-	headerLayout->setSpacing(8);
+	// A one-line row gives every pixel it can to the editor beside it.
+	headerLayout->setSpacing(inlineRow ? 6 : 8);
 
 	// Not checkable: an open card is where a card rests, not something
 	// switched on, and a checked cap lights in the accent in four skins. That
@@ -148,12 +182,18 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	expanded = gui != nullptr;
 	expandButton->setText(expanded ? QStringLiteral("v") : QStringLiteral(">"));
 	connect(expandButton, &QToolButton::clicked, this, [this]() { setExpanded(!expanded); });
-	headerLayout->addWidget(expandButton);
+	// A one-line row has no body below to fold. The button still exists,
+	// hidden, because setExpanded and the tooltips keep it current.
+	if (inlineRow)
+		expandButton->setVisible(false);
+	else
+		headerLayout->addWidget(expandButton);
 
 	numberLabel = new QLabel(QString::number(number), headerWidget);
 	numberLabel->setObjectName(QStringLiteral("FilterCardNumber"));
 	numberLabel->setAlignment(Qt::AlignCenter);
-	numberLabel->setMinimumWidth(28);
+	// 24 px still holds a three-digit line number in the row's mono face.
+	numberLabel->setMinimumWidth(inlineRow ? 24 : 28);
 	headerLayout->addWidget(numberLabel);
 
 	// The controls form a fixed column right after the number, the way the
@@ -171,7 +211,30 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	enabledButton->setChecked(descriptor.enabled);
 	enabledButton->setIcon(powerToggleIcon(descriptor.enabled));
 	connect(enabledButton, &QToolButton::toggled, this, &FilterCardRow::enabledToggled);
+	// A line that cannot be switched off (a comment) hides the switch. In a
+	// row its place stays empty, so the actions after it keep the x of every
+	// other row's actions.
+	if (inlineRow)
+	{
+		QSizePolicy keepPlace = enabledButton->sizePolicy();
+		keepPlace.setRetainSizeWhenHidden(true);
+		enabledButton->setSizePolicy(keepPlace);
+	}
 	headerLayout->addWidget(enabledButton);
+
+	// In a one-line row the three bare actions stack in one narrow column,
+	// the geometry the legacy rows used: side by side they leave a Filter
+	// line too little width for its editor in a 960 px window. The order
+	// stays the shared one (docs/skins/README.md).
+	QBoxLayout* actionLayout = headerLayout;
+	if (inlineRow)
+	{
+		QVBoxLayout* actionColumn = new QVBoxLayout();
+		actionColumn->setContentsMargins(0, 0, 0, 0);
+		actionColumn->setSpacing(0);
+		headerLayout->addLayout(actionColumn);
+		actionLayout = actionColumn;
+	}
 
 	addButton = new QToolButton(headerWidget);
 	addButton->setObjectName(QStringLiteral("FilterCardIconButton"));
@@ -181,7 +244,7 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	// "+" is a sign, not a name: a screen reader is given the tooltip.
 	nameButtonByToolTip(addButton);
 	connect(addButton, &QToolButton::clicked, this, &FilterCardRow::addAbove);
-	headerLayout->addWidget(addButton);
+	actionLayout->addWidget(addButton);
 
 	removeButton = new QToolButton(headerWidget);
 	removeButton->setObjectName(QStringLiteral("FilterCardIconButton"));
@@ -195,7 +258,7 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	removeButton->setToolTip(tr("Remove this filter. %1 brings it back.")
 		.arg(QKeySequence(QKeySequence::Undo).toString(QKeySequence::NativeText)));
 	connect(removeButton, &QToolButton::clicked, this, &FilterCardRow::removeThis);
-	headerLayout->addWidget(removeButton);
+	actionLayout->addWidget(removeButton);
 
 	editButton = new QToolButton(headerWidget);
 	editButton->setObjectName(QStringLiteral("FilterCardIconButton"));
@@ -211,12 +274,22 @@ QHBoxLayout* FilterCardRow::buildHeaderControls(int number)
 	editButton->setToolTip(tr("Edit raw command"));
 	nameButtonByToolTip(editButton);
 	connect(editButton, &QToolButton::toggled, this, &FilterCardRow::editTextToggled);
-	headerLayout->addWidget(editButton);
+	actionLayout->addWidget(editButton);
 	// A clear break between the control column and the identity (badge
 	// pictogram, title), so the buttons and the pictogram do not read as one
 	// train. 10px was judged barely visible (maintainer, round 2); 30px is
 	// the accepted width.
-	headerLayout->addSpacing(30);
+	// A one-line row has no pictogram after the column, and its width is
+	// what the editor needs, so the break is left out there.
+	if (!inlineRow)
+		headerLayout->addSpacing(30);
+	else
+	{
+		// The glyphs differ in width ("+" is text, the others icons); centred,
+		// they stand on one vertical axis.
+		for (QToolButton* action : { addButton, removeButton, editButton })
+			actionLayout->setAlignment(action, Qt::AlignHCenter);
+	}
 	return headerLayout;
 }
 
@@ -226,14 +299,32 @@ void FilterCardRow::buildHeaderIdentity(QHBoxLayout* headerLayout)
 	typeBadge->setObjectName(QStringLiteral("FilterTypeBadge"));
 	typeBadge->setAlignment(Qt::AlignCenter);
 	typeBadge->setMinimumWidth(46);
-	headerLayout->addWidget(typeBadge);
+	// A one-line row keeps the badge, the summary and the channel strip alive
+	// (applyDescriptor feeds them on every edit) but places them differently:
+	// no badge and no summary, the title in a fixed cell after the left
+	// column, the channel badges at the far end of the line.
+	QBoxLayout* rowLayout = inlineRow ? qobject_cast<QBoxLayout*>(cardFrame->layout()) : nullptr;
+	if (rowLayout != nullptr)
+		typeBadge->setVisible(false);
+	else
+		headerLayout->addWidget(typeBadge);
 
-	titleLabel = new ElidedLabel(headerWidget);
+	titleLabel = new ElidedLabel(rowLayout != nullptr ? static_cast<QWidget*>(cardFrame) : headerWidget);
 	titleLabel->setObjectName(QStringLiteral("FilterCardTitle"));
 	titleLabel->setElideMode(Qt::ElideRight);
 	titleLabel->setMinimumWidth(92);
 	titleLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-	headerLayout->addWidget(titleLabel);
+	if (rowLayout != nullptr)
+	{
+		// The cell is fixed so the editors of titled rows start on one axis.
+		// Some editors name their unit themselves (rowEditorNamesItself), and
+		// then the cell is left out.
+		titleLabel->setFixedWidth(InlineTitleWidth);
+		titleLabel->setVisible(!rowEditorNamesItself());
+		addRowCell(rowLayout, titleLabel, 0);
+	}
+	else
+		headerLayout->addWidget(titleLabel);
 
 	summaryLabel = new ElidedLabel(headerWidget);
 	summaryLabel->setObjectName(QStringLiteral("FilterCardSummary"));
@@ -246,18 +337,35 @@ void FilterCardRow::buildHeaderIdentity(QHBoxLayout* headerLayout)
 	// (elides) when the header is narrower; the trailing stretch below owns
 	// the leftover, so the summary never pushes anything to the far edge.
 	summaryLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Preferred);
-	headerLayout->addWidget(summaryLabel);
+	if (rowLayout != nullptr)
+	{
+		// A body-less row's content is its title and this summary, on the
+		// one line; a row with an editor has no place for it.
+		summaryLabel->setParent(cardFrame);
+		summaryLabel->setVisible(!hasEditor);
+		addRowCell(rowLayout, summaryLabel, 1);
+	}
+	else
+		headerLayout->addWidget(summaryLabel);
 
-	channelBadgeContainer = new QWidget(headerWidget);
+	channelBadgeContainer = new QWidget(rowLayout != nullptr ? static_cast<QWidget*>(cardFrame) : headerWidget);
 	// A plain QWidget matches every skin's global "QWidget { background: @BG@ }"
 	// rule, and the style then paints that app-background plate over the card
 	// surface - a dark rectangle cut around the badges. The widget-level rule
 	// outranks any skin sheet, so the strip stays transparent under all skins.
 	channelBadgeContainer->setStyleSheet(QStringLiteral("background: transparent;"));
 	channelBadgeLayout = new QHBoxLayout(channelBadgeContainer);
-	channelBadgeLayout->setContentsMargins(0, 0, 0, 0);
+	// At the end of a one-line row the strip keeps a gap from the editor.
+	channelBadgeLayout->setContentsMargins(rowLayout != nullptr ? 6 : 0, 0, 0, 0);
 	channelBadgeLayout->setSpacing(3);
+	// In a row the strip can be taller than its badges (the top band), and
+	// the badges stand centred in it.
+	if (rowLayout != nullptr)
+		channelBadgeLayout->setAlignment(Qt::AlignLeft | Qt::AlignVCenter);
 	channelBadgeContainer->setVisible(false);
+	// A one-line row adds the strip after the editor (buildBodyStack).
+	if (rowLayout != nullptr)
+		return;
 	headerLayout->addWidget(channelBadgeContainer);
 	headerLayout->addStretch(1);
 }
@@ -279,6 +387,22 @@ void FilterCardRow::buildBodyStack(QVBoxLayout* cardLayout)
 	// width is driven by the header only.
 	bodyStack->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	bodyStack->setMinimumSize(0, 0);
+	if (inlineRow)
+	{
+		// Across the line the editor takes what the left column and the
+		// title cell leave. The raw line editor stands beside the stack, not
+		// in it, so engaging it shows one line instead of a box as tall as the
+		// editor it replaces (a stack is as tall as its tallest page). The
+		// channel badges close the line.
+		cardLayout->addWidget(bodyStack, 1);
+		lineEdit = new QLineEdit(cardFrame);
+		lineEdit->setObjectName(QStringLiteral("FilterCardRawEditor"));
+		connect(lineEdit, &QLineEdit::editingFinished, this, &FilterCardRow::lineEditingFinished);
+		lineEdit->setVisible(false);
+		addRowCell(cardLayout, lineEdit, 1);
+		addRowCell(cardLayout, channelBadgeContainer, 0);
+		return;
+	}
 	cardLayout->addWidget(bodyStack);
 
 	lineEdit = new QLineEdit(bodyStack);
@@ -395,8 +519,18 @@ CommandRowInfo FilterCardRow::currentRowInfo() const
 	context.laneUnit = tokens.channelGroupIndent;
 	context.rowHeight = tokens.rowHeight;
 	context.logicSiblingsIndentAsMembers = SkinManager::instance()->logicSiblingsIndentAsMembers();
-	return CommandRowFacts::describe(descriptor, context,
+	CommandRowInfo info = CommandRowFacts::describe(descriptor, context,
 		table != nullptr ? table->loadTraceFactsForRow(rowNumber - 1) : QList<ConfigLoadTraceEntry>());
+	info.inlineRow = inlineRow;
+	// A row centres its controls on its top band, or on the whole row when
+	// it centres its markers (Copy), not on a strip of rowHeight at its top,
+	// so a scope lane has to meet it there. Before the first layout a
+	// centred row's height is unknown and the band value stands in.
+	if (inlineRow && centresRowMarkers() && height() > 0)
+		info.headerCenterY = height() / 2.0;
+	else if (inlineRow)
+		info.headerCenterY = CommandRowInfo::cardMarginTop + 1 + InlineBandHeight / 2.0;
+	return info;
 }
 
 QRect FilterCardRow::getHeaderRect() const
@@ -525,7 +659,12 @@ void FilterCardRow::mountEditorBody(const std::function<QWidget*(QWidget* editor
 	editorContainer->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Preferred);
 	editorContainer->setMinimumSize(0, 0);
 	QVBoxLayout* editorLayout = new QVBoxLayout(editorContainer);
-	editorLayout->setContentsMargins(12, 10, 12, 12);
+	// A one-line row has no strip above the editor to clear, and its height
+	// is the editor's plus this margin, so only a thin border stays.
+	if (inlineRow)
+		editorLayout->setContentsMargins(4, 4, 0, 4);
+	else
+		editorLayout->setContentsMargins(12, 10, 12, 12);
 
 	QWidget* content = createContent(editorContainer);
 
@@ -636,6 +775,22 @@ void FilterCardRow::syncEditorScrollHeight(QScrollArea* scroll)
 			layout()->invalidate();
 		updateGeometry();
 	}
+
+	// The scroll area resizes the content to its viewport, and the content's
+	// own layout does not always follow: a row built before its window is
+	// shown had its content taken from 48 px to the 36 px it needs without a
+	// resize event reaching it, and the layout then answered the layout
+	// request as already active. The note field of a comment line stayed
+	// where the 48 px pass had put it and lost its lower edge inside the 36
+	// px that are shown (a Modern row of Stock Flat; any table too short to
+	// get a vertical bar, whose arrival would have resized the row). Where
+	// the height is settled, the layout takes the rect the content has.
+	if (QLayout* inner = content->layout())
+	{
+		const QRect rect = content->testAttribute(Qt::WA_LayoutOnEntireRect) ? content->rect() : content->contentsRect();
+		if (inner->geometry() != rect)
+			inner->setGeometry(rect);
+	}
 }
 
 bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
@@ -695,6 +850,125 @@ bool FilterCardRow::eventFilter(QObject* watched, QEvent* event)
 		break;
 	}
 	return QWidget::eventFilter(watched, event);
+}
+
+void FilterCardRow::addRowCell(QBoxLayout* layout, QWidget* cell, int stretch)
+{
+	// The raw line editor is shown only while the editor beside it is
+	// hidden, and the row is then one band tall, so centring it keeps it in
+	// the band too.
+	if (hasEditor && cell != lineEdit)
+	{
+		cell->setFixedHeight(InlineBandHeight);
+		layout->addWidget(cell, stretch, centresRowMarkers() ? Qt::AlignVCenter : Qt::AlignTop);
+	}
+	else
+		layout->addWidget(cell, stretch, Qt::AlignVCenter);
+}
+
+bool FilterCardRow::centresRowMarkers() const
+{
+	// In a Send or MultiConvolution row the routing board is a section under
+	// the row's main line, so the row's markers stand beside that line at the
+	// top. A Copy row has no main line: the board is the row, so its markers
+	// (left column, title, channel badges) are centred on the whole row. The
+	// GraphicEQ row (its plot) and the IIR coefficient row (its table) are
+	// one body for the same reason. The IIR row shares the biquad kind with
+	// the one-line Filter and the all-pass rows, so its editor tells it.
+	if (!inlineRow || !hasEditor)
+		return false;
+	return descriptor.kind == FilterCardKind::Copy || descriptor.kind == FilterCardKind::GraphicEq
+		|| (gui != nullptr && gui->inherits("IIRCardEditor"));
+}
+
+bool FilterCardRow::rowEditorNamesItself() const
+{
+	// The one-line biquad editor's type selector names the unit (Peaking,
+	// Low-shelf, ...). The VST unit's module readout says VST, and the
+	// subwoofer routing view prints its own vertical name.
+	if (gui != nullptr && gui->inherits("BiQuadFilterGUI"))
+		return true;
+	return descriptor.kind == FilterCardKind::Vst || descriptor.kind == FilterCardKind::SubwooferRouting;
+}
+
+void FilterCardRow::setRowTitle(const QString& title)
+{
+	// The cell is narrow, so a two-word title wraps onto a second line
+	// instead of being cut ("Hilbert transform"). A single word wider than
+	// the cell is split before its inner capitals ("MultiConvolution" into
+	// MULTI over CONVOLUTION), without a hyphen. A word that carries its own
+	// hyphens breaks after them instead ("Hilbert-Transformator" in German,
+	// "Multi-convolution" in French), when each piece fits the cell. Only a
+	// word that still does not fit after that is elided as in the card header.
+	titleLabel->ensurePolished();
+	const QFontMetrics metrics = titleLabel->fontMetrics();
+	QStringList words;
+	bool wordsFit = true;
+	for (const QString& word : title.split(QLatin1Char(' '), Qt::SkipEmptyParts))
+	{
+		if (metrics.horizontalAdvance(word) <= InlineTitleWidth)
+		{
+			words.append(word);
+			continue;
+		}
+		// A break after a hyphen, never after a leading one ("-90").
+		QStringList pieces;
+		int pieceStart = 0;
+		for (int i = 2; i <= word.size(); i++)
+		{
+			if (i < word.size() && word.at(i - 1) != QLatin1Char('-'))
+				continue;
+			pieces.append(word.mid(pieceStart, i - pieceStart));
+			pieceStart = i;
+		}
+		bool piecesFit = pieces.size() > 1;
+		for (const QString& piece : pieces)
+			piecesFit = piecesFit && metrics.horizontalAdvance(piece) <= InlineTitleWidth;
+		if (piecesFit)
+		{
+			// The line breaks are written out, so the label does not depend
+			// on where the text layout would break a hyphenated word.
+			words.append(pieces.join(QLatin1Char('\n')));
+			continue;
+		}
+		int start = 0;
+		for (int i = 1; i <= word.size(); i++)
+		{
+			if (i < word.size() && !(word.at(i).isUpper() && word.at(i - 1).isLower()))
+				continue;
+			const QString part = word.mid(start, i - start);
+			wordsFit = wordsFit && metrics.horizontalAdvance(part) <= InlineTitleWidth;
+			words.append(part);
+			start = i;
+		}
+	}
+	titleLabel->setWordWrap(wordsFit);
+	if (wordsFit)
+	{
+		// ElidedLabel elides whatever it holds as full text; plain QLabel text
+		// lets the wrap through.
+		titleLabel->setFullText(QString());
+		titleLabel->setText(words.join(QLatin1Char(' ')));
+		titleLabel->setToolTip(title);
+	}
+	else
+		titleLabel->setFullText(title);
+}
+
+bool FilterCardRow::rawEditing() const
+{
+	if (lineEdit == nullptr)
+		return false;
+	return inlineRow ? !lineEdit->isHidden() : bodyStack->currentWidget() == lineEdit;
+}
+
+void FilterCardRow::resizeEvent(QResizeEvent* event)
+{
+	QWidget::resizeEvent(event);
+	// The junction a scope lane meets depends on a one-line row's height
+	// (currentRowInfo), which only a resize changes.
+	if (inlineRow)
+		syncVisualState();
 }
 
 int FilterCardRow::rowIndentUnits() const
@@ -804,7 +1078,7 @@ void FilterCardRow::applyDescriptor()
 	if (headerWidget != nullptr)
 		headerWidget->setVisible(!isSpacer);
 	if (bodyStack != nullptr)
-		bodyStack->setVisible(!isSpacer && expanded);
+		bodyStack->setVisible(!isSpacer && expanded && !(inlineRow && rawEditing()));
 	if (isSpacer)
 	{
 		syncVisualState();
@@ -835,7 +1109,10 @@ void FilterCardRow::applyDescriptor()
 		typeBadge->setText(QString());
 		typeBadge->setPixmap(badgePictogram(badgeIcon, badgeTreatment.ink, 16, devicePixelRatioF()));
 	}
-	titleLabel->setFullText(descriptor.title);
+	if (inlineRow)
+		setRowTitle(descriptor.title);
+	else
+		titleLabel->setFullText(descriptor.title);
 	summaryLabel->setFullText(descriptor.summary);
 	syncSummaryVisibility();
 	// A line the engine could not use says why on hover. The analysis run is what
@@ -850,6 +1127,12 @@ void FilterCardRow::applyDescriptor()
 		summaryLabel->setToolTip(tr("This line was not applied: %1").arg(rowInfo.parseError));
 	else
 		summaryLabel->setToolTip(descriptor.summary);
+	// A row with an editor hides the summary, so the reason the engine gave
+	// would be lost; the line number at the left carries it instead. Only
+	// the reason: the plain summary would repeat what the editor shows.
+	if (inlineRow)
+		numberLabel->setToolTip(rowInfo.setupFailed || !rowInfo.parseError.isEmpty()
+			? summaryLabel->toolTip() : QString());
 	enabledButton->blockSignals(true);
 	enabledButton->setChecked(descriptor.enabled);
 	enabledButton->setIcon(powerToggleIcon(descriptor.enabled));
@@ -893,13 +1176,42 @@ void FilterCardRow::buildChannelBadges(const QStringList& channels,
 
 	while (QLayoutItem* child = channelBadgeLayout->takeAt(0))
 	{
+		// A one-line row's strip holds a column layout per pair of badges.
+		if (QLayout* column = child->layout())
+		{
+			while (QLayoutItem* inner = column->takeAt(0))
+			{
+				delete inner->widget();
+				delete inner;
+			}
+		}
 		delete child->widget();
 		delete child;
 	}
 
-	for (const QString& channel : channels.mid(0, 8))
-		channelBadgeLayout->addWidget(new ChBadge(channel,
-			ChannelIdentity::isVirtual(channel, deviceChannels), channelBadgeContainer));
+	const QStringList shown = channels.mid(0, 8);
+	if (inlineRow)
+	{
+		// At the end of a one-line row the badges stand two to a column, as
+		// the actions do at its start: in a single file the strip took the
+		// width the Filter editor needs in a 960 px window.
+		for (int i = 0; i < shown.size(); i += 2)
+		{
+			QVBoxLayout* column = new QVBoxLayout();
+			column->setContentsMargins(0, 0, 0, 0);
+			column->setSpacing(2);
+			for (int j = i; j < qMin(i + 2, int(shown.size())); j++)
+				column->addWidget(new ChBadge(shown.at(j),
+					ChannelIdentity::isVirtual(shown.at(j), deviceChannels), channelBadgeContainer));
+			channelBadgeLayout->addLayout(column);
+		}
+	}
+	else
+	{
+		for (const QString& channel : shown)
+			channelBadgeLayout->addWidget(new ChBadge(channel,
+				ChannelIdentity::isVirtual(channel, deviceChannels), channelBadgeContainer));
+	}
 	channelBadgeContainer->setVisible(!channels.isEmpty());
 }
 
@@ -964,6 +1276,22 @@ void FilterCardRow::editTextToggled(bool checked)
 
 void FilterCardRow::setEditing(bool editing)
 {
+	if (inlineRow)
+	{
+		// A row swaps its editor or content for the one-line raw editor
+		// beside it, and back; it never folds, so expanded is left alone.
+		if (editing)
+			lineEdit->setText(item->text);
+		bodyStack->setVisible(!editing && expanded);
+		lineEdit->setVisible(editing);
+		syncSummaryVisibility();
+		if (editing)
+		{
+			lineEdit->setFocus();
+			lineEdit->selectAll();
+		}
+		return;
+	}
 	if (editing)
 	{
 		lineEdit->setText(item->text);
@@ -980,7 +1308,7 @@ void FilterCardRow::setEditing(bool editing)
 
 void FilterCardRow::lineEditingFinished()
 {
-	if (bodyStack->currentWidget() == lineEdit && !editingDone)
+	if (rawEditing() && !editingDone)
 	{
 		// Qt hands the focus to the nearest click-focus ancestor (the list)
 		// before it delivers a press, so a press on the raw-line toggle closes
@@ -1033,9 +1361,14 @@ void FilterCardRow::setExpanded(bool open)
 {
 	expanded = open;
 	expandButton->setText(open ? QStringLiteral("v") : QStringLiteral(">"));
-	if (!open && table != nullptr && bodyStack->isAncestorOf(QApplication::focusWidget()))
+	// A row's raw line editor stands beside the stack, so it counts as body
+	// here: a row folded from code while it is being typed in must not keep
+	// the focus on it either.
+	QWidget* focused = QApplication::focusWidget();
+	if (!open && table != nullptr
+		&& (bodyStack->isAncestorOf(focused) || (inlineRow && focused == lineEdit)))
 		table->setFocus(Qt::OtherFocusReason);
-	bodyStack->setVisible(open);
+	bodyStack->setVisible(open && !(inlineRow && rawEditing()));
 	syncSummaryVisibility();
 	syncHeaderToolTips();
 }
@@ -1058,6 +1391,16 @@ void FilterCardRow::syncSummaryVisibility()
 	// An open comment card shows its note in the body editor right below, so
 	// the header would only say it twice; a closed one keeps the note as its
 	// one readout.
+	// In a row the summary is the content of a body-less line, and gives way
+	// to the raw editor; a row with an editor has no place for it.
+	if (inlineRow)
+	{
+		// A row never folds from its own controls, but a fold from code (the
+		// gates) closes its editor, and the summary then stands in for it
+		// as on a body-less line.
+		summaryLabel->setVisible((!hasEditor || !expanded) && !rawEditing());
+		return;
+	}
 	summaryLabel->setVisible(!(expanded && descriptor.kind == FilterCardKind::Comment));
 }
 
