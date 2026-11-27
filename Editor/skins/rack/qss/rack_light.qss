@@ -235,8 +235,10 @@ QLineEdit, QPlainTextEdit, QTextEdit, QAbstractSpinBox {
 QLineEdit:focus, QPlainTextEdit:focus, QTextEdit:focus, QAbstractSpinBox:focus { border: 1px solid @ACCENT@; }
 QLineEdit:disabled, QAbstractSpinBox:disabled { color: #A99F8E; background: #E2DCCE; }
 
+/* The step buttons sit inside the field's border (padding origin): seated
+   on the border they painted over its right side, which then did not show. */
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {
-    subcontrol-origin: border;
+    subcontrol-origin: padding;
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E4E0D7, stop:1 #E6DECC);
     width: 16px; border-left: 1px solid #8F8268;
 }
@@ -552,33 +554,6 @@ QToolButton#FilterCardIconButton[headerAction="true"] {
 }
 QToolButton#FilterCardIconButton[headerAction="true"]:hover {
     background: qlineargradient(x1:0, y1:0, x2:0, y2:1, stop:0 #E4E0D7, stop:1 #E6DECC);
-}
-/* Experiment (EAPO_MODERN_ROWS): a one-line unit stacks its three bare
-   actions in one column beside the editor, so each glyph takes a slimmer
-   cap and the column stays within the height of the knob row. */
-QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
-    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
-}
-/* The biquad knobs are 84 px boxes around a 66 px instrument (the editor
-   pins that width for the cards). On one line the width goes to the
-   value fields instead, so the knob box is trimmed to the instrument. */
-QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
-    min-width: 66px; max-width: 66px;
-}
-/* The same trade for the type selector: a little less air around its
-   text and arrow keeps the whole editor beside the left column. */
-QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
-    padding-left: 8px; padding-right: 22px;
-}
-QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down { width: 18px; }
-/* The Preamp, Delay and all-pass knobs are 74 px in their cards; in a row
-   they take the 66 px of the biquad knobs, so those units are as tall as
-   a Filter unit. */
-QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
-QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
-QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
-QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
-    min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
 }
 QToolButton#FilterCardIconButton:hover { border-color: @ACCENT@;}
 QToolButton#FilterCardIconButton:pressed {
@@ -1279,6 +1254,13 @@ QToolButton#VelvetAdvancedToggle {
     background: transparent; border: 1px solid #AFA288;
 }
 QToolButton#VelvetAdvancedToggle:hover { color: @TEXT@; border-color: @ACCENT@; }
+/* Regenerate is a worded key of the card like Advanced (rule 12); under the
+   plain tool-button rule it was a bare word with no edge at rest. */
+QToolButton#VelvetRegenerate {
+    padding: 0 10px; color: @MUTED@;
+    background: transparent; border: 1px solid #AFA288;
+}
+QToolButton#VelvetRegenerate:hover { color: @TEXT@; border-color: @ACCENT@; }
 
 
 
@@ -1307,52 +1289,129 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
    caption; a latency the card cannot read takes the danger colour. */
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
 
-/* Experiment (EAPO_MODERN_ROWS): inside a one-line unit every cap is one
-   22 px module including its outline, so the caps carry about half the
-   empty room above and below their legend that a card's caps do. The
-   content box is 18 px and the vertical padding plus borders always add
-   up to 4 px: a latched cap moves its 1 px label drop from the bottom
-   padding to the top, and a lamp row or top bar that is 2 px thick takes
-   its extra pixel out of the padding on its own side, so no state changes
-   the box. Widths, side padding, type and glyphs stay as on a card. A text
-   field on the same line as caps takes the same box so the line stays
-   level, and so does the Send unit's LATENCY field: it stands right under
-   the two combos and would otherwise be taller than they are. The header's three bare glyphs keep their own 16 px rule above
-   (it is more specific). */
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#FilterCardIconButton,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#GraphicEQActionButton,
-QFrame#FilterCardRow[inlineRow="true"] QPushButton,
-QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"],
-QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendTargetCombo,
-QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendModeCombo,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChip,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChipMore,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChip,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChipUnknown,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip,
-QFrame#FilterCardRow[inlineRow="true"] QLineEdit#ChannelChipAdd,
-QFrame#FilterCardRow[inlineRow="true"] QLineEdit#NewChannelAdd,
-QFrame#FilterCardRow[inlineRow="true"] QLineEdit#SendLatencyEdit {
+/* Keyboard focus lights a key's own outline on four sides in the focus
+   signal the fields use (rule 12, focused grammar). One selector per resting
+   rule, each one step more specific than it, and this block comes last, so
+   a focus edge is never outranked by a key's resting colour. A latched key
+   keeps its latched outline while focused (:!checked): its edge is already
+   lit, and keeping it leaves one colour on four sides with the lamp row or
+   top bar. A key whose resting rule is more specific (a latched variant)
+   keeps that rule's single colour too. Push buttons light only in the card
+   list: in a dialog the default button's edge already marks where Enter
+   goes, and a clicked dialog button would stay amber. */
+QToolButton:focus:!checked,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:focus,
+QToolBar#MainToolBar QToolButton:focus:!checked,
+QToolButton[rackTransport="true"]:focus:!checked,
+QTabBar QToolButton:focus:!checked,
+QToolButton#FilterCardIconButton:focus:!checked,
+QToolButton#FilterCardIconButton[headerAction="true"]:focus:!checked,
+QToolButton#FilterCardIconButton[rackLocate="true"]:focus:!checked,
+QToolButton#FilterCardIconButton[refActionRole="openPanel"]:focus:!checked,
+QToolButton#FilterCardIconButton[refActionRole="preset"]:focus:!checked,
+QToolButton#GraphicEQActionButton:focus:!checked,
+QToolButton#UpdateToastClose:focus,
+QToolButton#TitleBarMin:focus, QToolButton#TitleBarMax:focus, QToolButton#TitleBarClose:focus,
+QToolButton#DeviceChip:focus:!checked,
+QToolButton#DeviceChip[deviceInput="true"]:focus:!checked,
+QToolButton#DeviceChip[deviceInstalled="false"]:focus:!checked,
+QToolButton#DeviceChipMore:focus:!checked,
+QToolButton#ChannelChip:focus:!checked,
+QToolButton#NewChannelChip:focus,
+QToolButton#ChannelChip[customChannel="true"]:focus:!checked,
+QToolButton#StageChip:focus:!checked,
+QToolButton#StageChip[stage="capture"]:focus:!checked,
+QToolButton#StageChipUnknown:focus,
+QToolButton#VelvetAdvancedToggle:focus:!checked,
+QToolButton#VelvetRegenerate:focus {
+    border-color: @ACCENT@;
+}
+/* A name the engine refuses keeps the danger edge while focused. */
+QToolButton#NewChannelChip[invalid="true"]:focus { border-color: @DANGER@; }
+
+/* Inside the card list every cap is one 22 px module including its outline
+   (RackSkin::controlContract), so a cap carries little empty room above and
+   below its legend. The content box is 18 px and the vertical padding plus
+   borders always add up to 4 px: a latched or pressed cap moves its 1 px
+   label drop from the bottom padding to the top, and a lamp row or top bar
+   that is 2 px thick takes its extra pixel out of the padding on its own
+   side, so no state changes the box. Widths, side padding, type and glyphs
+   stay as they were. A text field on the same line as caps takes the same
+   box so the line stays level. Each rule names the card frame and an id, so
+   it outranks every single-id rule above; the state rules below restate the
+   label drop and the lamp pixel at the same level. Only named parts are
+   listed: a descendant selector also reaches a dialog a card opens (the
+   GraphicEQ import and export file dialogs), whose buttons keep their own
+   size. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton,
+QFrame#FilterCardRow QComboBox[filterSelector="true"],
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit {
     min-height: 18px; max-height: 18px; padding-top: 1px; padding-bottom: 1px;
 }
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#VelvetAdvancedToggle {
+/* Velvet's worded keys have no vertical padding: their 20 px box and the
+   border make the 22. */
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate {
     min-height: 20px; max-height: 20px; padding-top: 0px; padding-bottom: 0px;
 }
-/* Latched and pressed caps drop their label 1 px (the cards' 4px/2px
-   padding shift, 1px/1px becomes 2px/0px here). */
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChip:checked,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChip:pressed,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChipMore:checked,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChipMore:pressed,
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#GraphicEQActionButton:pressed {
+/* Latched and pressed caps drop their label 1 px (the 4px/2px padding of
+   the rules above becomes 2px/0px here). */
+QFrame#FilterCardRow QToolButton#DeviceChip:checked,
+QFrame#FilterCardRow QToolButton#DeviceChip:pressed,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:checked,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:pressed,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:pressed {
     padding-top: 2px; padding-bottom: 0px;
 }
 /* An engaged Channel key's 2 px lamp row and an engaged Stage key's 2 px
    top bar take their extra pixel from the padding on their own side. */
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip:checked {
+QFrame#FilterCardRow QToolButton#ChannelChip:checked {
     padding-top: 1px; padding-bottom: 0px;
 }
-QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChip:checked {
+QFrame#FilterCardRow QToolButton#StageChip:checked {
     padding-top: 0px; padding-bottom: 1px;
+}
+/* The patchbay's add-channel field is a 22 px box level with its ADD cap
+   (HardwarePatchbayView::channelEditorRect), in the card list and in the
+   routing dialog alike; its padding leaves the text an 18 px box. */
+QLineEdit#PatchbayChannelEditor { padding-top: 1px; padding-bottom: 1px; }
+
+/* Modern rows: a one-line unit stacks its three bare
+   actions in one column beside the editor, so each glyph takes a slimmer
+   cap and the column stays within the height of the knob row. */
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
+    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
+}
+/* The biquad knobs are 84 px boxes around a 66 px instrument (the editor
+   pins that width for the cards). On one line the width goes to the
+   value fields instead, so the knob box is trimmed to the instrument. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
+    min-width: 66px; max-width: 66px;
+}
+/* The same trade for the type selector: a little less air around its
+   text and arrow keeps the whole editor beside the left column. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
+    padding-left: 8px; padding-right: 22px;
+}
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::drop-down { width: 18px; }
+/* The Preamp, Delay and all-pass knobs are 74 px in their cards; in a row
+   they take the 66 px of the biquad knobs, so those units are as tall as
+   a Filter unit. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
+    min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
 }

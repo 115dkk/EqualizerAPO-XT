@@ -72,14 +72,14 @@ class FilterTable : public QWidget
 public:
 	// Filter-list render mode. ModernCards (FilterCardRow) is the canonical,
 	// actively-maintained filter-list UI; the runtime default below is ModernCards.
-	// LegacyRows (FilterTableRow) is FROZEN: it is kept only as a reversible
+	// LegacyEditor (FilterTableRow) is FROZEN: it is kept only as a reversible
 	// fallback and must NOT be extended. Any new filter-list behavior must be added
 	// to the card path (FilterCardRow), not duplicated into the legacy path.
 	// See docs/FilterListUiPolicy.md for the rationale.
 	enum RenderMode
 	{
 		ModernCards,
-		LegacyRows,
+		LegacyEditor,
 		// Experiment (EAPO_MODERN_ROWS): the same card editors and decisions
 		// as ModernCards, but every line is built as one row with its header
 		// controls at its left, never mixed with cards in one list. Only a
@@ -222,7 +222,7 @@ public:
 	// True for both modes that build FilterCardRow widgets.
 	bool usesCardRows() const
 	{
-		return renderMode != LegacyRows;
+		return renderMode != LegacyEditor;
 	}
 
 	// Facts from the analysis engine's most recent configuration load,
@@ -292,7 +292,7 @@ private:
 	// row GUI (createRowGui), the row widget for the render mode, the item's
 	// GUI preferences and the GUI's signal connections. The one construction
 	// updateGuis, updateSingleRowGui and insertRowAt share; descriptor is the
-	// card row's presentation (unused in LegacyRows).
+	// card row's presentation (unused in LegacyEditor).
 	QWidget* buildRow(int index, Item* item, FilterCardDescriptor descriptor, RowBuildTiming* timing = nullptr);
 	// Device and stage facts for the shared document walk, and the fan-out of
 	// its per-line flow to the row editors.
@@ -305,7 +305,7 @@ private:
 	// Incremental structural updates for the card path only: splice one row
 	// widget into/out of the grid and re-address the rows below, instead of
 	// tearing down and rebuilding every row widget. Both fall back to
-	// updateGuis() on any inconsistency, and LegacyRows always takes the full
+	// updateGuis() on any inconsistency, and LegacyEditor always takes the full
 	// rebuild (frozen fallback, docs/FilterListUiPolicy.md).
 	void insertRowAt(int index);
 	void removeRowAt(int index);
@@ -323,12 +323,12 @@ private:
 	// Card-path list chrome (shared insertion contract, docs/skins/README.md):
 	// the trailing AddCardRow lives in the grid and is rebuilt by updateGuis;
 	// the hover-only FilterInsertSeam floats over the first card's top margin
-	// and is created once. Both are ModernCards-only; LegacyRows keeps the
+	// and is created once. Both are ModernCards-only; LegacyEditor keeps the
 	// frozen toolbar flow.
 	void addRowActivated(AddCardRow* addCardRow);
 	void insertSeamActivated();
 	// Repositions the seam over the first boundary and syncs its visibility
-	// (hidden in LegacyRows and for an empty document).
+	// (hidden in LegacyEditor and for an empty document).
 	void syncListChrome();
 	// Records the post-mutation document into undoHistory; connected to this
 	// table's own linesChanged in the constructor.

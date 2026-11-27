@@ -96,6 +96,17 @@ EqualizerAPO-XT는 Windows용 시스템 전체 이퀄라이저인 [Equalizer APO
     [docs/features/send.md](docs/features/send.md)). 남은 것은 실제 다중
     엔드포인트 인터페이스에서의 측정과, 받는 쪽 주기를 따르는 지연
     (`Latency=Auto`)입니다.
+11. 필터 목록을 짧게 만듭니다([#491](https://github.com/115dkk/EqualizerAPO-XT/issues/491)). 원본의 행이 77px에
+    보이던 줄 하나에 카드는 135~145px을 씁니다. 지금까지는 카드에서 필요 없던
+    부품을 뺐습니다. 올패스와 Hilbert 카드의 그래프 스위치를 빼고
+    ([#536](https://github.com/115dkk/EqualizerAPO-XT/pull/536), [#540](https://github.com/115dkk/EqualizerAPO-XT/pull/540)), 서브우퍼 라우팅 카드를 한 줄짜리
+    참조 카드로 바꾸고([#539](https://github.com/115dkk/EqualizerAPO-XT/pull/539)), 늘 펼쳐져 있던 채널 매핑을 접을 수
+    있게 했습니다([#533](https://github.com/115dkk/EqualizerAPO-XT/pull/533)). 세 번째 인터페이스인 Modern rows를 넣고
+    있습니다. 필터 하나를 스킨의 모습 그대로 한 줄에 표시하는 모드입니다. 첫
+    단계로 원본의 행 배치를 Legacy editor로 이름을 바꿨습니다
+    ([#546](https://github.com/115dkk/EqualizerAPO-XT/pull/546)). Hardware Rack 카드의 단추를 낮추고 윤곽선이 네 면에
+    모두 나오게 했습니다([#547](https://github.com/115dkk/EqualizerAPO-XT/pull/547)). 다음은 그 스킨의 Modern rows,
+    나머지 네 스킨 순서입니다.
 
 ## 주요 기능
 

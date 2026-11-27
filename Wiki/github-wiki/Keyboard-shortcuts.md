@@ -27,13 +27,13 @@ The most useful ones:
 | Ctrl+Alt+D | View > Interface > Dark theme | Switches between the light and dark theme |
 | Ctrl+Alt+F | View > Interface > Fullscreen graph | Lets the analysis graph fill the window, hiding the filter list and toolbar |
 
-The skin and theme shortcuts do nothing in **Legacy rows**. While a text field has the focus, Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A act on the text in that field, not on the filter list.
+The skin and theme shortcuts do nothing in the **Legacy editor**. While a text field has the focus, Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A act on the text in that field, not on the filter list.
 
 After you remove lines with a remove button or the Delete key, a notice with an **Undo** button stays up for 8 seconds. When you close a tab or the window with unsaved changes, Enter saves and Esc cancels.
 
 ## Filter list
 
-These work when the filter list has the focus, in both the cards and Legacy rows.
+These work when the filter list has the focus, in both the cards and the Legacy editor.
 
 | Key or gesture | What it does |
 |---|---|
@@ -51,7 +51,7 @@ These work when the filter list has the focus, in both the cards and Legacy rows
 
 Clicking a line that is already part of a selection keeps the selection, so the whole group can be dragged. Dropping lines on another tab moves them there.
 
-When you edit a line as raw text, Enter or clicking elsewhere applies the text. In Legacy rows, Esc cancels and restores the old text; in the cards, Esc does not cancel.
+When you edit a line as raw text, Enter or clicking elsewhere applies the text. In the Legacy editor, Esc cancels and restores the old text; in the cards, Esc does not cancel.
 
 The mouse wheel over the list scrolls the list. A knob, value box or drop-down list in a card only takes the wheel after you click it.
 
@@ -59,11 +59,11 @@ The mouse wheel over the list scrolls the list. A knob, value box or drop-down l
 
 ## Knobs
 
-Knobs appear on the Preamp, Delay and All-pass cards and in the Legacy rows editors for filters, delay and loudness correction.
+Knobs appear on the Preamp, Delay and All-pass cards and, in the Legacy editor, on the editors for filters, delay and loudness correction.
 
 | Gesture | What it does |
 |---|---|
-| Drag | Turns the knob. In Studio Glass, Stock Flat, Hardware Rack, Signal Matrix and Legacy rows the knob follows the pointer around its arc; in Precision Minimal you drag up and down, and 200 pixels cover the whole range |
+| Drag | Turns the knob. In Studio Glass, Stock Flat, Hardware Rack, Signal Matrix and the Legacy editor the knob follows the pointer around its arc; in Precision Minimal you drag up and down, and 200 pixels cover the whole range |
 | **Shift** while dragging | Turns it at a tenth of the speed |
 | Double-click | Resets it: Preamp to 0 dB, Delay to 0, All-pass to 100 Hz and its default Q |
 | Up / Down or Left / Right | One step (0.1 dB on the Preamp card) |
@@ -71,13 +71,13 @@ Knobs appear on the Preamp, Delay and All-pass cards and in the Legacy rows edit
 | Home / End | Minimum / maximum |
 | Wheel | Turns it after you have clicked the knob |
 
-Double-click reset works on the Preamp, Delay and All-pass cards only. The knobs in the Legacy rows editors have no reset.
+Double-click reset works on the Preamp, Delay and All-pass cards only. The knobs in the Legacy editor have no reset.
 
 Double-clicking the number under a knob opens it for typing. Enter or clicking elsewhere applies what you typed.
 
 ## Value boxes
 
-Value boxes are the number fields without arrows: the Graphic EQ card's frequency and gain, the IIR and Velvet cards, and the number fields in the Legacy rows editors.
+Value boxes are the number fields without arrows: the Graphic EQ card's frequency and gain, the IIR and Velvet cards, and the number fields in the Legacy editor.
 
 | Gesture | What it does |
 |---|---|
@@ -102,7 +102,7 @@ On the Graphic EQ card's plot:
 | Wheel | Zooms the dB axis around the pointer |
 | Right-drag | Moves the dB axis up and down |
 
-The arrow keys move only the focused point, and there is no Shift fine step on this plot. In the Legacy rows editor the arrow keys move every selected point, the wheel zooms both axes (or only one when the pointer is over that axis's ruler), and Backspace does not remove points.
+The arrow keys move only the focused point, and there is no Shift fine step on this plot. In the Legacy editor the arrow keys move every selected point, the wheel zooms both axes (or only one when the pointer is over that axis's ruler), and Backspace does not remove points.
 
 ## Other cards
 
@@ -119,7 +119,7 @@ How the routing view of the Copy card reacts depends on the skin.
 * **Studio Glass:** click a line to select it, Ctrl+click to add or remove it. Drag from one channel to another to connect them. Click a channel to select all its lines. Double-click a line to change its factor. Delete or Backspace removes the selected lines.
 * **Hardware Rack and Signal Matrix:** click a crossing point to connect or disconnect at unity gain; double-click to type a factor.
 * **Precision Minimal and Stock Flat:** double-click a term to edit it.
-* **Legacy rows:** Delete removes the selected connections; double-click a connection to edit its factor, and Esc cancels the edit.
+* **Legacy editor:** Delete removes the selected connections; double-click a connection to edit its factor, and Esc cancels the edit.
 
 ## Filter picker
 

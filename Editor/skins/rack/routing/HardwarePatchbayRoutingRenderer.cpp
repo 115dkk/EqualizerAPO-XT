@@ -14,13 +14,24 @@
 
 using std::vector;
 
+namespace
+{
+// Every cap of the field (crosspoint caps and the strip's keys) is one 22 px
+// module with its outline, the height of every cap in the card list
+// (RackSkin::controlContract). The pitch (cellH 42) and the strip (26) give
+// up the 8 px the caps lost against the earlier 30, so the gap between
+// stacked caps stays as it was. The patchbay is the same part wherever it is
+// shown, the routing dialog included.
+constexpr int kCapHeight = 22;
+}
+
 HardwarePatchbayView::HardwarePatchbayView(const vector<Assignment>& assignments,
 	const vector<std::wstring>& channelNames, const RoutingPortModel& portModel,
 	QWidget* parent, const SkinTokens& tokens)
 	: GridRoutingViewBase(assignments, channelNames, portModel, parent, tokens,
 		// Widened to the engraved labels in updateMetrics(); the defaults fit
 		// a Copy row's short device names.
-		{ .rowHeaderWidth = 60, .colHeaderHeight = 34, .cellW = 56, .cellH = 50 },
+		{ .rowHeaderWidth = 60, .colHeaderHeight = 34, .cellW = 56, .cellH = 42 },
 		QStringLiteral("PatchbayEditor"), QStringLiteral("PatchbayChannelEditor"))
 {
 	rebuildMatrix();
@@ -49,32 +60,6 @@ void HardwarePatchbayView::updateMetrics()
 	// The row label right-aligns into rowHeaderWidth - 11 (the unpatch
 	// target's slot stays clear).
 	rowHeaderWidth = qMax(60, longestOutput + 17);
-
-	// Experiment (EAPO_MODERN_ROWS): in a one-line unit the caps are 8 px
-	// shorter, and the pitch and the strip give up the same 8 px so the gap
-	// between stacked caps stays what it is on a card.
-	inlineRow = inInlineRow();
-	cellH = inlineRow ? 42 : 50;
-	stripH = inlineRow ? 26 : 34;
-}
-
-bool HardwarePatchbayView::inInlineRow() const
-{
-	for (const QWidget* w = parentWidget(); w != nullptr; w = w->parentWidget())
-	{
-		if (w->property("inlineRow").toBool())
-			return true;
-	}
-	return false;
-}
-
-bool HardwarePatchbayView::event(QEvent* event)
-{
-	// The view is normally created inside its row, but a host that mounts
-	// it later must still get the row's metrics.
-	if (event->type() == QEvent::ParentChange && inInlineRow() != inlineRow)
-		rebuildMatrix();
-	return GridRoutingViewBase::event(event);
 }
 
 QRect HardwarePatchbayView::stripRect() const
@@ -97,7 +82,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 	const bool dark = skinTokens.dark;
 	QPainter p(this);
 	p.setRenderHint(QPainter::Antialiasing, true);
-	paintedParts.clear();
+	capsPainted.clear();
 
 	// Brushed metal panel background.
 	QLinearGradient panel(0, 0, 0, height());
@@ -196,7 +181,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			p.setPen(capInk);
 			p.drawText(cap, Qt::AlignCenter, capText);
 		}
-		paintedParts.append({ cap, latched ? QStringLiteral("checked") : QString() });
+		capsPainted.append({ cap, latched ? QStringLiteral("checked") : (prelit ? QStringLiteral("hover") : QString()) });
 	};
 
 	removeRects.clear();
@@ -231,7 +216,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			// switch bank in rack_dark.qss / rack_light.qss; a routed cap
 			// latches like the header caps (RackPalette).
 			const int capW = qMin(cellW - 10, 46);
-			const int capH = capHeight();
+			const int capH = kCapHeight;
 			QRect cap(cr.center().x() - capW / 2, cr.center().y() - capH / 2, capW, capH);
 
 			if (!cell.present)
@@ -250,7 +235,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 				p.setBrush(RackPalette::CapDimple(dark));
 				p.setPen(Qt::NoPen);
 				p.drawEllipse(cap.center() + QPoint(1, 1), 2, 2);
-				paintedParts.append({ cap, QStringLiteral("cell") });
+				capsPainted.append({ cap, QStringLiteral("cell") });
 				continue;
 			}
 
@@ -260,7 +245,7 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 			// the danger lamp.
 			const bool negative = cell.factor < 0;
 			cap.translate(0, 1);
-			paintedParts.append({ cap, QStringLiteral("cell checked") });
+			capsPainted.append({ cap, QStringLiteral("cell checked") });
 			QLinearGradient face(cap.topLeft(), cap.bottomLeft());
 			QColor edge, bevelTop, bevelBottom, ink;
 			if (negative)
@@ -337,18 +322,18 @@ void HardwarePatchbayView::paintEvent(QPaintEvent*)
 		const QString capText = channelsExpanded
 			? QStringLiteral("ALL")
 			: QStringLiteral("+%1").arg(fold.hiddenChannels);
-		revealRect = QRect(x, strip.top(), 44, capHeight());
+		revealRect = QRect(x, strip.top(), 44, kCapHeight);
 		drawCap(revealRect, channelsExpanded, capText, hoveredControl == 1);
 		// Tracked engraving under the cap's right shoulder names the bank.
 		p.setFont(label);
 		p.setPen(withAlpha(QColor(t.mutedText), 220));
 		const QString engrave = QStringLiteral("CHANNELS");
-		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, capHeight()),
+		p.drawText(QRect(x + 52, strip.top(), fm.horizontalAdvance(engrave) + 8, kCapHeight),
 			Qt::AlignVCenter | Qt::AlignLeft, engrave);
 		x += 52 + fm.horizontalAdvance(engrave) + 24;
 	}
 
-	addRect = QRect(x, strip.top(), 44, capHeight());
+	addRect = QRect(x, strip.top(), 44, kCapHeight);
 	drawCap(addRect, false, QStringLiteral("ADD"), hoveredControl == 2);
 }
 
@@ -360,16 +345,10 @@ QRect HardwarePatchbayView::factorEditorRect(int outRow, int inCol) const
 
 QRect HardwarePatchbayView::channelEditorRect() const
 {
-	// In a one-line unit the field is a 22 px module level with the ADD cap.
-	if (inlineRow)
-	{
-		return addRect.isNull()
-			? QRect(6, stripRect().top(), 110, capHeight())
-			: QRect(addRect.right() + 10, addRect.top(), 110, capHeight());
-	}
+	// The add-channel field is a 22 px box level with the ADD cap beside it.
 	return addRect.isNull()
-		? QRect(6, stripRect().top() + 4, 110, 24)
-		: QRect(addRect.right() + 10, addRect.top() + 3, 110, 24);
+		? QRect(6, stripRect().top(), 110, kCapHeight)
+		: QRect(addRect.right() + 10, addRect.top(), 110, kCapHeight);
 }
 
 RoutingView* HardwarePatchbayRoutingRenderer::create(const vector<Assignment>& assignments,

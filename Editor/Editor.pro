@@ -302,6 +302,7 @@ SOURCES += main.cpp\
 	helpers/QtSndfileHandle.cpp \
 	gallery/GalleryGates.cpp \
 	gallery/GalleryKnobSpecimen.cpp \
+	gallery/GalleryOutlineCheck.cpp \
 	gallery/GalleryProbes.cpp \
 	gallery/GallerySelfTests.cpp \
 	gallery/GallerySkinShots.cpp \
@@ -687,6 +688,7 @@ HEADERS  += \
 	helpers/QtSndfileHandle.h \
 	EditorGates.h \
 	SkinGallery.h \
+	gallery/GalleryOutlineCheck.h \
 	gallery/GalleryStallWatch.h \
 	gallery/GallerySupport.h \
 	SkinTokens.h \

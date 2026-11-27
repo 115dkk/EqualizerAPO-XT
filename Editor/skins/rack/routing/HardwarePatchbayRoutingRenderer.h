@@ -33,7 +33,7 @@ public:
 		QWidget* parent, const SkinTokens& tokens);
 
 	QSize sizeHint() const override;
-	QList<QPair<QRect, QString>> galleryOutlinedParts() const override { return paintedParts; }
+	QList<QPair<QRect, QString>> paintedCaps() const override { return capsPainted; }
 
 protected:
 	void paintEvent(QPaintEvent*) override;
@@ -45,17 +45,10 @@ private:
 	// The faceplate strip under the button field (expansion latch + ADD
 	// button).
 	QRect stripRect() const;
-	// Experiment (EAPO_MODERN_ROWS): true while the field sits in a one-line
-	// unit, where every cap is a 22 px module instead of a card's 30 px cap.
-	bool inInlineRow() const;
-	int capHeight() const { return inlineRow ? 22 : 30; }
 
-	bool event(QEvent* event) override;
-
-	int stripH = 34;
-	bool inlineRow = false;
-	// EXPERIMENT TOOLING: the caps the last paint drew (galleryOutlinedParts).
-	QList<QPair<QRect, QString>> paintedParts;
+	int stripH = 26;
+	// The caps the last paint drew, for paintedCaps().
+	QList<QPair<QRect, QString>> capsPainted;
 };
 
 class HardwarePatchbayRoutingRenderer : public IRoutingRenderer

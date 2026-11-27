@@ -67,6 +67,30 @@ namespace
 // whenever the QMainWindow's toolbars/dock widgets/menu-widget structure changes,
 // so stale layouts from older builds are discarded instead of force-applied.
 const int kWindowStateVersion = 1;
+
+FilterTable::RenderMode renderModeForListMode(EditorSettings::ListMode mode)
+{
+	switch (mode)
+	{
+	case EditorSettings::ListMode::Cards:
+		return FilterTable::ModernCards;
+	case EditorSettings::ListMode::LegacyEditor:
+		return FilterTable::LegacyEditor;
+	}
+	return FilterTable::ModernCards;
+}
+
+EditorSettings::ListMode listModeForRenderMode(FilterTable::RenderMode mode)
+{
+	switch (mode)
+	{
+	case FilterTable::ModernCards:
+		return EditorSettings::ListMode::Cards;
+	case FilterTable::LegacyEditor:
+		return EditorSettings::ListMode::LegacyEditor;
+	}
+	return EditorSettings::ListMode::Cards;
+}
 }
 
 void MainWindow::loadPreferences()
@@ -79,7 +103,7 @@ void MainWindow::loadPreferences()
 	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isSystemDarkMode());
 	skinId = choice.id;
 	skinDark = choice.dark;
-	currentRenderMode = settings.value(QLatin1String(EditorSettings::Keys::LegacyRows), false).toBool() ? FilterTable::LegacyRows : FilterTable::ModernCards;
+	currentRenderMode = renderModeForListMode(EditorSettings::readListMode(settings));
 	// The layout probe starts from a clean, deterministic right dock without
 	// reading or mutating the user's saved window arrangement.
 	graphDockPosition = analysisLayoutTestMode ? 2
@@ -201,7 +225,7 @@ void MainWindow::savePreferences()
 	settings.setValue(QLatin1String(EditorSettings::Keys::TabIndex), ui->tabWidget->currentIndex());
 	settings.setValue(QLatin1String(EditorSettings::Keys::RecentFiles), recentFiles);
 	EditorSettings::writeSkinChoice(settings, { skinId, skinDark });
-	settings.setValue(QLatin1String(EditorSettings::Keys::LegacyRows), currentRenderMode == FilterTable::LegacyRows);
+	EditorSettings::writeListMode(settings, listModeForRenderMode(currentRenderMode));
 	settings.setValue(QLatin1String(EditorSettings::Keys::GraphDockPosition), graphDockPosition);
 
 	settings.sync();
@@ -251,9 +275,9 @@ void MainWindow::setupRedesignActions()
 	modernAction->setCheckable(true);
 	modernAction->setData(static_cast<int>(FilterTable::ModernCards));
 	interfaceModeActionGroup->addAction(modernAction);
-	QAction* legacyAction = interfaceMenu->addAction(tr("Legacy rows"));
+	QAction* legacyAction = interfaceMenu->addAction(tr("Legacy editor"));
 	legacyAction->setCheckable(true);
-	legacyAction->setData(static_cast<int>(FilterTable::LegacyRows));
+	legacyAction->setData(static_cast<int>(FilterTable::LegacyEditor));
 	interfaceModeActionGroup->addAction(legacyAction);
 	connect(interfaceModeActionGroup, SIGNAL(triggered(QAction*)), this, SLOT(interfaceModeSelected(QAction*)));
 

@@ -36,8 +36,9 @@ preserved as the unmodernized original design, not a deprecation candidate.
 
 ## The heritage presentation
 
-Legacy rows are a whole presentation, not just a different row widget. When
-`interface/legacyRows` is set the Editor starts with the platform's native
+The Legacy editor (called Legacy rows up to v2.85) is a whole presentation,
+not just a different row widget. When `interface/listMode` is `legacy` the
+Editor starts with the platform's native
 widget style (no Fusion/CustomStyle), no skin stylesheet or palette
 (`SkinManager::applyHeritage`), the stock ClearType font engine and system
 fonts (no bundled DM Sans/Pretendard), the native Windows caption (no custom
@@ -57,8 +58,8 @@ every list behavior risks being implemented twice. The rule is therefore:
 
 - Add new filter-list behavior to the card path (`FilterCardRow` and the
   supporting `Editor/widgets/` code).
-- Legacy rows guarantee only that existing usage keeps working (maintainer
-  decision, audit #348 B1). They get no new presentation of their own, and
+- The Legacy editor guarantees only that existing usage keeps working
+  (maintainer decision, audit #348 B1). It gets no new presentation of its own, and
   parity with the card path is not a goal in itself.
 - Logic a legacy row shares with its card lives in one place that both use,
   never in two copies. The legacy VST row shares its document model
