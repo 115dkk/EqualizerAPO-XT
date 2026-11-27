@@ -2131,4 +2131,14 @@ QFrame#FilterCardRow QComboBox#SendModeCombo:focus,
 QFrame#FilterCardRow QComboBox#SendTargetCombo:on,
 QFrame#FilterCardRow QComboBox#SendModeCombo:on {
     border-color: @ACCENT@;
+}/* A Channel row lays every seat of the layout and the add field on its one
+   line. With the card's 8 px side padding the line was wider than the row,
+   and the layout squeezed the ALL seat (whose sheet minimum, 24 px, is
+   narrower than its legend) down to an ellipsis. In a row a seat keeps
+   3 px of air on each side and is never narrower than a three-letter
+   legend (LFE, ALL), so every seat prints its whole name and the add field
+   takes what is left. */
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip {
+    padding-left: 3px; padding-right: 3px; min-width: 28px;
 }
