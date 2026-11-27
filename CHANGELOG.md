@@ -14,6 +14,8 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+## v2.86.1 — 2026-11-27
+
 - **Editor: the Hardware Rack skin's buttons show all four edges, and they
   are lower.** In the dark finish the outline of buttons, selectors and
   fields was almost the colour of the panel, so most of their edges did not
