@@ -72,6 +72,12 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 	wiringLayout->setContentsMargins(0, 0, 0, 0);
 	wiringLayout->setSpacing(10);
 	pageLayout->addLayout(wiringLayout);
+	rowStatusLabel = new QLabel(page);
+	rowStatusLabel->setObjectName(QStringLiteral("MinimalRefStatus"));
+	rowStatusLabel->setWordWrap(true);
+	rowStatusLabel->setContentsMargins(0, 2, 0, 0);
+	rowStatusLabel->setVisible(false);
+	pageLayout->addWidget(rowStatusLabel);
 
 	// The path prints container-first, the way a terminal prints one: the
 	// as-written location prefix ("Surround\") in muted ink, then the payload
@@ -250,19 +256,18 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	// reserved for "no meaning" in this skin.
 	readoutLabel->setText(state.readout.join(QStringLiteral("  ")));
 
-	const bool hasStatus = !state.statusText.isEmpty();
-	statusLabel->setVisible(hasStatus);
-	if (hasStatus)
+	// Diagnostic grammar: "!" warns, "!!" is critical. The marker states the
+	// severity in pure text; the ink tag (QSS severity property) repeats it
+	// in colour, like the analysis chips.
+	statusLine.clear();
+	if (!state.statusText.isEmpty())
 	{
-		// Diagnostic grammar: "!" warns, "!!" is critical. The marker states
-		// the severity in pure text; the ink tag (QSS severity property)
-		// repeats it in colour, like the analysis chips.
 		const QString marker = state.statusSeverity == ReferenceCardState::Severity::Critical
 			? QStringLiteral("!!") : QStringLiteral("!");
-		statusLabel->setFullText(marker + QLatin1Char(' ') + state.statusText);
+		statusLine = marker + QLatin1Char(' ') + state.statusText;
 	}
-	statusLabel->setProperty("severity", referenceCardSeverityName(state.statusSeverity));
-	repolish(statusLabel);
+	statusSeverity = referenceCardSeverityName(state.statusSeverity);
+	restateStatus();
 
 	// The Browse command doubles as the Locate recovery entry while the
 	// reference is broken. Same condition the hosts use for their translated
@@ -289,7 +294,30 @@ void MinimalReferenceCardView::setInlineRow(bool inlineRow)
 		return;
 	inRow = inlineRow;
 	restateNameFloor();
+	restateStatus();
 	updateRowArrangement();
+}
+
+void MinimalReferenceCardView::restateStatus()
+{
+	// A card folds the status into its one printed line, tail-elided with
+	// the tooltip behind it. Across a row that line also holds the name and
+	// the commands, so the sentence was cut and took the name down to its
+	// floor; in a row the sentence prints whole on its own line instead.
+	const bool hasStatus = !statusLine.isEmpty();
+	statusLabel->setVisible(hasStatus && !inRow);
+	rowStatusLabel->setVisible(hasStatus && inRow);
+	if (hasStatus)
+	{
+		statusLabel->setFullText(statusLine);
+		rowStatusLabel->setText(statusLine);
+		rowStatusLabel->setToolTip(statusLine);
+	}
+	for (QLabel* label : { static_cast<QLabel*>(statusLabel), rowStatusLabel })
+	{
+		label->setProperty("severity", statusSeverity);
+		repolish(label);
+	}
 }
 
 void MinimalReferenceCardView::updateRowArrangement()
