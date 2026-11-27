@@ -1543,10 +1543,35 @@ bool sweepFocusedFieldThenSlider(const FilterCardRow* row, bool valueField)
 	return turnFirstSlider(row);
 }
 
+enum class UntouchedLatencyAction
+{
+	Focus,
+	Blur,
+	Enter
+};
+
+// Send has no value slider. Exercise its untouched field independently of
+// the slider routes, including a focus-out before the close decision.
+// QLineEdit's initial setText can lead to editingFinished with isModified
+// still false; accepting that signal must not rewrite the original line.
+bool sweepUntouchedSendLatency(const FilterCardRow* row, UntouchedLatencyAction action)
+{
+	QLineEdit* field = row->findChild<QLineEdit*>(QStringLiteral("SendLatencyEdit"));
+	if (field == nullptr || !field->isVisible() || !field->isEnabled())
+		return false;
+	field->setFocus(Qt::MouseFocusReason);
+	if (action == UntouchedLatencyAction::Blur)
+		field->clearFocus();
+	else if (action == UntouchedLatencyAction::Enter)
+		pressKey(field, Qt::Key_Return);
+	return true;
+}
+
 struct SweepRoute
 {
 	const char* name = "";
 	std::function<bool(const FilterCardRow*)> apply;
+	bool preservesLine = false;
 };
 
 QString joinLines(const QStringList& lines)
@@ -1590,6 +1615,9 @@ int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
 		{ "check", [](const FilterCardRow* r) { return sweepCheck(r); } },
 		{ "focused-field-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, false); } },
 		{ "open-value-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, true); } },
+		{ "send-latency-focused", [](const FilterCardRow* r) { return sweepUntouchedSendLatency(r, UntouchedLatencyAction::Focus); }, true },
+		{ "send-latency-blurred", [](const FilterCardRow* r) { return sweepUntouchedSendLatency(r, UntouchedLatencyAction::Blur); }, true },
+		{ "send-latency-enter", [](const FilterCardRow* r) { return sweepUntouchedSendLatency(r, UntouchedLatencyAction::Enter); }, true },
 	};
 
 	QTemporaryDir configDir;
@@ -1628,6 +1656,7 @@ int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
 					QStringList afterSave;
 					QStringList finalLines;
 					QString diskAfterSave;
+					int lineChanges = 0;
 					int prompts = 0;
 					bool applied = false;
 					{
@@ -1644,6 +1673,7 @@ int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
 						if (row != nullptr)
 						{
 							before = table->getLines();
+							QObject::connect(table, &FilterTable::linesChanged, table, [&lineChanges]() { ++lineChanges; });
 							applied = route.apply(row);
 							QCoreApplication::processEvents();
 							QCoreApplication::processEvents();
@@ -1682,6 +1712,13 @@ int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
 					cases++;
 					const QString disk = joinLines(readConfigText(path).split(QLatin1Char('\n')));
 					QStringList issues;
+					if (route.preservesLine)
+					{
+						if (edited != before || finalLines != before)
+							issues << QStringLiteral("the untouched field rewrote the line");
+						if (lineChanges != 0 || prompts != 0)
+							issues << QStringLiteral("the untouched field announced %1 edit(s) and %2 prompt(s)").arg(lineChanges).arg(prompts);
+					}
 					if (disk != joinLines(finalLines))
 						issues << QStringLiteral("the file differs from the document at exit");
 					if (joinLines(edited) != joinLines(before) && joinLines(finalLines) == joinLines(before))
