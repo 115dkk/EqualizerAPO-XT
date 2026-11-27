@@ -45,7 +45,19 @@ const int timesWidth = 18;
 // The inner padding of a summand box and the gap after it.
 const int boxPadding = 9;
 const int boxGap = 6;
-const int boxHeight = 28;
+// The summand boxes and the add box: the list's one cap height inside the
+// filter list, their earlier 28 px in the subwoofer routing window.
+const int windowBoxHeight = 28;
+
+bool insideFilterList(const QWidget* widget)
+{
+	for (; widget != nullptr; widget = widget->parentWidget())
+	{
+		if (widget->objectName() == QLatin1String("FilterCardRow"))
+			return true;
+	}
+	return false;
+}
 }
 
 QSize BlockChipView::sizeHint() const
@@ -87,6 +99,7 @@ void BlockChipView::paintEvent(QPaintEvent*)
 	const QColor text(t.text), muted(t.mutedText);
 	const QFont nameFont = FlatPaint::bodyFont(t, 13);
 	const QFont valueFont = FlatPaint::numberFont(t, 14);
+	const int boxHeight = insideFilterList(this) ? FlatPaint::listCapHeight : windowBoxHeight;
 	const QFont channelFont = FlatPaint::bodyFont(t, 14, QFont::DemiBold);
 	const QFont signFont = FlatPaint::bodyFont(t, 15);
 	const QFontMetrics nameMetrics(nameFont);
