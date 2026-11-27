@@ -1052,7 +1052,8 @@ QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[head
     min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
 }
 /* The list cursor's reverse block is the number cell; in a row the cell
-   would run the band's full 74 px, so it keeps the power cap's height. */
+   would run the band's full 74 px, so it keeps the power cap's height
+   (restated in the cap-height block below). */
 QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
     min-height: 33px; max-height: 33px;
 }
@@ -1105,4 +1106,43 @@ QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip:hover:!pressed
 QFrame#FilterCardRow[inlineRow="true"] QLineEdit#ChannelChipAdd:hover:!pressed:!checked:!focus:!disabled,
 QFrame#FilterCardRow[inlineRow="true"] QLineEdit#NewChannelAdd:hover:!pressed:!checked:!focus:!disabled {
     background: @BORDER@;
+}
+
+/* ===== One cap height in the list =====
+   Every cap in the filter list - the power cap, a card's header actions
+   when they show their cap, the engraved commands, the GraphicEQ and
+   Velvet commands, the Send selectors, the chips, the add-a-seat prompts,
+   the Send latency on the chips' line and the painted pick-one controls -
+   is 24 px with its hairline, in cards and rows alike. They were 26 to 38
+   px, with about 8 px clear above and below an 11 to 14 px legend; that
+   air is halved to about 4 px. The X5 selectors (the Filter type and the
+   parameter selectors) are captions wearing a caret, not caps, and keep
+   their size; the value fields keep the figure's 35 px; a row's stacked
+   actions stay 18 px bare glyphs (Modern rows block). */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton,
+QFrame#FilterCardRow QPushButton[minimalRefCommand="true"],
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate,
+QFrame#FilterCardRow QComboBox#SendTargetCombo,
+QFrame#FilterCardRow QComboBox#SendModeCombo,
+QFrame#FilterCardRow QComboBox[minimalRefSelector="true"],
+QFrame#FilterCardRow QToolButton#ChannelChip,
+QFrame#FilterCardRow QToolButton#NewChannelChip,
+QFrame#FilterCardRow QToolButton#DeviceChip,
+QFrame#FilterCardRow QToolButton#DeviceChipMore,
+QFrame#FilterCardRow QToolButton#StageChip,
+QFrame#FilterCardRow QToolButton#StageChipUnknown,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit {
+    min-height: 22px; max-height: 22px; padding-top: 0px; padding-bottom: 0px;
+}
+QFrame#FilterCardRow SegmentedControl {
+    min-height: 24px; max-height: 24px;
+}
+/* The list cursor's reverse number cell in a row keeps the power cap's
+   height. */
+QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
+    min-height: 24px; max-height: 24px;
 }
