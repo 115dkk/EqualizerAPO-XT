@@ -1278,7 +1278,7 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Expand filter card</source>
         <translation>Filterkarte aufklappen</translation>
     </message>
@@ -1307,27 +1307,27 @@ Wählen Sie eine andere Datei oder ändern Sie die Konfiguration des Geräts.</t
         <translation>Rohbefehl bearbeiten</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1105"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1127"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Collapse filter card</source>
         <translation>Filterkarte zuklappen</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1362"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1384"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Diese Zeile ausschalten. Sie bleibt als Kommentar in der Datei.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1363"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1385"/>
         <source>Switch this line back on.</source>
         <translation>Diese Zeile wieder einschalten.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1103"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1125"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO konnte diesen Filter nicht vorbereiten. Deshalb wurde die gesamte Konfiguration nicht angewendet, und die bisherigen Einstellungen werden weiter wiedergegeben. Prüfen Sie die Datei oder das Plug-in, das diese Zeile verwendet, oder schalten Sie die Zeile aus.</translation>
     </message>

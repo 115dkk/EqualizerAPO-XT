@@ -1288,7 +1288,7 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Expand filter card</source>
         <translation>Développer la carte du filtre</translation>
     </message>
@@ -1317,27 +1317,27 @@ Supprimer un terme (d&apos;addition)</translatorcomment>
         <translation>Modifier la commande brute</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1105"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1127"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Collapse filter card</source>
         <translation>Replier la carte du filtre</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1362"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1384"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>Désactiver cette ligne. Elle reste dans le fichier sous forme de commentaire.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1363"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1385"/>
         <source>Switch this line back on.</source>
         <translation>Réactiver cette ligne.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1103"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1125"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO n’a pas pu préparer ce filtre : la configuration entière n’a donc pas été appliquée et les réglages précédents continuent d’être lus. Vérifiez le fichier ou le plug-in qu’utilise cette ligne, ou désactivez la ligne.</translation>
     </message>

@@ -1291,7 +1291,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Expand filter card</source>
         <translation>필터 카드 펼치기</translation>
     </message>
@@ -1320,27 +1320,27 @@ Select a different file or change the device configuration.</source>
         <translation>원본 명령 편집</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1105"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1127"/>
         <source>This line was not applied: %1</source>
         <translation>이 줄은 적용되지 않았습니다: %1</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Collapse filter card</source>
         <translation>필터 카드 접기</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1362"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1384"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>이 줄을 끕니다. 파일에는 주석으로 남습니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1363"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1385"/>
         <source>Switch this line back on.</source>
         <translation>이 줄을 다시 켭니다.</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1103"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1125"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO가 이 필터를 준비하지 못해 설정 전체를 적용하지 않았고, 이전 설정이 계속 재생됩니다. 이 줄이 쓰는 파일이나 플러그인을 확인하거나 이 줄을 끄십시오.</translation>
     </message>

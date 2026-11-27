@@ -1277,7 +1277,7 @@ Select a different file or change the device configuration.</source>
 <context>
     <name>FilterCardRow</name>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Expand filter card</source>
         <translation>展开滤波器卡片</translation>
     </message>
@@ -1306,27 +1306,27 @@ Select a different file or change the device configuration.</source>
         <translation>编辑原始命令</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1105"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1127"/>
         <source>This line was not applied: %1</source>
         <translation type="unfinished"></translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1359"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1381"/>
         <source>Collapse filter card</source>
         <translation>折叠滤波器卡片</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1362"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1384"/>
         <source>Switch this line off. It stays in the file as a comment.</source>
         <translation>关闭此行。该行仍以注释形式保留在文件中。</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1363"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1385"/>
         <source>Switch this line back on.</source>
         <translation>重新启用此行。</translation>
     </message>
     <message>
-        <location filename="../widgets/FilterCardRow.cpp" line="1103"/>
+        <location filename="../widgets/FilterCardRow.cpp" line="1125"/>
         <source>Equalizer APO could not prepare this filter, so the whole configuration was not applied and the previous settings keep playing. Check the file or plug-in this line uses, or switch the line off.</source>
         <translation>Equalizer APO 无法准备此滤波器，因此整个配置未被应用，之前的设置仍在播放。请检查此行使用的文件或插件，或关闭此行。</translation>
     </message>
