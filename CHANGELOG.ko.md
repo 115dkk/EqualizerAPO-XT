@@ -8,6 +8,19 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Editor: 고치지 않은 줄은 원래 글자 그대로 남습니다.** 카드의 텍스트 칸을
+  클릭했다가 그냥 벗어나거나 그 칸에서 Enter만 눌러도, 고친 것이 없는데 줄
+  전체가 편집기의 표기로 바뀌는 경우가 있었습니다. Send 줄의 `Latency=20`은
+  `Latency=20ms`로 바뀌면서 키 순서도 달라졌고, `Filter 1:`은 번호가 빠졌고,
+  Include, Convolution, VST, 주석 줄은 콜론 뒤의 여분 공백이 사라졌습니다.
+  그러고 나면 아무도 하지 않은 변경을 저장할지 묻는 창이 나왔습니다. Send
+  줄은 더 나빴습니다. 저장할 것이 없다는 판정이 끝난 뒤에 줄이 바뀌어, 묻는
+  창 없이 창이 닫히고 파일이 화면에 있던 내용과 달라졌습니다. 이제 칸의
+  글자를 실제로 고쳤을 때만 그 줄이 저장됩니다. 해당하는 칸은 Send의
+  LATENCY, 파라메트릭 필터의 숫자 칸 셋(Enter를 눌렀을 때), 주석 줄의 메모,
+  Include·Convolution·MultiConvolution·VST의 경로 칸입니다.
+  ([#549](https://github.com/115dkk/EqualizerAPO-XT/pull/549))
+
 ## v2.86.2 — 2026-11-27
 
 - **Editor, 프랑스어: 필터 카드가 가로로 스크롤되지 않습니다.** 프랑스어에서는

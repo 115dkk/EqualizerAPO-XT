@@ -14,6 +14,21 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor: a line you did not change keeps its text.** Clicking into a text
+  field of a card and leaving it, or pressing Enter in it, could rewrite the
+  whole line in the Editor's own spelling although nothing was edited. A Send
+  line's `Latency=20` became `Latency=20ms` with its keys in another order,
+  `Filter 1:` lost its number, and the extra spaces after the colon of an
+  Include, Convolution, VST or comment line were dropped. The Editor then
+  asked whether to save changes that nobody had made. On a Send line it was
+  worse: the line changed after the Editor had already found nothing to save,
+  so the window closed without asking and the file no longer matched what the
+  Editor had shown. A field now stores its line only when its text was
+  edited. This covers the LATENCY field of Send, the three number fields of a
+  parametric filter (on Enter), the note of a comment line, and the path
+  field of Include, Convolution, MultiConvolution and VST.
+  ([#549](https://github.com/115dkk/EqualizerAPO-XT/pull/549))
+
 ## v2.86.2 — 2026-11-27
 
 - **Editor, French: a filter card no longer scrolls sideways.** In French
