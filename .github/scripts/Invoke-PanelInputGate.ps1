@@ -93,6 +93,12 @@ $plan = [pscustomobject]@{
     # of them (288 x 512 frames, about 3 s); its output then has the input's length.
     Signal = [pscustomobject]@{ SampleRate = 48000; Channels = 2; Frames = 288 * 512; Format = 'float32'; SweepStartHz = 20; SweepEndHz = 20000; SweepDbfs = -18; NoiseDbfs = -30; Seeds = @('12345678', '9abcdef0') }
     BenchmarkArguments = @('--config-path', '{configDirectory}', '-i', '{inputWav}', '-o', '{outputWav}', '--batchsize', '512', '--nopause')
+    # The gate starts the Editor the way a person does, on a runner whose
+    # registry holds no Editor preferences: a new installation. Every case
+    # therefore runs in the presentation a new user gets, and the gate says
+    # which one it found, so a change of that default cannot go by as "Open
+    # panel was still there".
+    Presentation = [pscustomobject]@{ Key = 'HKCU:\SOFTWARE\EqualizerAPO\Configuration Editor\interface'; Value = 'listMode'; Expected = 'rows' }
     MinEditorPixelsChanged = 100
     MinSoundChangeLsb = 33
     AsanOptions = if ($AsanLogDirectory) { 'log_path="' + $AsanLogDirectory.TrimEnd('\', '/') + '\asan":halt_on_error=1' } else { $null }
@@ -416,6 +422,9 @@ foreach ($case in $plan.Cases) {
             Start-Sleep -Milliseconds 200
         }
         Add-Check 'editor-startup' 'Configuration Editor main window' "$main" $true
+        # The Editor stores the presentation it adopted before its window opens.
+        $presentation = [string](Get-ItemProperty -Path $plan.Presentation.Key -Name $plan.Presentation.Value -ErrorAction SilentlyContinue).($plan.Presentation.Value)
+        Add-Check 'presentation' $plan.Presentation.Expected $presentation ($presentation -eq $plan.Presentation.Expected)
 
         $panel = Open-Panel 'A'
         Close-Panel $panel 'OK'
