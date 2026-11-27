@@ -99,6 +99,9 @@ BiQuadFilterGUI::BiQuadFilterGUI(const BiQuadCommand& command)
 		ui->qSpinBox->setValue(command.bandwidthOrQOrS);
 
 	ui->gainSpinBox->setValue(command.dbGain);
+	previousFrequency = ui->freqSpinBox->value();
+	previousGain = ui->gainSpinBox->value();
+	previousQ = ui->qSpinBox->value();
 }
 
 BiQuadFilterGUI::~BiQuadFilterGUI() = default;
@@ -179,6 +182,9 @@ void BiQuadFilterGUI::on_freqDial_valueChanged(int value)
 
 void BiQuadFilterGUI::on_freqSpinBox_valueChanged(double value)
 {
+	if (value == previousFrequency)
+		return;
+	previousFrequency = value;
 	bool previousValue = ui->freqDial->blockSignals(true);
 	ui->freqDial->setValue(round(dialFreqSteps * log(value / dialFreqMin) / log(dialFreqMax / dialFreqMin)));
 	ui->freqDial->blockSignals(previousValue);
@@ -193,6 +199,9 @@ void BiQuadFilterGUI::on_qDial_valueChanged(int value)
 
 void BiQuadFilterGUI::on_qSpinBox_valueChanged(double value)
 {
+	if (value == previousQ)
+		return;
+	previousQ = value;
 	bool previousValue = ui->qDial->blockSignals(true);
 	ui->qDial->setValue(round(dialQSteps * log(value / dialQMin) / log(dialQMax / dialQMin)));
 	ui->qDial->blockSignals(previousValue);
@@ -207,6 +216,9 @@ void BiQuadFilterGUI::on_gainDial_valueChanged(int value)
 
 void BiQuadFilterGUI::on_gainSpinBox_valueChanged(double value)
 {
+	if (value == previousGain)
+		return;
+	previousGain = value;
 	bool previousValue = ui->gainDial->blockSignals(true);
 	ui->gainDial->setValue(round(value / 0.1));
 	ui->gainDial->blockSignals(previousValue);

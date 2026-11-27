@@ -54,5 +54,10 @@ private:
 
 	std::unique_ptr<Ui::BiQuadFilterGUI> ui;
 	BiQuad::Type previousType = BiQuad::PEAKING;
+	// Keyboard-tracking spin boxes also emit valueChanged for an unchanged
+	// value on Enter. Remember the accepted values, not the rounded dials.
+	double previousFrequency = 0.0;
+	double previousGain = 0.0;
+	double previousQ = 0.0;
 	bool qIsBwOrS = false;
 };
