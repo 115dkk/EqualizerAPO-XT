@@ -74,6 +74,7 @@
 #include "Editor/widgets/AudioKnob.h"
 #include "Editor/widgets/EditableValue.h"
 #include "Editor/widgets/FilterCardRow.h"
+#include "Editor/widgets/cards/ReferenceCardView.h"
 #include "Editor/widgets/cards/VSTCardEditor.h"
 #include "Editor/widgets/cards/VSTPluginSession.h"
 
@@ -1559,26 +1560,64 @@ bool sweepFocusedFieldThenSlider(const FilterCardRow* row, bool valueField)
 	return turnFirstSlider(row);
 }
 
-enum class UntouchedLatencyAction
+enum class UntouchedFieldAction
 {
 	Focus,
 	Blur,
 	Enter
 };
 
-// Send has no value slider. Exercise its untouched field independently of
-// the slider routes, including a focus-out before the close decision.
-// QLineEdit's initial setText can lead to editingFinished with isModified
-// still false; accepting that signal must not rewrite the original line.
-bool sweepUntouchedSendLatency(const FilterCardRow* row, UntouchedLatencyAction action)
+void prepareUntouchedFields(const FilterCardRow* row)
 {
-	QLineEdit* field = row->findChild<QLineEdit*>(QStringLiteral("SendLatencyEdit"));
-	if (field == nullptr || !field->isVisible() || !field->isEnabled())
+	// Advanced values are fields too. Opening this section changes no value.
+	if (QToolButton* advanced = row->findChild<QToolButton*>(QStringLiteral("VelvetAdvancedToggle")))
+		advanced->setChecked(true);
+}
+
+QList<QWidget*> untouchedFieldControls(const FilterCardRow* row)
+{
+	QList<QWidget*> fields;
+	for (QLineEdit* field : sweepBodyWidgets<QLineEdit>(row))
+		fields.append(field);
+	for (QAbstractSpinBox* spin : sweepBodyWidgets<QAbstractSpinBox>(row))
+		fields.append(spin);
+	for (QComboBox* combo : sweepBodyWidgets<QComboBox>(row))
+		if (combo->isEditable())
+			fields.append(combo);
+	for (EditableValue* value : sweepBodyWidgets<EditableValue>(row))
+		fields.append(value);
+	// Like EditableValue, the shared reference field is hidden until opened.
+	for (ReferenceCardView* view : sweepBodyWidgets<ReferenceCardView>(row))
+		fields.append(view);
+	return fields;
+}
+
+QString untouchedFieldName(const QWidget* field, int index)
+{
+	return QStringLiteral("%1:%2[%3]").arg(index).arg(QLatin1String(field->metaObject()->className()), field->objectName());
+}
+
+// Give each field a fresh document. An earlier field's commit must not
+// canonicalize the line before a later field gets its own untouched check.
+bool sweepUntouchedField(const FilterCardRow* row, int index, UntouchedFieldAction action)
+{
+	const QList<QWidget*> fields = untouchedFieldControls(row);
+	if (index >= fields.size())
 		return false;
+	QWidget* control = fields.at(index);
+	if (EditableValue* value = qobject_cast<EditableValue*>(control))
+		openEditableValue(value);
+	else if (ReferenceCardView* view = qobject_cast<ReferenceCardView*>(control))
+		view->enterEditMode();
+	QLineEdit* field = qobject_cast<QLineEdit*>(control);
+	if (field == nullptr)
+		field = control->findChild<QLineEdit*>();
+	if (field == nullptr || !field->isVisible() || !field->isEnabled())
+		qFatal("CloseSaveSweep: discovered field cannot be opened");
 	field->setFocus(Qt::MouseFocusReason);
-	if (action == UntouchedLatencyAction::Blur)
+	if (action == UntouchedFieldAction::Blur)
 		field->clearFocus();
-	else if (action == UntouchedLatencyAction::Enter)
+	else if (action == UntouchedFieldAction::Enter)
 		pressKey(field, Qt::Key_Return);
 	return true;
 }
@@ -1586,7 +1625,7 @@ bool sweepUntouchedSendLatency(const FilterCardRow* row, UntouchedLatencyAction 
 struct SweepRoute
 {
 	const char* name = "";
-	std::function<bool(const FilterCardRow*)> apply;
+	std::function<bool(const FilterCardRow*, int)> apply;
 	bool preservesLine = false;
 };
 
@@ -1599,6 +1638,34 @@ QString joinLines(const QStringList& lines)
 			kept.append(line.trimmed());
 	}
 	return kept.join(QStringLiteral(" | "));
+}
+
+QList<SkinGalleryDetail::GalleryRow> closeSaveSweepRows()
+{
+	const QList<SkinGalleryDetail::GalleryRow> originals = SkinGalleryDetail::galleryRows();
+	QList<SkinGalleryDetail::GalleryRow> rows = originals;
+	// These editors serialize their existing fixtures identically, hiding a
+	// needless store. Extra separator spaces are accepted by the parser but
+	// not reproduced by the serializer. Keep these cases out of screenshots.
+	// Biquad, IIR, AllPass, Send and SubwooferRouting already have fixtures
+	// whose spelling differs from their editor's serialization.
+	const QStringList spaced = {
+		QStringLiteral("preamp"), QStringLiteral("include"), QStringLiteral("vst"),
+		QStringLiteral("channel"), QStringLiteral("comment"), QStringLiteral("convolution"),
+		QStringLiteral("multiconvolution"), QStringLiteral("graphiceq"), QStringLiteral("hilbert"),
+		QStringLiteral("velvet_dynamic"), QStringLiteral("delay_zero"), QStringLiteral("newchannel")
+	};
+	for (const SkinGalleryDetail::GalleryRow& source : originals)
+	{
+		if (!spaced.contains(source.name))
+			continue;
+		SkinGalleryDetail::GalleryRow variant = source;
+		variant.name += QStringLiteral("_spacing");
+		const qsizetype separator = variant.line.startsWith(QLatin1Char('#')) ? 0 : variant.line.indexOf(QLatin1Char(':'));
+		variant.line.insert(separator + 1, QStringLiteral("  "));
+		rows.append(variant);
+	}
+	return rows;
 }
 
 // The visible card of the first document line.
@@ -1619,21 +1686,21 @@ int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
 	const int repeats = qMax(1, probeOptionValue(arguments, QStringLiteral("--close-save-sweep"), QStringLiteral("1")).toInt());
 	qWarning("CloseSaveSweep: starting (%d repeat(s))", repeats);
 	const QList<SweepRoute> routes = {
-		{ "slider", [](const FilterCardRow* r) { return sweepSlider(r); } },
-		{ "spin-step", [](const FilterCardRow* r) { return sweepSpin(r, false, false); } },
-		{ "spin-typed", [](const FilterCardRow* r) { return sweepSpin(r, true, false); } },
-		{ "spin-typed-enter", [](const FilterCardRow* r) { return sweepSpin(r, true, true); } },
-		{ "combo", [](const FilterCardRow* r) { return sweepCombo(r); } },
-		{ "lineedit-typed", [](const FilterCardRow* r) { return sweepLineEdit(r, false); } },
-		{ "lineedit-enter", [](const FilterCardRow* r) { return sweepLineEdit(r, true); } },
-		{ "value-typed", [](const FilterCardRow* r) { return sweepEditableValue(r, false); } },
-		{ "value-enter", [](const FilterCardRow* r) { return sweepEditableValue(r, true); } },
-		{ "check", [](const FilterCardRow* r) { return sweepCheck(r); } },
-		{ "focused-field-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, false); } },
-		{ "open-value-then-slider", [](const FilterCardRow* r) { return sweepFocusedFieldThenSlider(r, true); } },
-		{ "send-latency-focused", [](const FilterCardRow* r) { return sweepUntouchedSendLatency(r, UntouchedLatencyAction::Focus); }, true },
-		{ "send-latency-blurred", [](const FilterCardRow* r) { return sweepUntouchedSendLatency(r, UntouchedLatencyAction::Blur); }, true },
-		{ "send-latency-enter", [](const FilterCardRow* r) { return sweepUntouchedSendLatency(r, UntouchedLatencyAction::Enter); }, true },
+		{ "slider", [](const FilterCardRow* r, int) { return sweepSlider(r); } },
+		{ "spin-step", [](const FilterCardRow* r, int) { return sweepSpin(r, false, false); } },
+		{ "spin-typed", [](const FilterCardRow* r, int) { return sweepSpin(r, true, false); } },
+		{ "spin-typed-enter", [](const FilterCardRow* r, int) { return sweepSpin(r, true, true); } },
+		{ "combo", [](const FilterCardRow* r, int) { return sweepCombo(r); } },
+		{ "lineedit-typed", [](const FilterCardRow* r, int) { return sweepLineEdit(r, false); } },
+		{ "lineedit-enter", [](const FilterCardRow* r, int) { return sweepLineEdit(r, true); } },
+		{ "value-typed", [](const FilterCardRow* r, int) { return sweepEditableValue(r, false); } },
+		{ "value-enter", [](const FilterCardRow* r, int) { return sweepEditableValue(r, true); } },
+		{ "check", [](const FilterCardRow* r, int) { return sweepCheck(r); } },
+		{ "focused-field-then-slider", [](const FilterCardRow* r, int) { return sweepFocusedFieldThenSlider(r, false); } },
+		{ "open-value-then-slider", [](const FilterCardRow* r, int) { return sweepFocusedFieldThenSlider(r, true); } },
+		{ "field-focused", [](const FilterCardRow* r, int index) { return sweepUntouchedField(r, index, UntouchedFieldAction::Focus); }, true },
+		{ "field-blurred", [](const FilterCardRow* r, int index) { return sweepUntouchedField(r, index, UntouchedFieldAction::Blur); }, true },
+		{ "field-enter", [](const FilterCardRow* r, int index) { return sweepUntouchedField(r, index, UntouchedFieldAction::Enter); }, true },
 	};
 
 	QTemporaryDir configDir;
@@ -1648,116 +1715,133 @@ int SkinGallery::runCloseSaveSweep(const QStringList& arguments)
 	int cases = 0;
 	int unchanged = 0;
 	int problems = 0;
-	for (const SkinGalleryDetail::GalleryRow& galleryRow : SkinGalleryDetail::galleryRows())
+	for (const SkinGalleryDetail::GalleryRow& galleryRow : closeSaveSweepRows())
 	{
 		for (const SweepRoute& route : routes)
 		{
-			// The close prompt's Save, and Ctrl+S before the close.
-			for (const bool saveAction : { false, true })
+			int fieldCount = 1;
+			for (int fieldIndex = 0; fieldIndex < fieldCount; fieldIndex++)
 			{
-				for (int repeat = 0; repeat < repeats; repeat++)
+				// The close prompt's Save, and Ctrl+S before the close.
+				for (const bool saveAction : { false, true })
 				{
+					for (int repeat = 0; repeat < repeats; repeat++)
 					{
-						QFile file(path);
-						if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)
-							|| file.write((galleryRow.line + QStringLiteral("\r\nPreamp: -1 dB\r\n")).toUtf8()) < 0)
 						{
-							qWarning("CloseSaveSweep: cannot write %s", qPrintable(path));
-							return 1;
-						}
-					}
-					QStringList before;
-					QStringList edited;
-					QStringList atPrompt;
-					QStringList afterSave;
-					QStringList finalLines;
-					QString diskAfterSave;
-					int lineChanges = 0;
-					int prompts = 0;
-					bool applied = false;
-					{
-						MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
-						MainWindow::Probe probe = window.probe();
-						probe.suppressPreferenceWrites();
-						probe.instantModeControl()->setChecked(false);
-						window.load(path);
-						window.show();
-						window.activateWindow();
-						QCoreApplication::processEvents();
-						FilterTable* table = probe.currentFilterTable();
-						const FilterCardRow* row = table != nullptr ? firstCard(table) : nullptr;
-						if (row != nullptr)
-						{
-							before = table->getLines();
-							QObject::connect(table, &FilterTable::linesChanged, table, [&lineChanges]() { ++lineChanges; });
-							applied = route.apply(row);
-							QCoreApplication::processEvents();
-							QCoreApplication::processEvents();
-							edited = table->getLines();
-							if (applied && saveAction)
+							QFile file(path);
+							if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate)
+								|| file.write((galleryRow.line + QStringLiteral("\r\nPreamp: -1 dB\r\n")).toUtf8()) < 0)
 							{
-								if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
-									save->trigger();
-								afterSave = table->getLines();
-								diskAfterSave = readConfigText(path);
+								qWarning("CloseSaveSweep: cannot write %s", qPrintable(path));
+								return 1;
 							}
 						}
-						QTimer answer;
-						answer.setInterval(15);
-						QObject::connect(&answer, &QTimer::timeout, [&prompts, &atPrompt, table]() {
-							QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
-							if (box == nullptr)
-								return;
-							++prompts;
+						QStringList before;
+						QStringList edited;
+						QStringList atPrompt;
+						QStringList afterSave;
+						QStringList finalLines;
+						QString diskAfterSave;
+						QString fieldName;
+						int lineChanges = 0;
+						int prompts = 0;
+						bool applied = false;
+						{
+							MainWindow window(QDir(configDir.path()), nullptr, nullptr, true);
+							MainWindow::Probe probe = window.probe();
+							probe.suppressPreferenceWrites();
+							probe.instantModeControl()->setChecked(false);
+							window.load(path);
+							window.show();
+							window.activateWindow();
+							QCoreApplication::processEvents();
+							FilterTable* table = probe.currentFilterTable();
+							const FilterCardRow* row = table != nullptr ? firstCard(table) : nullptr;
+							if (row != nullptr)
+							{
+								before = table->getLines();
+								QObject::connect(table, &FilterTable::linesChanged, table, [&lineChanges]() { ++lineChanges; });
+								if (route.preservesLine)
+								{
+									prepareUntouchedFields(row);
+									const QList<QWidget*> fields = untouchedFieldControls(row);
+									fieldCount = int(fields.size());
+									if (fieldIndex < fieldCount)
+										fieldName = untouchedFieldName(fields.at(fieldIndex), fieldIndex);
+								}
+								applied = route.apply(row, fieldIndex);
+								QCoreApplication::processEvents();
+								QCoreApplication::processEvents();
+								edited = table->getLines();
+								if (applied && saveAction)
+								{
+									if (QAction* save = window.findChild<QAction*>(QStringLiteral("actionSave")))
+										save->trigger();
+									afterSave = table->getLines();
+									diskAfterSave = readConfigText(path);
+								}
+							}
+							QTimer answer;
+							answer.setInterval(15);
+							QObject::connect(&answer, &QTimer::timeout, [&prompts, &atPrompt, table]() {
+								QMessageBox* box = qobject_cast<QMessageBox*>(QApplication::activeModalWidget());
+								if (box == nullptr)
+									return;
+								++prompts;
+								if (table != nullptr)
+									atPrompt = table->getLines();
+								if (QAbstractButton* save = box->button(QMessageBox::Save))
+									save->click();
+							});
+							answer.start();
+							window.close();
+							answer.stop();
 							if (table != nullptr)
-								atPrompt = table->getLines();
-							if (QAbstractButton* save = box->button(QMessageBox::Save))
-								save->click();
-						});
-						answer.start();
-						window.close();
-						answer.stop();
-						if (table != nullptr)
-							finalLines = table->getLines();
-					}
-					QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
-					QCoreApplication::processEvents();
-					if (!applied)
-						break;
+								finalLines = table->getLines();
+						}
+						QCoreApplication::sendPostedEvents(nullptr, QEvent::DeferredDelete);
+						QCoreApplication::processEvents();
+						if (!applied)
+							break;
 
-					cases++;
-					const QString disk = joinLines(readConfigText(path).split(QLatin1Char('\n')));
-					QStringList issues;
-					if (route.preservesLine)
-					{
-						if (edited != before || finalLines != before)
-							issues << QStringLiteral("the untouched field rewrote the line");
-						if (lineChanges != 0 || prompts != 0)
-							issues << QStringLiteral("the untouched field announced %1 edit(s) and %2 prompt(s)").arg(lineChanges).arg(prompts);
+						cases++;
+						const QString disk = joinLines(readConfigText(path).split(QLatin1Char('\n')));
+						QStringList issues;
+						if (route.preservesLine)
+						{
+							if (before.value(0) != galleryRow.line || edited != before || finalLines != before)
+								issues << QStringLiteral("the untouched field rewrote the line");
+							if (lineChanges != 0 || prompts != 0)
+								issues << QStringLiteral("the untouched field announced %1 edit(s) and %2 prompt(s)").arg(lineChanges).arg(prompts);
+						}
+						if (disk != joinLines(finalLines))
+							issues << QStringLiteral("the file differs from the document at exit");
+						if (joinLines(edited) != joinLines(before) && joinLines(finalLines) == joinLines(before))
+							issues << QStringLiteral("the edit was reverted in the document");
+						if (!atPrompt.isEmpty() && joinLines(edited) != joinLines(before) && joinLines(atPrompt) != joinLines(edited))
+							issues << QStringLiteral("the document changed when the prompt opened");
+						if (saveAction && joinLines(diskAfterSave.split(QLatin1Char('\n'))) != joinLines(afterSave))
+							issues << QStringLiteral("the Save action wrote other lines than the document");
+						if (route.preservesLine)
+							qWarning("CloseSaveSweep: untouched %s / %s / %s / %s / repeat %d: %s",
+								qPrintable(galleryRow.name), route.name, qPrintable(fieldName),
+								saveAction ? "Ctrl+S" : "prompt", repeat, issues.isEmpty() ? "ok" : "FAIL");
+						if (issues.isEmpty())
+						{
+							// A route a card ignores (a field that rejects the
+							// typed text) is not a save problem.
+							if (joinLines(finalLines) == joinLines(before))
+								unchanged++;
+							continue;
+						}
+						problems++;
+						qWarning("CloseSaveSweep: FAIL %s / %s / %s / repeat %d: %s\n  before: %s\n  edited: %s\n"
+							"  at prompt (%d): %s\n  at exit: %s\n  on disk: %s",
+							qPrintable(galleryRow.name), route.name, saveAction ? "Ctrl+S" : "prompt", repeat,
+							qPrintable(issues.join(QStringLiteral("; "))), qPrintable(joinLines(before)),
+							qPrintable(joinLines(edited)), prompts, qPrintable(joinLines(atPrompt)),
+							qPrintable(joinLines(finalLines)), qPrintable(disk));
 					}
-					if (disk != joinLines(finalLines))
-						issues << QStringLiteral("the file differs from the document at exit");
-					if (joinLines(edited) != joinLines(before) && joinLines(finalLines) == joinLines(before))
-						issues << QStringLiteral("the edit was reverted in the document");
-					if (!atPrompt.isEmpty() && joinLines(edited) != joinLines(before) && joinLines(atPrompt) != joinLines(edited))
-						issues << QStringLiteral("the document changed when the prompt opened");
-					if (saveAction && joinLines(diskAfterSave.split(QLatin1Char('\n'))) != joinLines(afterSave))
-						issues << QStringLiteral("the Save action wrote other lines than the document");
-					if (issues.isEmpty())
-					{
-						// A route a card ignores (a field that rejects the
-						// typed text) is not a save problem.
-						if (joinLines(finalLines) == joinLines(before))
-							unchanged++;
-						continue;
-					}
-					problems++;
-					qWarning("CloseSaveSweep: FAIL %s / %s / %s / repeat %d: %s\n  before: %s\n  edited: %s\n"
-						"  at prompt (%d): %s\n  at exit: %s\n  on disk: %s",
-						qPrintable(galleryRow.name), route.name, saveAction ? "Ctrl+S" : "prompt", repeat,
-						qPrintable(issues.join(QStringLiteral("; "))), qPrintable(joinLines(before)),
-						qPrintable(joinLines(edited)), prompts, qPrintable(joinLines(atPrompt)),
-						qPrintable(joinLines(finalLines)), qPrintable(disk));
 				}
 			}
 		}
