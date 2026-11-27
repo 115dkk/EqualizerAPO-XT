@@ -31,6 +31,7 @@
 #include <windows.h>
 
 #include "Editor/FilterTable.h"
+#include "Editor/EditorGates.h"
 #include "Editor/SkinManager.h"
 #include "Editor/skins/Skins.h"
 #include "Editor/widgets/FilterCardRow.h"
@@ -414,12 +415,25 @@ QToolBar* buildToolbarReplica(QWidget* parent)
 	return toolBar;
 }
 
+FilterTable::RenderMode gateRenderMode()
+{
+	EditorGates::reportListModeFallback(SkinManager::instance()->currentSkinId());
+	return EditorGates::headlessListMode() == EditorSettings::ListMode::Rows
+		? FilterTable::ModernRows : FilterTable::ModernCards;
+}
+
+QList<FilterCardRow*> buildGateRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
+	std::shared_ptr<AbstractAPOInfo> device, unsigned long channelMask)
+{
+	return buildRows(scrollArea, configPath, lines, device, channelMask, gateRenderMode());
+}
+
 // Build a fresh FilterTable holding the given lines and return the card row
 // widgets in line order. The table must be built after applySkin so every row
 // is polished once against the active stylesheet, mirroring the real skin
 // switch flow (clearRows + updateGuis).
 QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPath, const QList<QString>& lines,
-	std::shared_ptr<AbstractAPOInfo> device, unsigned long channelMask)
+	std::shared_ptr<AbstractAPOInfo> device, unsigned long channelMask, FilterTable::RenderMode mode)
 {
 	// Mirror MainWindow's hosting: widgetResizable makes the scroll area drive
 	// the table's width, which FilterCardRow::sizeHint reads back through
@@ -427,8 +441,7 @@ QList<FilterCardRow*> buildRows(QScrollArea& scrollArea, const QString& configPa
 	// every row collapses to a few pixels.
 	scrollArea.setWidgetResizable(true);
 	FilterTable* table = new FilterTable();
-	if (qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY"))
-		table->setRenderMode(FilterTable::LegacyEditor);
+	table->setRenderMode(qEnvironmentVariableIsSet("EAPO_GALLERY_LEGACY") ? FilterTable::LegacyEditor : mode);
 	scrollArea.setWidget(table);
 	QList<std::shared_ptr<AbstractAPOInfo>> outputDevices, inputDevices;
 	galleryDevices(outputDevices, inputDevices);

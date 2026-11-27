@@ -1685,7 +1685,7 @@ void renderProbeScenes(SkinRenderContext& ctx)
 			device = std::make_shared<GalleryAPOInfo>(L"Speakers", L"Probe Audio", false, true, channels, mask);
 		QScrollArea scrollArea;
 		scrollArea.resize(width, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, ctx.configPath, lines, device, mask);
+		QList<FilterCardRow*> rows = buildGateRows(scrollArea, ctx.configPath, lines, device, mask);
 		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		for (int pass = 0; pass < 6; pass++)
 		{
@@ -2047,7 +2047,7 @@ int run(const QStringList& arguments)
 	const int flagIndex = arguments.indexOf(QStringLiteral("--skin-gallery"));
 	if (flagIndex < 0 || flagIndex + 1 >= arguments.size())
 	{
-		qWarning("Usage: Editor --skin-gallery <outDir> [--skin-gallery-skins id,id,...]");
+		qWarning("Usage: Editor --skin-gallery <outDir> [--skin-gallery-skins id,id,...] [--list-mode cards|rows]");
 		return 2;
 	}
 

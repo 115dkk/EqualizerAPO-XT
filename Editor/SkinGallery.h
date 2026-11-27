@@ -12,7 +12,10 @@
 	PNGs named <skin>_<dark|light>_<row>_<state>.png to a target directory.
 
 	Runs headless: invoke the Editor with QT_QPA_PLATFORM=offscreen and
-	--skin-gallery <outDir> [--skin-gallery-skins id,id,...]. Used by the skin
+	--skin-gallery <outDir> [--skin-gallery-skins id,id,...] [--list-mode cards|rows].
+	--list-mode selects the presentation for whole-document probes and the
+	interaction gates; registered gallery scenes stay in cards. Omitted, gates
+	use cards without reading the saved presentation. Used by the skin
 	agents and CI to prove appearance-preserving changes (pixel-identical
 	before/after) and to build judging contact sheets.
 

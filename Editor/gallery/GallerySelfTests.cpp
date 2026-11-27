@@ -1069,7 +1069,7 @@ int SkinGallery::runRoutingEditTest()
 		SkinManager::instance()->applySkin(QStringLiteral("minimal"), true);
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		QList<FilterCardRow*> rows = buildGateRows(scrollArea, configPath,
 			{ QStringLiteral("Copy:") }, stereo, 0x3);
 		RoutingView* view = rows.size() == 1 ? rows[0]->findChild<RoutingView*>() : nullptr;
 		if (!check(view != nullptr, QStringLiteral("minimal Copy row has no routing view")))
@@ -1160,7 +1160,7 @@ int SkinGallery::runRoutingEditTest()
 		SkinManager::instance()->applySkin(QStringLiteral("minimal"), true);
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		QList<FilterCardRow*> rows = buildGateRows(scrollArea, configPath,
 			{ QStringLiteral("MultiConvolution: L=0 R=0 brir.wav") }, stereo, 0x3);
 		RoutingView* view = rows.size() == 1 ? liveView(rows[0]) : nullptr;
 		if (!check(view != nullptr, QStringLiteral("minimal MultiConvolution row has no routing view")))
@@ -1215,7 +1215,7 @@ int SkinGallery::runRoutingEditTest()
 			const QString who = skin->id() + QLatin1Char(' ') + command;
 			QScrollArea scrollArea;
 			scrollArea.resize(960, 720);
-			QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, { line }, atmos, 0x2D63F);
+			QList<FilterCardRow*> rows = buildGateRows(scrollArea, configPath, { line }, atmos, 0x2D63F);
 			RoutingView* view = rows.size() == 1 ? liveView(rows[0]) : nullptr;
 			if (!check(view != nullptr, QStringLiteral("%1 row has no routing view").arg(who)))
 				continue;
@@ -1292,7 +1292,7 @@ int SkinGallery::runRoutingEditTest()
 		SkinManager::instance()->applySkin(name, true);
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		QList<FilterCardRow*> rows = buildGateRows(scrollArea, configPath,
 			{ QStringLiteral("Copy: VC=0.5*L") }, stereo, 0x3);
 		RoutingView* view = rows.size() == 1 ? liveView(rows[0]) : nullptr;
 		if (!check(view != nullptr, QStringLiteral("%1: routing commit view missing").arg(name)))
@@ -1374,7 +1374,7 @@ int SkinGallery::runRoutingEditTest()
 		SkinManager::instance()->applySkin(skin->id(), true);
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		QList<FilterCardRow*> rows = buildGateRows(scrollArea, configPath,
 			{ QStringLiteral("Channel: ALL"), QStringLiteral("Device: all") }, stereo, 0x3);
 		if (!check(rows.size() == 2, QStringLiteral("%1: expected 2 rows").arg(name)))
 			continue;
@@ -1434,7 +1434,7 @@ int SkinGallery::runRoutingEditTest()
 		SkinManager::instance()->applySkin(QStringLiteral("studio"), true);
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
-		QList<FilterCardRow*> rows = buildRows(scrollArea, configPath,
+		QList<FilterCardRow*> rows = buildGateRows(scrollArea, configPath,
 			{ QStringLiteral("Hilbert: Shift=L Align=R Direction=-90") }, stereo, 0x3);
 		QLineEdit* add = rows.size() == 1 ? rows[0]->findChild<QLineEdit*>(QStringLiteral("ChannelChipAdd")) : nullptr;
 		if (check(add != nullptr, QStringLiteral("Hilbert card: add-channel field not found")))
@@ -1464,7 +1464,7 @@ int SkinGallery::runRoutingEditTest()
 			QStringLiteral("Send: {0d6a0000-0000-4000-8000-000000000002} L=L+0.5*R R=R Latency=20"),
 			QStringLiteral("MultiConvolution: L=0+1 R=2+3 brir.wav") };
 		const QStringList summaries = { QStringLiteral("L=L+0.5*R R=R"), QStringLiteral("L=0+1 R=2+3") };
-		buildRows(scrollArea, configPath, lines, stereo, 0x3);
+		buildGateRows(scrollArea, configPath, lines, stereo, 0x3);
 		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		if (!check(table != nullptr, QStringLiteral("%1: the routing fold table was not built").arg(name)))
 			continue;
@@ -1712,7 +1712,7 @@ int SkinGallery::runPowerToggleTest()
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
 		SkinManager::instance()->applySkin(skin->id(), true);
-		buildRows(scrollArea, fixture.configPath(), lines);
+		buildGateRows(scrollArea, fixture.configPath(), lines);
 		FilterTable* table = qobject_cast<FilterTable*>(scrollArea.widget());
 		if (table == nullptr)
 		{

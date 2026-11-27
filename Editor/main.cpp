@@ -498,7 +498,8 @@ int main(int argc, char* argv[])
 		// stock ClearType font engine, and system fonts. The skinned mode
 		// keeps the redesign stack below. Read the mode before QApplication
 		// so the font-engine choice follows an in-process restart.
-		bool legacyEditorMode;
+		bool legacyEditorMode = false;
+		if (!hasEditorGateArgument(argc, argv))
 		{
 			QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
 			legacyEditorMode = EditorSettings::readListMode(settings) == EditorSettings::ListMode::LegacyEditor;

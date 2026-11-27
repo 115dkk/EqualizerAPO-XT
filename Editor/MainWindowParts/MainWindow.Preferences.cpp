@@ -39,6 +39,7 @@
 #include "Editor/widgets/TitleBar.h"
 #include "FilterTable.h"
 #include "MainWindow.h"
+#include "Editor/EditorGates.h"
 #include "Editor/MainWindowParts/OpenDocument.h"
 #include "SkinManager.h"
 #include "skins/SkinThemeData.h"
@@ -99,15 +100,25 @@ EditorSettings::ListMode listModeForRenderMode(FilterTable::RenderMode mode)
 
 void MainWindow::loadPreferences()
 {
-	QSettings settings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	const auto headlessMode = EditorGates::headlessListMode();
+	// A headless window has its own configuration folder. Even the preference
+	// migrations must use a throwaway store, never the user's registry.
+	QSettings settings(headlessMode.has_value() ? configDir.filePath(QStringLiteral("editor-test.ini"))
+		: QString::fromWCharArray(EDITOR_REGPATH),
+		headlessMode.has_value() ? QSettings::IniFormat : QSettings::NativeFormat);
 	{
 		const QSignalBlocker blocker(ui->actionAutomaticUpdates);
 		ui->actionAutomaticUpdates->setChecked(EditorSettings::readAutomaticUpdates(settings));
 	}
-	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(settings, GUIHelper::isSystemDarkMode());
+	// Keep the live-window gates' existing skin choice, but only read it. The
+	// mode and any migration writes above belong to the throwaway settings.
+	const QSettings savedSettings(QString::fromWCharArray(EDITOR_REGPATH), QSettings::NativeFormat);
+	const EditorSettings::SkinChoice choice = EditorSettings::readSkinChoice(savedSettings, GUIHelper::isSystemDarkMode());
 	skinId = choice.id;
 	skinDark = choice.dark;
-	currentRenderMode = renderModeForListMode(EditorSettings::readListMode(settings));
+	currentRenderMode = renderModeForListMode(headlessMode.has_value() ? *headlessMode : EditorSettings::readListMode(settings));
+	if (headlessMode.has_value())
+		EditorGates::reportListModeFallback(skinId);
 	// The layout probe starts from a clean, deterministic right dock without
 	// reading or mutating the user's saved window arrangement.
 	graphDockPosition = analysisLayoutTestMode ? 2

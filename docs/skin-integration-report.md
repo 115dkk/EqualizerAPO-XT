@@ -90,8 +90,15 @@ dark and light) are hosted on the `gallery-phase2` branch (never merge it):
 
 Per-skin Phase 1 galleries are browsable in issue #72 (hosted on
 `gallery-phase1`). To regenerate any of it:
-`Editor --skin-gallery <outDir> [--skin-gallery-skins id,...]` (see
-`docs/skin-hooks.md`).
+`Editor --skin-gallery <outDir> [--skin-gallery-skins id,...] [--list-mode cards|rows]`
+(see `docs/skin-hooks.md`). `--list-mode` selects the presentation of the
+whole-document probe (`EAPO_GALLERY_PROBE`), not the registered gallery scenes.
+It also applies to `--card-move-test`, `--card-selection-test`,
+`--power-toggle-test`, `--routing-edit-test`, `--close-save-test`,
+`--close-save-sweep`, and `--skin-switch-test`. Without it these checks use
+cards, regardless of the saved preference. With `rows`, a skin without row
+support uses cards and logs that fallback once. Unknown values exit non-zero
+with a usage line.
 
 ## Interaction-layer wishes (follow-up candidates)
 

@@ -15,9 +15,12 @@
 #include <QCommandLineOption>
 #include <QCommandLineParser>
 #include <QCoreApplication>
+#include <QScopeGuard>
+#include <QSet>
 #include <QTimer>
 
 #include "Editor/MainWindow.h"
+#include "Editor/SkinManager.h"
 #include "Editor/SkinGallery.h"
 #include "Editor/diagnostics/FrameHitTestProbe.h"
 #include "Editor/diagnostics/SkinSwitchStorm.h"
@@ -27,6 +30,9 @@
 
 namespace
 {
+std::optional<EditorSettings::ListMode> activeListMode;
+QSet<QString> reportedFallbackSkins;
+
 FILE* openHeadlessLog()
 {
 	const QString requestedPath = qEnvironmentVariable("EAPO_GATE_LOG");
@@ -316,6 +322,14 @@ static const GateEntry kGates[] = {
 		nullptr
 	},
 	{
+		"--list-mode",
+		Stage::Headless,
+		"cards|rows",
+		false,
+		nullptr,
+		nullptr
+	},
+	{
 		"--skin-gallery-skins",
 		Stage::Headless,
 		"ids",
@@ -525,16 +539,58 @@ QString optionName(const GateEntry& entry)
 }
 }
 
+std::optional<EditorSettings::ListMode> EditorGates::headlessListMode()
+{
+	return activeListMode;
+}
+
+void EditorGates::reportListModeFallback(const QString& skinId)
+{
+	if (activeListMode == EditorSettings::ListMode::Rows
+		&& !SkinManager::instance()->skinSupportsRows(skinId)
+		&& !reportedFallbackSkins.contains(skinId))
+	{
+		reportedFallbackSkins.insert(skinId);
+		qWarning("ListMode: %s does not support rows; using cards (not row coverage)", qPrintable(skinId));
+	}
+}
+
 std::optional<int> EditorGates::runHeadless(const QStringList& arguments)
 {
+	EditorSettings::ListMode requestedMode = EditorSettings::ListMode::Cards;
+	bool listModeSpecified = false;
+	for (int i = 1; i < arguments.size(); i++)
+	{
+		const QString argument = arguments[i];
+		if (argument != QLatin1String("--list-mode") && !argument.startsWith(QLatin1String("--list-mode=")))
+			continue;
+		const QString word = argument == QLatin1String("--list-mode")
+			? arguments.value(++i) : argument.mid(12);
+		const auto mode = EditorSettings::listModeFromWord(word);
+		if (!mode.has_value() || *mode == EditorSettings::ListMode::LegacyEditor)
+		{
+			qWarning("Usage: Editor <headless-check> [--list-mode <cards|rows>]");
+			return 2;
+		}
+		requestedMode = *mode;
+		listModeSpecified = true;
+	}
 	for (const GateEntry& entry : kGates)
 	{
 		if (entry.stage == Stage::Headless && entry.runHeadless != nullptr
 			&& arguments.contains(QString::fromLatin1(entry.flag)))
 		{
 			redirectHeadlessLog();
+			activeListMode = requestedMode;
+			reportedFallbackSkins.clear();
+			const auto reset = qScopeGuard([] { activeListMode.reset(); });
 			return entry.runHeadless(arguments);
 		}
+	}
+	if (listModeSpecified)
+	{
+		qWarning("Usage: Editor <headless-check> [--list-mode <cards|rows>]");
+		return 2;
 	}
 	return std::nullopt;
 }
