@@ -126,15 +126,17 @@ instead (`FilterTable::effectiveRenderMode`), and the Interface menu lists
 the skin under Modern cards only. Hardware Rack is the one skin that returns
 true today.
 
-There is no separate hook that builds a row. `FilterCardRow` builds it from
-the same widgets as a card, laid out across instead of down: the header
-becomes the row's left column (number, power cap, and the add, remove and
-raw-edit actions stacked in one column), and the title cell, the editor and
-the channel badges follow on the same line. The skin dresses it with the
-command-row hooks above, which see `CommandRowInfo::inlineRow == true`:
-`prepareCommandRow` sets the row's margins (Rack keeps its ears free there),
-and `cardFrameStyle` and `paintCardChrome` draw the unit, with `inlineRow`
-telling them that the unit has no header strip and no body below it.
+The hook that builds a row is the card's own, `prepareCommandRow`, called
+once per row with `CommandRowInfo::inlineRow == true` (the row widget sets the
+flag, never `CommandRowFacts`, because it depends on the table's mode).
+`FilterCardRow` lays the row out from the same widgets as a card, across
+instead of down: the header becomes the row's left column (number, power cap,
+and the add, remove and raw-edit actions stacked in one column), and the
+title cell, the editor and the channel badges follow on the same line. In
+`prepareCommandRow` the skin sets the row's margins (Rack keeps its ears free
+there); `cardFrameStyle` and `paintCardChrome` draw the unit and read the same
+flag to leave out what only a card with a header strip has (Rack's groove
+under the strip).
 
 `inlineRow` is also a dynamic property set to true on two widgets, so a sheet
 can tell a row from a card without code: the `QFrame#FilterCardRow` frame and
@@ -163,10 +165,11 @@ every gallery row once more as a row (`rows-<row>_normal`), a short mixed
 document with a Copy row and an If/Else block as one table
 (`rows-table_normal`), and the row's own states, each on the middle line of a
 three-line table (`rows-states_selected`, `_focused`, `_hover`,
-`_poweredoff`, `_comment`, `_loaderror`, `_drop`). The scenes go through
-`saveGrab`, so the control contract, the horizontal-scrollbar check and the
-body-inside-card check measure them, and the run's count check expects them
-for exactly the skins that return true. The keyboard focus self test of the
+`_poweredoff`, `_comment`, `_loaderror`, `_drop`). `saveGrab` measures the
+control contract on every one of them, and the scene code runs the
+horizontal-scrollbar, spin-box and body-inside-card checks on every row in
+them (`saveGrab` does not run those three); the run's count check expects
+the scenes for exactly the skins that return true. The keyboard focus self test of the
 control contract runs a second pass in rows for such a skin (`SkinGallery:
 focus <skin> <finish> rows`).
 

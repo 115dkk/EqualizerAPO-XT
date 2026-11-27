@@ -2050,6 +2050,17 @@ void renderRowScenes(SkinRenderContext& ctx)
 	const QString& mode = ctx.mode;
 	const QString& configPath = ctx.configPath;
 	int& failures = ctx.failures;
+	// saveGrab runs the button names and the control contract; the layout
+	// checks the card scenes call beside it run on every row of these scenes,
+	// the whole-table ones included.
+	const auto checkRowLayout = [&](const QList<FilterCardRow*>& rows, const QString& name, const QString& state) {
+		for (FilterCardRow* row : rows)
+		{
+			failures += assertNoHorizontalScrollBar(row, skinId, mode, name, state);
+			failures += assertSpinBoxTextVisible(row, skinId, mode, name, state);
+			failures += assertBodyInsideCard(row, skinId, mode, name, state);
+		}
+	};
 
 	// Every gallery row as a row, in its normal state, from one table as the
 	// card shots come from one table.
@@ -2074,9 +2085,7 @@ void renderRowScenes(SkinRenderContext& ctx)
 			{
 				const QString name = QStringLiteral("rows-") + galleryLines[i].name;
 				const QString state = QStringLiteral("normal");
-				failures += assertNoHorizontalScrollBar(rows[i], skinId, mode, name, state);
-				failures += assertSpinBoxTextVisible(rows[i], skinId, mode, name, state);
-				failures += assertBodyInsideCard(rows[i], skinId, mode, name, state);
+				checkRowLayout({ rows[i] }, name, state);
 				failures += saveGrab(rows[i], outDir, skinId, mode, name, state) ? 0 : 1;
 			}
 		}
@@ -2089,7 +2098,7 @@ void renderRowScenes(SkinRenderContext& ctx)
 	{
 		QScrollArea scrollArea;
 		scrollArea.resize(960, 720);
-		buildRows(scrollArea, configPath, {
+		const QList<FilterCardRow*> rows = buildRows(scrollArea, configPath, {
 			QStringLiteral("Preamp: -6 dB"),
 			QStringLiteral("Filter 1: ON PK Fc 1000 Hz Gain 6 dB Q 0.71"),
 			QStringLiteral("If: outputChannelCount >= 6"),
@@ -2122,6 +2131,7 @@ void renderRowScenes(SkinRenderContext& ctx)
 			skipped.result = ConfigLoadTraceEntry::Result::NotEvaluated;
 			table->setLoadTraceFacts({ taken, dead, skipped });
 			QApplication::processEvents();
+			checkRowLayout(rows, QStringLiteral("rows-table"), QStringLiteral("normal"));
 			failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("rows-table"), QStringLiteral("normal")) ? 0 : 1;
 		}
 	}
@@ -2146,6 +2156,7 @@ void renderRowScenes(SkinRenderContext& ctx)
 		}
 		stage(scrollArea, table, rows);
 		QApplication::processEvents();
+		checkRowLayout(rows, QStringLiteral("rows-states"), state);
 		failures += saveGrab(table, outDir, skinId, mode, QStringLiteral("rows-states"), state) ? 0 : 1;
 	};
 	// Selected and current, the result of a click on the row.
