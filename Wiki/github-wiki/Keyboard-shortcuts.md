@@ -27,7 +27,7 @@ The most useful ones:
 | Ctrl+Alt+D | View > Interface > Dark theme | Switches between the light and dark theme |
 | Ctrl+Alt+F | View > Interface > Fullscreen graph | Lets the analysis graph fill the window, hiding the filter list and toolbar |
 
-The skin and theme shortcuts do nothing in the **Legacy editor**. Modern rows take the same keys and gestures as the cards everywhere on this page; where it says cards, it means both. While a text field has the focus, Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A act on the text in that field, not on the filter list.
+The skin and theme shortcuts do nothing in the **Legacy editor**. Modern rows take the same keys and gestures as the cards everywhere on this page; where it says cards, it means both, and the header of a row is its left column. While a text field has the focus, Ctrl+Z, Ctrl+Y, Ctrl+X, Ctrl+C, Ctrl+V and Ctrl+A act on the text in that field, not on the filter list.
 
 After you remove lines with a remove button or the Delete key, a notice with an **Undo** button stays up for 8 seconds. When you close a tab or the window with unsaved changes, Enter saves and Esc cancels.
 
