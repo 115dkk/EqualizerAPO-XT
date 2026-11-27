@@ -240,7 +240,7 @@ int checkPaintOnlyChrome(const QScrollArea& scrollArea, const QString& objectNam
 int checkLegacyCopyScene(FilterTable* table)
 {
 	int failures = 0;
-	// LegacyRows still uses CopyFilterGUI. Its QGraphicsView does not own
+	// LegacyEditor still uses CopyFilterGUI. Its QGraphicsView does not own
 	// the scene, so the GUI must parent it explicitly; allWidgets() cannot
 	// detect this leak because QGraphicsScene is not a QWidget.
 	CopyFilterGUI* legacyCopy = new CopyFilterGUI({}, table);

@@ -93,8 +93,8 @@ bool SkinManager::isHeritage() const
 
 void SkinManager::applyHeritage()
 {
-	CrashHandler::setBreadcrumb(L"applyHeritage (legacy rows)");
-	LogFStatic(L"Applying heritage presentation (legacy rows)");
+	CrashHandler::setBreadcrumb(L"applyHeritage (Legacy editor)");
+	LogFStatic(L"Applying heritage presentation (Legacy editor)");
 
 	heritageMode = true;
 	// The heritage identity - classic light tokens, no QSS, no routing view,

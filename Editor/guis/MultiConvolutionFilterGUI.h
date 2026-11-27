@@ -27,7 +27,7 @@ class QLineEdit;
 // text ("L=0+1 R=2+3", or just "L" for the simple form) and an impulse-response
 // path field with a file picker. The modern card editor
 // (widgets/cards/MultiConvolutionCardEditor) is the canonical UI with the
-// per-skin routing view; this exists so the LegacyRows render mode still edits
+// per-skin routing view; this exists so the LegacyEditor render mode still edits
 // the line without destroying it.
 class MultiConvolutionFilterGUI : public IFilterGUI
 {

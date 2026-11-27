@@ -1,26 +1,35 @@
 # Filter List UI Policy
 
-The Editor's filter list can render in two modes, selected at runtime through
-`FilterTable::RenderMode`. This document records which mode is canonical, why the
-other is kept rather than deleted, and the rule contributors follow so the same
-list behavior is not implemented twice.
+The Editor's filter list can render in three modes, selected at runtime through
+`FilterTable::RenderMode`. This document records which path is canonical, why
+the legacy one is kept rather than deleted, and the rule contributors follow so
+the same list behavior is not implemented twice.
 
-## The two render modes
+## The three render modes
 
-`FilterTable::RenderMode` (declared in `Editor/FilterTable.h`) has two values:
+`FilterTable::RenderMode` (declared in `Editor/FilterTable.h`) has three values:
 
 | Mode | Row widget | Status | Representative files |
 | --- | --- | --- | --- |
 | `ModernCards` | `FilterCardRow` | Canonical, actively maintained, runtime default | `Editor/widgets/FilterCardRow.cpp`, `Editor/widgets/FilterCardModel.cpp`, `Editor/widgets/cards/` |
-| `LegacyRows` | `FilterTableRow` | Kept; guarantees only that existing usage keeps working | `Editor/FilterTableRow.cpp` |
+| `ModernRows` | `FilterCardRow` with `inlineRow` | Canonical: the card path laid out as one row per line. Drawn by a skin that supports it (`ISkin::supportsRowMode`); under any other skin the table builds cards | `Editor/widgets/FilterCardRow.cpp`, `Editor/skins/rack/RackSkin.CommandRows.cpp` |
+| `LegacyEditor` | `FilterTableRow` | Kept; guarantees only that existing usage keeps working | `Editor/FilterTableRow.cpp` |
 
-`FilterTable` branches on the active mode when it builds row widgets. The two
-branch points are in `FilterTable::updateGuis()` (full rebuild) and
-`FilterTable::updateSingleRowGui()` (single in-place row refresh), both in
-`Editor/FilterTable.cpp`. The default is set by the `renderMode = ModernCards`
-member initializer in `Editor/FilterTable.h`.
+`FilterTable` branches between the card path and the legacy path when it builds
+row widgets. The two branch points are in `FilterTable::updateGuis()` (full
+rebuild) and `FilterTable::updateSingleRowGui()` (single in-place row refresh),
+both in `Editor/FilterTable.cpp`. Cards and rows are not a branch of their own
+there: `FilterTable::effectiveRenderMode()` decides which of the two the card
+path lays out, and falls back to cards under a skin without rows. The default is
+set by the `renderMode = ModernCards` member initializer in
+`Editor/FilterTable.h`.
 
-## Why cards is canonical
+The user's choice is stored as one word in `interface/listMode` (`cards`,
+`rows` or `legacy`; `services/settings/EditorSettings.h`) and made in View >
+Interface, where Modern cards and Modern rows each list the skins that draw
+them and Legacy editor is an entry of its own.
+
+## Why the card path is canonical
 
 `ModernCards` is the UI shipped to users: it is the runtime default, it owns the
 per-row enable/disable affordance in the card header, it renders the modern
@@ -28,9 +37,26 @@ routing and knob editors, and it carries the depth/indentation handling for
 nested includes. New filter-list work has been going into the card path, so it is
 where the current behavior lives and where the maintained code is.
 
+## Rows are the card path, not a third implementation
+
+A Modern row is built from the same widgets, editors and decisions as a card
+(`FilterCardRow`, the editors in `Editor/widgets/cards/`, the skin's
+`prepareCommandRow` hook). Only the layout differs: the header's parts stand in
+a column at the row's left and the editor beside them, with no header strip
+above a body. A list is never a mixture of the two. What follows from that:
+
+- No behavior exists in rows only or in cards only. A fix made for one is a fix
+  of the shared code and is checked in both.
+- The headless checks of the list run in both presentations (`--list-mode
+  rows`), and CI runs each of them twice. A row run must report at least one
+  skin that drew rows, or it fails; `docs/skin-integration-report.md` has the
+  options.
+- What a skin has to supply for rows is in `docs/skin-hooks.md` ("Modern
+  rows").
+
 ## Why legacy is kept rather than deleted
 
-`LegacyRows` (`FilterTableRow`) is the original Qt-table-style row UI, kept
+`LegacyEditor` (`FilterTableRow`) is the original Qt-table-style row UI, kept
 permanently by maintainer decision (2026-07-05): it is the heritage editor,
 preserved as the unmodernized original design, not a deprecation candidate.
 
@@ -57,7 +83,7 @@ The maintenance concern this policy addresses is that, with two parallel UIs,
 every list behavior risks being implemented twice. The rule is therefore:
 
 - Add new filter-list behavior to the card path (`FilterCardRow` and the
-  supporting `Editor/widgets/` code).
+  supporting `Editor/widgets/` code), where cards and rows both get it.
 - The Legacy editor guarantees only that existing usage keeps working
   (maintainer decision, audit #348 B1). It gets no new presentation of its own, and
   parity with the card path is not a goal in itself.
@@ -84,8 +110,8 @@ builds the flow lines, calls `computeChannelFlow`
 (`Editor/widgets/ChannelFlow.h`) once, and returns both the card scopes and the
 per-line flow. `FilterTable` builds or repositions cards from those scopes and
 hands each row widget its own flow element through `IFilterGUI::setChannelFlow`.
-Rows only read that element; no row changes what the rows below it see. Both
-render modes use the same flow. A card's inherited channel badges come from the
+Rows only read that element; no row changes what the rows below it see. All
+three render modes use the same flow. A card's inherited channel badges come from the
 selection in this result, while a Channel card's own badges show that line's
 selectors through `ChannelCommand`.
 

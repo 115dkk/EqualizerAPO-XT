@@ -47,7 +47,7 @@ CommentFilterGUI::~CommentFilterGUI() = default;
 void CommentFilterGUI::setChannelFlow(const ChannelFlowAtLine& flow)
 {
 	// Every legacy row sits behind this decorator, so a missing forward here
-	// leaves the whole LegacyRows presentation without the channel flow. What
+	// leaves the whole LegacyEditor presentation without the channel flow. What
 	// a switched-off line does to the flow (nothing) is decided by
 	// computeChannelFlow from the line itself, not here.
 	child->setChannelFlow(flow);

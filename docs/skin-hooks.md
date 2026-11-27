@@ -194,7 +194,7 @@ is also why adding the hook changed no gallery shot. `ListChromeState`
 carries `hovered/pressed/focused` and the widget's translated `label`. The
 semantics (header `+` inserts BELOW its card, the seam is the only
 front-insertion entry, no per-gap `+` chrome) are the shared insertion
-contract in [docs/skins/README.md](skins/README.md); LegacyRows keeps the
+contract in [docs/skins/README.md](skins/README.md); LegacyEditor keeps the
 frozen toolbar flow.
 
 ## GraphicEQ plot hook
@@ -224,7 +224,7 @@ selected-band readout strip under the plot — `GraphicEQReadout`,
 `GraphicEQBandCaption`, `GraphicEQReadoutLabel`, `GraphicEQFreqBox`/
 `GraphicEQGainBox` (X1 value-scrub grammar) — plus `GraphicEQModeCombo`
 (X5 paramSelector) and the `GraphicEQActionButton` row above. The frozen
-LegacyRows GraphicEQ GUI keeps the original QGraphicsView stack untouched.
+LegacyEditor GraphicEQ GUI keeps the original QGraphicsView stack untouched.
 
 ## Skin theme data for satellite executables
 

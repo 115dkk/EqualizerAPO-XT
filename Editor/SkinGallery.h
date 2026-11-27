@@ -73,7 +73,7 @@ int runVstRoundTripSelfTest();
 // Second half of --selftest-vst: the channel-fill menus of a VST row must
 // offer the channels selected at that row in both presentations, and follow
 // a Channel row above it. Field report (v2.41.2): under the heritage
-// (LegacyRows) presentation every fill combo listed only "Silence (-)" while
+// (LegacyEditor) presentation every fill combo listed only "Silence (-)" while
 // the card path offered every device channel, so a stereo-to-5.1 upmixer
 // could not be fed from the legacy rows at all.
 int runVstFillSelfTest();

@@ -18,7 +18,7 @@
 */
 
 // FROZEN LEGACY UI.
-// FilterTableRow implements the LegacyRows render mode of FilterTable. It is kept
+// FilterTableRow implements the LegacyEditor render mode of FilterTable. It is kept
 // only as a reversible fallback and is NOT actively maintained. The canonical,
 // actively-maintained filter-list UI is the card path (FilterCardRow / ModernCards),
 // which is also the runtime default. Do not add new filter-list behavior here:

@@ -22,7 +22,7 @@ void SpatialFilterGUIFactory::initialize(FilterTable* table)
 IFilterGUI* SpatialFilterGUIFactory::createFilterGUI(QString& command,
 	QString& parameters)
 {
-	// The frozen LegacyRows path shows the Hilbert and Velvet card editors
+	// The frozen LegacyEditor path shows the Hilbert and Velvet card editors
 	// too; the cards' own registered creators build them, so both modes read
 	// the device's sample rate and channels when the row is built.
 	if (command == QStringLiteral("Hilbert") || command == QStringLiteral("Velvet"))

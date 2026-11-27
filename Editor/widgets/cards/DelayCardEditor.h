@@ -12,7 +12,7 @@ class QComboBox;
 
 // The Delay card's modern body: knob + the unit selector (Time/Samples)
 // standing as the caption over the editable value, mirroring the Preamp card.
-// Replaces the legacy DelayFilterGUI in the card path; LegacyRows keeps the
+// Replaces the legacy DelayFilterGUI in the card path; LegacyEditor keeps the
 // frozen .ui GUI.
 class DelayCardEditor : public ScalarKnobCardEditor
 {

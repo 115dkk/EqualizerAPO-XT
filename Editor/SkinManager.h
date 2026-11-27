@@ -53,7 +53,7 @@ public:
 	bool isDark() const;
 	void applySkin(const QString& skinId, bool dark);
 
-	// The heritage presentation behind the LegacyRows mode: no stylesheet, the
+	// The heritage presentation behind the LegacyEditor mode: no stylesheet, the
 	// platform's standard palette, and classic light token values for the few
 	// custom painters (analysis graph, knobs). The legacy rows are meant to be
 	// the unmodernized original editor, not skinned widgets inside modern
