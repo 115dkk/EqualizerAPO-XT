@@ -54,6 +54,7 @@ public:
 	bool paintScopeGutter(QPainter& painter, const QSize& size, const CommandRowInfo& info,
 		const SkinTokens& tokens) const override;
 	bool logicSiblingsIndentAsMembers() const override;
+	bool supportsRowMode() const override;
 	bool paintChannelBadge(QPainter& painter, const QRect& rect, const QString& channel,
 		bool virtualChannel, const SkinTokens& tokens) const override;
 	void paintAddRow(QPainter& painter, const QRect& rect, const ListChromeState& state,

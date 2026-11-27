@@ -6,15 +6,18 @@
 
 #include "MinimalSkin.h"
 
+#include <QComboBox>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QPainter>
+#include <QSpacerItem>
 #include <QWidget>
 #include <QtMath>
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/skins/minimal/MinimalChannelInk.h"
+#include "Editor/skins/minimal/cards/MinimalReferenceCardView.h"
 #include "Editor/widgets/FilterCardModel.h"
 
 namespace
@@ -114,10 +117,66 @@ bool MinimalSkin::paintChannelBadge(QPainter& painter, const QRect& rect, const 
 	}
 	return true;
 }
+bool MinimalSkin::supportsRowMode() const
+{
+	// Modern rows: every command is one printed line, the header's parts
+	// in its left column and the editor beside them.
+	return true;
+}
+
 void MinimalSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, QWidget* header, QWidget* body,
 	const SkinTokens& tokens) const
 {
-	Q_UNUSED(card);
+	// A Modern row is one printed line: the left column gives up the card
+	// header's side margins (its width is what an indented Filter row needs
+	// to keep its last field inside a 960 px window), and the editor runs to
+	// a 4 px margin before the frame's right hairline. Cards keep their
+	// layout; this runs only for the row widget's own call.
+	if (info.inlineRow && card != nullptr && card->layout() != nullptr)
+	{
+		card->layout()->setContentsMargins(0, 0, 4, 0);
+		if (QBoxLayout* column = header != nullptr ? qobject_cast<QBoxLayout*>(header->layout()) : nullptr)
+		{
+			column->setContentsMargins(2, 2, 0, 2);
+			column->setSpacing(2);
+		}
+		if (body != nullptr)
+		{
+			// The reference line lays itself out for the row (a loaded VST
+			// unit takes two lines). The editor is mounted in the body by
+			// now, and its own construction-time call never sees inlineRow.
+			for (MinimalReferenceCardView* view : body->findChildren<MinimalReferenceCardView*>())
+				view->setInlineRow(true);
+			// The Filter editor separates its type selector and its three
+			// parameter columns with 8 px spacers. The drums already carry
+			// their own clear margin around the rims, so on one line the
+			// spacers shrink to a 2 px hair and the width goes to the last
+			// column, which an indented line under a Channel scope needs.
+			if (QWidget* biquad = body->findChild<QWidget*>(QStringLiteral("BiQuadFilterGUI")))
+			{
+				if (QLayout* grid = biquad->layout())
+				{
+					for (int i = 0; i < grid->count(); i++)
+					{
+						if (QSpacerItem* spacer = grid->itemAt(i)->spacerItem())
+							spacer->changeSize(2, spacer->sizeHint().height(), QSizePolicy::Fixed, QSizePolicy::Minimum);
+					}
+					grid->invalidate();
+				}
+			}
+			// The Send line's device name is a data column: across one row
+			// it gives way first (shared article 4). The combo sizes itself to
+			// the longest endpoint name, which pushed the delay check box
+			// out of the row in the longer languages; in a row its floor is
+			// 10 characters plus the field's padding and caret (28 px right,
+			// 10 px left, the hairline), and the name elides inside it.
+			if (QComboBox* target = body->findChild<QComboBox*>(QStringLiteral("SendTargetCombo")))
+			{
+				target->ensurePolished();
+				target->setMinimumWidth(10 * target->fontMetrics().horizontalAdvance(QLatin1Char('X')) + 40);
+			}
+		}
+	}
 	// A raw line (a bare note, or a programmatic command like If/EndIf
 	// the editor does not model) is printed bare on the body strip: no
 	// box, no input ground. The shared raw card lays its chrome inline,
@@ -215,8 +274,14 @@ void MinimalSkin::paintCardChrome(QPainter& painter, const QRect& rect, const Co
 	// ground. The If/Eval summaries are empty by model contract, so the
 	// column prints on empty line space; a cramped card drops the
 	// readout rather than colliding with the line head.
+	// In a Modern row the title stands in the row's top band (or on the
+	// whole row, for a row that centres its markers), not in a header strip
+	// of rowHeight, so the column centres on the same line as the title.
 	const int headerHeight = qMin(tokens.rowHeight, rect.height());
-	const QRect column(rect.left() + 8, rect.top(), rect.width() - 24, headerHeight);
+	const int headerTop = info.inlineRow
+		? qRound(info.headerCenterY) - CommandRowInfo::cardMarginTop - headerHeight / 2
+		: rect.top();
+	const QRect column(rect.left() + 8, headerTop, rect.width() - 24, headerHeight);
 	if (column.width() < 60)
 		return;
 

@@ -999,3 +999,86 @@ QLineEdit#NewChannelAdd[invalid="true"] { border-color: @DANGER@; }
 /* Send card: the field captions read like the MultiConvolution mapping
    caption; a latency the card cannot read takes the danger colour. */
 QLineEdit#SendLatencyEdit[invalid="true"] { border-color: @DANGER@; }
+
+/* ===== Modern rows =====
+   A row is one printed line on one ground: the frame's own card step
+   (MinimalSkin::cardFrameStyle - card at rest, one step darker on the
+   paper under the pointer, the surface step when commented out). In a card the body is a
+   second strip under the header, and the editor's scroll area inside it
+   takes the window ground; across one line that left the left column and
+   the name cell on the card step, the editor on the window ground and a
+   strip of the body step between them. Body, editor and scroll area are
+   cleared, so every part of the line stands on the frame's ground. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#FilterCardBody,
+QFrame#FilterCardRow[inlineRow="true"] QWidget#FilterCardEditor,
+QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll,
+QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll > QWidget {
+    background: transparent; border: 0; border-radius: 0;
+}
+QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll > QWidget > QWidget {
+    background: transparent;
+}
+/* The MultiConvolution mapping area is a plain widget no rule named, so it
+   took the window ground: a dark block around the step listing. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#MultiConvolutionMappingArea {
+    background: transparent;
+}
+/* The three actions stack in one column beside the number and the power
+   cap: each bare glyph takes an 18 px cap (16 px and its transparent
+   hairline) so the column stays inside the row's top band. */
+QWidget#FilterCardHeader[inlineRow="true"] QToolButton#FilterCardIconButton[headerAction="true"] {
+    min-width: 16px; min-height: 16px; max-height: 16px; padding: 0px 2px;
+}
+/* The list cursor's reverse block is the number cell; in a row the cell
+   would run the band's full 74 px, so it keeps the power cap's height. */
+QWidget#FilterCardHeader[inlineRow="true"] QLabel#FilterCardNumber {
+    min-height: 33px; max-height: 33px;
+}
+/* The biquad drums are 84 px boxes around a 66 px instrument (the editor
+   pins that width for the cards). On one line the width goes to the type
+   selector and the three parameter columns: the drum takes 50 px, where
+   its travel rule folds and the window keeps the figure at full size -
+   the crowded-row case the knob section already provides for. */
+QFrame#FilterCardRow[inlineRow="true"] QWidget#BiQuadFilterGUI AudioKnob {
+    min-width: 50px; max-width: 50px;
+}
+/* The selectors give two pixels of air on each side of their text (the
+   caret keeps its own 14 px), so the Filter line's three parameter
+   columns fit beside the left column. */
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"],
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"] {
+    padding-left: 2px; padding-right: 14px;
+}
+/* The Preamp, Delay and all-pass drums are 74 px boxes in their cards; in
+   a row they take the Filter drums' 66 px height and 64 px width, so those
+   lines are as tall as a Filter line. The 45 px drum, its travel rule and
+   the 14 px hover readout of a bare drum still fit. */
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#PreampCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
+QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
+    min-width: 64px; max-width: 64px; min-height: 66px; max-height: 66px;
+}
+/* Hover is one background step above what the part stands on. In a card
+   the editor's parts stand on the body strip and their hover is the card
+   step; in a row they stand on the frame, which already rises to the
+   hover step as soon as the pointer is anywhere on the line, so a part's
+   own hover sinks to the next step on the paper (the border grey - the
+   toast's step past cardHover). A pressed, checked, focused or dead part keeps its
+   own state rule. */
+QFrame#FilterCardRow[inlineRow="true"] QAbstractSpinBox[valueScrub="true"]:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QComboBox[minimalRefSelector="true"]:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#FilterCardIconButton[minimalRefCommand="true"]:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QPushButton[minimalRefCommand="true"]:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#GraphicEQActionButton:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChipMore:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#DeviceChip:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#ChannelChip:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#StageChip:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QToolButton#NewChannelChip:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#ChannelChipAdd:hover:!pressed:!checked:!focus:!disabled,
+QFrame#FilterCardRow[inlineRow="true"] QLineEdit#NewChannelAdd:hover:!pressed:!checked:!focus:!disabled {
+    background: @BORDER@;
+}

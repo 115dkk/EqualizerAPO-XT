@@ -8,10 +8,12 @@
 
 #include <QAbstractButton>
 #include <QEvent>
+#include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QIcon>
 #include <QLabel>
 #include <QToolButton>
+#include <QVBoxLayout>
 
 #include "Editor/skins/shared/SkinPaint.h"
 #include "Editor/widgets/ElidedLabel.h"
@@ -56,15 +58,26 @@ MinimalReferenceCardView::MinimalReferenceCardView(const QString& kind, QWidget*
 	// that follows the kind is the OpenPanel command (commandToken).
 
 	QWidget* page = contentWidget();
-	lineLayout = new QHBoxLayout(page);
+	// One printed line; a second one exists only for a loaded VST unit in a
+	// Modern row (updateRowArrangement) and is empty everywhere else, where
+	// an empty box layout takes neither height nor spacing.
+	QVBoxLayout* pageLayout = new QVBoxLayout(page);
+	pageLayout->setContentsMargins(0, 0, 0, 0);
+	pageLayout->setSpacing(0);
+	lineLayout = new QHBoxLayout();
 	lineLayout->setContentsMargins(0, 0, 0, 0);
 	lineLayout->setSpacing(10);
+	pageLayout->addLayout(lineLayout);
+	wiringLayout = new QHBoxLayout();
+	wiringLayout->setContentsMargins(0, 0, 0, 0);
+	wiringLayout->setSpacing(10);
+	pageLayout->addLayout(wiringLayout);
 
 	// The path prints container-first, the way a terminal prints one: the
 	// as-written location prefix ("Surround\") in muted ink, then the payload
 	// as the line's brightest ink, adjacent - one path, two inks. A folder
 	// printed after (or under) the file would invert the containment.
-	QHBoxLayout* pathLayout = new QHBoxLayout();
+	pathLayout = new QHBoxLayout();
 	pathLayout->setContentsMargins(0, 0, 0, 0);
 	pathLayout->setSpacing(0);
 
@@ -165,6 +178,9 @@ void MinimalReferenceCardView::placeActionButton(ActionRole role, QAbstractButto
 
 bool MinimalReferenceCardView::eventFilter(QObject* watched, QEvent* event)
 {
+	if (watched == busStrip && busStrip != nullptr
+		&& (event->type() == QEvent::ShowToParent || event->type() == QEvent::HideToParent))
+		updateRowArrangement();
 	if (event->type() == QEvent::FontChange)
 	{
 		for (ActionRole role : {ActionRole::Browse, ActionRole::OpenTarget, ActionRole::Import,
@@ -187,6 +203,10 @@ void MinimalReferenceCardView::placeBusStrip(QWidget* strip)
 	// the end. The strip paints its own terminal grammar.
 	strip->setParent(contentWidget());
 	lineLayout->insertWidget(lineLayout->indexOf(statusLabel), strip, 0, Qt::AlignVCenter);
+	busStrip = strip;
+	// The host shows and hides the strip; a row follows that visibility.
+	strip->installEventFilter(this);
+	updateRowArrangement();
 }
 
 void MinimalReferenceCardView::addLeadingWidget(QWidget* widget)
@@ -259,6 +279,77 @@ void MinimalReferenceCardView::applyState(const ReferenceCardState& state)
 	// tooltips - so the floor is restated from each engraved word, after
 	// the state pass that may have swapped BROWSE for LOCATE.
 	restateCommandFloors();
+	restateNameFloor();
+	updateRowArrangement();
+}
+
+void MinimalReferenceCardView::setInlineRow(bool inlineRow)
+{
+	if (inRow == inlineRow)
+		return;
+	inRow = inlineRow;
+	restateNameFloor();
+	updateRowArrangement();
+}
+
+void MinimalReferenceCardView::updateRowArrangement()
+{
+	// A loaded VST unit says on one line its path, name, format, bus
+	// expression, status and commands; across a 960 px row that overflowed
+	// (the Auto expression scrolled sideways) or squeezed the name. In a row
+	// it prints two lines: identity, status and commands on the first, the
+	// location prefix, the bus expression and the readout on the second. A
+	// unit that is not loaded has no format token and keeps its one line.
+	const bool wanted = inRow && busStrip != nullptr && !busStrip->isHidden() && !formatToken->isHidden();
+	if (wanted == twoLines)
+		return;
+	twoLines = wanted;
+	if (twoLines)
+	{
+		pathLayout->removeWidget(dirLabel);
+		lineLayout->removeWidget(busStrip);
+		lineLayout->removeWidget(readoutLabel);
+		wiringLayout->setContentsMargins(0, 2, 0, 0);
+		wiringLayout->addWidget(dirLabel, 0, Qt::AlignVCenter);
+		wiringLayout->addWidget(busStrip, 0, Qt::AlignVCenter);
+		wiringLayout->addWidget(readoutLabel, 0, Qt::AlignVCenter);
+		wiringLayout->addStretch(1);
+	}
+	else
+	{
+		// The layout items go; the widgets they held move back to line 1.
+		while (QLayoutItem* item = wiringLayout->takeAt(0))
+			delete item;
+		wiringLayout->setContentsMargins(0, 0, 0, 0);
+		pathLayout->insertWidget(0, dirLabel, 0, Qt::AlignVCenter);
+		const int status = lineLayout->indexOf(statusLabel);
+		lineLayout->insertWidget(status, readoutLabel, 0, Qt::AlignVCenter);
+		lineLayout->insertWidget(lineLayout->indexOf(statusLabel), busStrip, 0, Qt::AlignVCenter);
+	}
+}
+
+void MinimalReferenceCardView::restateNameFloor()
+{
+	// Across one row the line competes with the left column and the name
+	// cell, and a payload squeezed to a few characters says nothing. The
+	// floor is the whole name or 12 characters of it, whichever is narrower;
+	// past that the location prefix gives way first (it has no floor), and
+	// the name elides only after it. A card keeps the old floor (none). The
+	// Subwoofer Routing line has no floor either: its facts never elide and,
+	// in the longer languages, fill the row beside its three commands.
+	if (!inRow || cardKind == QStringLiteral("subwoofer"))
+	{
+		nameLabel->setMinimumWidth(0);
+		return;
+	}
+	// The bold payload weight comes from the sheet, so measure the polished
+	// font.
+	nameLabel->ensurePolished();
+	const QFontMetrics metrics = nameLabel->fontMetrics();
+	const int whole = metrics.horizontalAdvance(nameLabel->fullText());
+	const int twelve = metrics.horizontalAdvance(QString(12, QLatin1Char('0')))
+		+ metrics.horizontalAdvance(QString(QChar(0x2026)));
+	nameLabel->setMinimumWidth(qMin(whole, twelve) + 1);
 }
 
 void MinimalReferenceCardView::restateCommandFloors()
