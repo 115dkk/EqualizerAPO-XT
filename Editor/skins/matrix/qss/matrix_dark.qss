@@ -2128,7 +2128,8 @@ QFrame#FilterCardRow[inlineRow="true"] QWidget#MultiConvolutionMappingArea {
 QLineEdit#ChannelChipAdd:hover,
 QLineEdit#NewChannelAdd:hover {
     border: 1px solid @ACCENT@;
-}/* A Channel row lays every seat of the layout and the add field on its one
+}
+/* A Channel row lays every seat of the layout and the add field on its one
    line. With the card's 8 px side padding the line was wider than the row,
    and the layout squeezed the ALL seat (whose sheet minimum, 24 px, is
    narrower than its legend) down to an ellipsis. In a row a seat keeps

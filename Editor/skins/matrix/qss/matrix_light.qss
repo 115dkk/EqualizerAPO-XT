@@ -2131,7 +2131,8 @@ QFrame#FilterCardRow QComboBox#SendModeCombo:focus,
 QFrame#FilterCardRow QComboBox#SendTargetCombo:on,
 QFrame#FilterCardRow QComboBox#SendModeCombo:on {
     border-color: @ACCENT@;
-}/* A Channel row lays every seat of the layout and the add field on its one
+}
+/* A Channel row lays every seat of the layout and the add field on its one
    line. With the card's 8 px side padding the line was wider than the row,
    and the layout squeezed the ALL seat (whose sheet minimum, 24 px, is
    narrower than its legend) down to an ellipsis. In a row a seat keeps
