@@ -1568,3 +1568,43 @@ QFrame#FilterCardRow QToolButton#DeviceChipMore:focus,
 QFrame#FilterCardRow QToolButton#StageChip:focus {
     border-color: @FOCUS@;
 }
+
+/* ===== Resting outline in the list =====
+   At rest every cap, selector, chip and value field in the filter list
+   shows its outline on all four sides in one colour, a hairline of the
+   muted ink (dark) or the text ink (light). The faint glass edge with its
+   lighter or darker top was lost against the pane on one or more sides,
+   so a field or chip at rest read as loose text. Lit states (hover,
+   press, checked, focus) keep their own rules: every selector here
+   leaves them out, and disabled parts keep their lights-off edge. The
+   painted parts (pick-one controls, VST bus strips, fill cells) take the
+   same colour in StudioSkin.Controls.cpp. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#GraphicEQActionButton:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#VelvetAdvancedToggle:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#VelvetRegenerate:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QPushButton#VSTCardPanelButton:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#ChannelChip:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#NewChannelChip:enabled:!hover:!pressed:!focus,
+QFrame#FilterCardRow QToolButton#DeviceChip:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#DeviceChipMore:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#StageChip:enabled:!hover:!pressed:!checked:!focus,
+QFrame#FilterCardRow QToolButton#StageChipUnknown:enabled,
+QFrame#FilterCardRow QComboBox:enabled:!hover:!focus:!on,
+QFrame#FilterCardRow QAbstractSpinBox[valueScrub="true"]:enabled:!hover:!focus,
+QFrame#FilterCardRow QLabel#EditableValue:enabled:!hover,
+QFrame#FilterCardRow QLineEdit#SendLatencyEdit:enabled:!hover:!focus,
+QFrame#FilterCardRow QLineEdit#ChannelChipAdd:enabled:!hover:!focus,
+QFrame#FilterCardRow QLineEdit#NewChannelAdd:enabled:!hover:!focus {
+    border-color: rgba(24, 32, 51, 0.30);
+}
+/* The header's actions rest as bare glyphs (#456); a row's stacked
+   actions too. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[headerAction="true"]:enabled:!hover:!pressed:!checked:!focus {
+    border-color: transparent;
+}
+/* A broken reference's Locate rests lit; its edge is the accent on four
+   sides. */
+QFrame#FilterCardRow QToolButton#FilterCardIconButton[studioLocate="true"]:enabled:!hover:!pressed:!checked:!focus {
+    border-color: rgba(47, 107, 255, 0.50);
+}
