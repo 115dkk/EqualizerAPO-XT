@@ -1154,6 +1154,7 @@ QLabel#EditableValue {
     font-size: 10pt;
     font-weight: 700;
     qproperty-alignment: 'AlignLeft | AlignVCenter';
+    min-height: 22px; max-height: 22px;
 }
 
 /* Typing into a readout is the value cell's input state: accent rule and
@@ -1167,6 +1168,7 @@ QLineEdit#EditableValueEditor {
     font-size: 10pt;
     font-weight: 700;
     qproperty-alignment: 'AlignLeft | AlignVCenter';
+    min-height: 22px; max-height: 22px;
 }
 /* The Send latency field is a value cell too: sunken fill without a rest
    rule, bold mono, the accent rule on hover and while typing. */
