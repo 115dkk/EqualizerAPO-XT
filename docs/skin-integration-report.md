@@ -104,7 +104,10 @@ line. `--close-save-test` and `--close-save-sweep` open one Editor window,
 which keeps the skin saved on the machine; `--window-skin <id>` names that
 window's skin instead (its light finish), so the run does not depend on the
 machine. A runner has no skin saved and opens the default one, which is why
-CI names Rack for the row runs of these two. Given to a check that opens no
+CI names the skin for the row runs of these two: `close-save-rows-<skin>` for
+each of the five skins and the save sweep in rows under Studio Glass. The
+gate script also fails a row run in which a skin that must draw rows fell back
+to cards (`Get-RowCoverageVerdict`). Given to a check that opens no
 such window, `--window-skin` exits non-zero. `--interface-menu-test` checks
 the Interface menu's mode, skin, restart and shortcut behavior offscreen
 without writing preferences.

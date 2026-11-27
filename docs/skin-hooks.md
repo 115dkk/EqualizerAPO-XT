@@ -123,8 +123,8 @@ The filter list has a second modern presentation, `FilterTable::ModernRows`
 line is one row, with no header strip over a body. A skin opts in with
 `supportsRowMode()`. Under a skin that returns false the table builds cards
 instead (`FilterTable::effectiveRenderMode`), and the Interface menu lists
-the skin under Modern cards only. Hardware Rack is the one skin that returns
-true today.
+the skin under Modern cards only. All five skins return true; the fallback is
+what a new skin gets until it draws rows.
 
 The hook that builds a row is the card's own, `prepareCommandRow`, called
 once per row with `CommandRowInfo::inlineRow == true` (the row widget sets the
