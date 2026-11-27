@@ -1138,23 +1138,57 @@ QLabel#PreampCardCaption {
     letter-spacing: 1px;
     font-size: 10pt;
 }
+/* The knob cards' readouts (Preamp, Delay, all-pass) are value cells like
+   the parametric filter's: the same sunken fill, no rule at rest, the same
+   padding, 10pt bold mono, left-aligned (rule 5). They were a taller cell
+   with more padding, a larger face, centred text and, in the light finish,
+   a grey fill of their own, so the Preamp's number stood out from every
+   other field on the board. */
 QLabel#EditableValue {
-    background: #EBEBEB;
+    background: @GRAPH@;
     color: @TEXT@;
     border: 1px solid transparent;
     border-radius: 0;
-    padding: 6px 10px;
+    padding: 2px 6px;
     font-family: @MONO_STACK@;
+    font-size: 10pt;
     font-weight: 700;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
 }
 
+/* Typing into a readout is the value cell's input state: accent rule and
+   the focused cell's fill, at the cell's own size. */
 QLineEdit#EditableValueEditor {
     background: #EBEBEB;
     border: 1px solid @ACCENT@;
     border-radius: 0;
-    padding: 6px 10px;
+    padding: 2px 6px;
     font-family: @MONO_STACK@;
+    font-size: 10pt;
     font-weight: 700;
+    qproperty-alignment: 'AlignLeft | AlignVCenter';
+}
+/* The Send latency field is a value cell too: sunken fill without a rest
+   rule, bold mono, the accent rule on hover and while typing. */
+QLineEdit#SendLatencyEdit {
+    background: @GRAPH@;
+    border: 1px solid transparent;
+    padding: 2px 6px;
+    font-family: @MONO_STACK@;
+    font-size: 10pt;
+    font-weight: 700;
+}
+QLineEdit#SendLatencyEdit:hover {
+    border-color: @ACCENT@;
+}
+QLineEdit#SendLatencyEdit:focus {
+    border: 1px solid @ACCENT@;
+    background: #EBEBEB;
+}
+QLineEdit#SendLatencyEdit:disabled {
+    color: #9DB4BD;
+    background: #DDE7EA;
+    border: 1px solid transparent;
 }
 /* ===== GraphicEQ card =====
    The response plot is painted whole by MatrixSkin::paintGraphicEqPlot;
@@ -1922,7 +1956,8 @@ QFrame#FilterCardRow[inlineRow="true"] AudioKnob#DelayCardKnob,
 QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardFrequencyKnob,
 QFrame#FilterCardRow[inlineRow="true"] AudioKnob#AllPassCardWidthKnob {
     min-width: 66px; max-width: 66px; min-height: 66px; max-height: 66px;
-}/* The coordinate cell is one grid pitch high on the band's centre line,
+}
+/* The coordinate cell is one grid pitch high on the band's centre line,
    level with the power key; stretched to the band it stood as a tall
    empty box beside the row. It is wide enough for a three-character
    coordinate ("C10"), so the power key, the actions and the name cell keep
@@ -1949,11 +1984,7 @@ QFrame#FilterCardRow[inlineRow="true"] QComboBox[paramSelector="true"]::down-arr
 QFrame#FilterCardRow[inlineRow="true"] QComboBox[filterSelector="true"]::down-arrow {
     margin-right: 2px;
 }
-/* The knob cards' value readouts take the value cell's padding and size in
-   a row, so a caption and its value fit beside the 66 px encoder. */
-QFrame#FilterCardRow[inlineRow="true"] QLabel#EditableValue {
-    padding: 2px 6px; font-size: 10pt;
-}/* The row is one ground, and the crosspoint hover washes the whole row
+/* The row is one ground, and the crosspoint hover washes the whole row
    (MatrixSkin::paintCardChrome). The editor's scroll wrapper, its viewport
    and the editor root took the window ground from the generic scroll-area
    and widget rules, so under the pointer the wash showed round the left
@@ -1963,7 +1994,8 @@ QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll,
 QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll > QWidget,
 QFrame#FilterCardRow[inlineRow="true"] QScrollArea#FilterCardEditorScroll > QWidget > QWidget {
     background: transparent;
-}/* The Send row's two selectors keep less air before their text and less
+}
+/* The Send row's two selectors keep less air before their text and less
    room around the caret, so the row's first line (target, mode and the
    latency switch) stays inside a 960 px window in French and German too. */
 QFrame#FilterCardRow[inlineRow="true"] QComboBox#SendTargetCombo,
