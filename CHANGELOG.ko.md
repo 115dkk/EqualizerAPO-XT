@@ -8,6 +8,12 @@ TheFireKahuna의 equalizerAPO64 트리에서 포크된 뒤(마지막 업스트�
 
 ## Unreleased
 
+- **Editor, 프랑스어: 필터 카드가 가로로 스크롤되지 않습니다.** 프랑스어에서는
+  필터 종류의 이름이 다른 언어보다 훨씬 길어, 파라메트릭 필터 카드가 모든
+  스킨에서 필터 목록보다 넓었습니다. 이제 종류를 짧은 이름으로 표시하고
+  (Crête, Passe-bas, Plateau haut, Coupe-bande 등) 카드가 목록 안에 들어갑니다.
+  ([#548](https://github.com/115dkk/EqualizerAPO-XT/pull/548))
+
 ## v2.86.1 — 2026-11-27
 
 - **Editor: Hardware Rack 스킨의 단추가 네 면의 선을 모두 표시하고, 높이가

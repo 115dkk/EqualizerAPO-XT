@@ -14,6 +14,13 @@ tags are clean `vX.Y.Z` names. Installers for every version are on the
 
 ## Unreleased
 
+- **Editor, French: a filter card no longer scrolls sideways.** In French
+  the card of a parametric filter was wider than the filter list in every
+  skin, because the names of the filter types were much longer than in the
+  other languages. The types now go by their short names (Crête, Passe-bas,
+  Plateau haut, Coupe-bande and so on), and the card fits.
+  ([#548](https://github.com/115dkk/EqualizerAPO-XT/pull/548))
+
 ## v2.86.1 — 2026-11-27
 
 - **Editor: the Hardware Rack skin's buttons show all four edges, and they
