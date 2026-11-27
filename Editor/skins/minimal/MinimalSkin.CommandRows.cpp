@@ -7,11 +7,15 @@
 #include "MinimalSkin.h"
 
 #include <QComboBox>
+#include <QEvent>
 #include <QFontMetrics>
 #include <QHBoxLayout>
 #include <QLabel>
+#include <QLineEdit>
 #include <QPainter>
 #include <QSpacerItem>
+#include <QToolButton>
+#include <QVBoxLayout>
 #include <QWidget>
 #include <QtMath>
 
@@ -50,6 +54,38 @@ QString minimalTypeGlyph(const QString& type)
 	// /utf-8 flag is set for MSVC).
 	return QString(QChar(0x00B7));
 }
+
+// A chip never elides its label. The sheet's 14 px floor (one-letter seats
+// must not collapse into slivers) let a crowded Channel row squeeze the ALL
+// chip to an ellipsis, so in a row each chip's floor is its whole word. The
+// editor rebuilds its chips when the channels in scope change, so the floor
+// is restated whenever the editor lays itself out again.
+class RowChipFloor final : public QObject
+{
+public:
+	using QObject::QObject;
+
+	bool eventFilter(QObject* watched, QEvent* event) override
+	{
+		if (event->type() == QEvent::LayoutRequest || event->type() == QEvent::Show)
+		{
+			if (QWidget* editor = qobject_cast<QWidget*>(watched))
+				restate(editor);
+		}
+		return QObject::eventFilter(watched, event);
+	}
+
+	static void restate(QWidget* editor)
+	{
+		for (QToolButton* chip : editor->findChildren<QToolButton*>(QStringLiteral("ChannelChip")))
+		{
+			chip->ensurePolished();
+			const int word = chip->sizeHint().width();
+			if (chip->minimumWidth() != word)
+				chip->setMinimumWidth(word);
+		}
+	}
+};
 }
 
 QString MinimalSkin::cardFrameStyle(const CommandRowInfo& info, const SkinTokens& tokens) const
@@ -178,6 +214,62 @@ void MinimalSkin::prepareCommandRow(const CommandRowInfo& info, QWidget* card, Q
 					if (QLayout* stack = block->layout())
 						stack->setSpacing(3);
 				}
+			}
+			if (QWidget* channels = body->findChild<QWidget*>(QStringLiteral("ChannelCardEditor")))
+			{
+				// Ten seats, ALL and the add-a-seat prompt did not share a
+				// 960 px row in French and German without cutting a label, so
+				// in a row the prompt takes a second line under the chips, the
+				// way the Device chips wrap: [ALL][seats] over [prompt]. Two
+				// 24 px lines stay inside the row's band, so the row stays
+				// 84 px tall. The seats stand 4 px apart instead of 6.
+				QBoxLayout* line = qobject_cast<QBoxLayout*>(channels->layout());
+				QLineEdit* prompt = channels->findChild<QLineEdit*>(QStringLiteral("ChannelChipAdd"));
+				if (line != nullptr && prompt != nullptr && line->indexOf(prompt) >= 0)
+				{
+					QHBoxLayout* seatsLine = new QHBoxLayout();
+					seatsLine->setContentsMargins(0, 0, 0, 0);
+					seatsLine->setSpacing(4);
+					QHBoxLayout* promptLine = new QHBoxLayout();
+					promptLine->setContentsMargins(0, 0, 0, 0);
+					// Everything before the prompt (ALL and the seats' own
+					// layout) moves to the first line, in order.
+					while (line->count() > 0 && line->itemAt(0)->widget() != prompt)
+					{
+						QLayoutItem* item = line->takeAt(0);
+						if (QLayout* seats = item->layout())
+						{
+							seats->setSpacing(4);
+							seatsLine->addLayout(seats);
+						}
+						else if (QWidget* widget = item->widget())
+						{
+							seatsLine->addWidget(widget);
+							delete item;
+						}
+						else
+							delete item;
+					}
+					seatsLine->addStretch(1);
+					line->removeWidget(prompt);
+					// On its own line the prompt has room for its whole
+					// placeholder, which the card's 124 px cap cut in French
+					// and German: the text, the 6 px padding on each side,
+					// the hairline and the line edit's 2 px text margins.
+					prompt->ensurePolished();
+					prompt->setMaximumWidth(qMax(prompt->maximumWidth(),
+						prompt->fontMetrics().horizontalAdvance(prompt->placeholderText()) + 12 + 2 + 4 + 2));
+					promptLine->addWidget(prompt);
+					promptLine->addStretch(1);
+					QVBoxLayout* lines = new QVBoxLayout();
+					lines->setContentsMargins(0, 0, 0, 0);
+					lines->setSpacing(4);
+					lines->addLayout(seatsLine);
+					lines->addLayout(promptLine);
+					line->insertLayout(0, lines, 1);
+				}
+				channels->installEventFilter(new RowChipFloor(channels));
+				RowChipFloor::restate(channels);
 			}
 			// The Send line's device name is a data column: across one row
 			// it gives way first (shared article 4). The combo sizes itself to
